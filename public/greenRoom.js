@@ -421,7 +421,6 @@ class DownstairsRoom {
         // Shadow
         drawPixelRect(ctx, x + 10, y + 6, 28, 3, 'rgba(0,0,0,0.3)');
     }
-    }
 }
 
 window.DownstairsRoom = DownstairsRoom;
