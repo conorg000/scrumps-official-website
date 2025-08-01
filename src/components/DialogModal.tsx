@@ -40,7 +40,7 @@ export const DialogModal: React.FC<DialogModalProps> = ({
   const isLastText = currentTextIndex >= text.length - 1;
 
   return (
-    <div className="fixed inset-0 z-60 flex flex-col">
+    <div className="fixed inset-0 z-[100] flex flex-col">
       {/* Image section - takes up most of the screen if image is provided */}
       {imageSrc && (
         <div className="flex-1 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -57,7 +57,7 @@ export const DialogModal: React.FC<DialogModalProps> = ({
       )}
       
       {/* Dialog section - always at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 z-70">
+      <div className="fixed bottom-0 left-0 right-0 p-4 z-[100]">
         <div className="max-w-2xl mx-auto bg-gray-900 border-2 border-gray-600 rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm">
           {/* Main dialog content - horizontal layout */}
           <div className="flex items-center p-4 gap-4">
