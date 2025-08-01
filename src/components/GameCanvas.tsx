@@ -16,6 +16,7 @@ export const GameCanvas: React.FC = () => {
   const [nearBoxingGloves, setNearBoxingGloves] = useState(false);
   const [nearTree, setNearTree] = useState(false);
   const [nearKiddyPool, setNearKiddyPool] = useState(false);
+  const [atTopEdge, setAtTopEdge] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -235,6 +236,27 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Check if player is at top edge of downstairs room
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkTopEdge = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'downstairs') {
+        setAtTopEdge(false);
+        return;
+      }
+
+      const playerY = Math.floor(player.gridY);
+      
+      // Check if player is at the top edge (y = 0)
+      setAtTopEdge(playerY === 0);
+    };
+
+    const interval = setInterval(checkTopEdge, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   // Handle dialog dismissal with keyboard
   useEffect(() => {
     // Handle dialog dismissal with keyboard
@@ -360,6 +382,12 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleGoToBackyard = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('mainRoom');
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
@@ -433,6 +461,16 @@ export const GameCanvas: React.FC = () => {
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO DOWNSTAIRS
+        </button>
+      )}
+      
+      {/* Go to Backyard Button - appears when at top edge of downstairs room */}
+      {!isLoading && !dialogState.isVisible && atTopEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+        <button
+          onClick={handleGoToBackyard}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO BACKYARD
         </button>
       )}
       
