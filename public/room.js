@@ -580,6 +580,29 @@ class Room {
         ctx.lineTo(waterPoints[3].x, waterPoints[3].y);
         ctx.closePath();
         ctx.fill();
+        
+        // Draw floating balls on top of the water
+        const balls = [
+            { x: centerX - 20, y: centerY - 8, size: 6, color: '#ff4444' },   // Red ball
+            { x: centerX + 15, y: centerY - 12, size: 5, color: '#00cccc' },  // Teal ball
+            { x: centerX - 8, y: centerY + 10, size: 7, color: '#4444ff' },   // Blue ball
+            { x: centerX + 25, y: centerY + 5, size: 5, color: '#44ff44' },   // Green ball
+            { x: centerX - 30, y: centerY + 8, size: 8, color: '#ffff44' }    // Yellow ball
+        ];
+        
+        balls.forEach(ball => {
+            // Ball shadow (slightly offset)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(ball.x + 1, ball.y + 1, ball.size, ball.size);
+            
+            // Main ball
+            ctx.fillStyle = ball.color;
+            ctx.fillRect(ball.x, ball.y, ball.size, ball.size);
+            
+            // Highlight for glossy effect
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(ball.x + 1, ball.y + 1, Math.max(1, ball.size - 3), Math.max(1, ball.size - 3));
+        });
     }
 }
 
