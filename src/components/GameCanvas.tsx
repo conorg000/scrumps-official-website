@@ -212,9 +212,10 @@ export const GameCanvas: React.FC = () => {
   const handleExamineBoxingRing = () => {
     if (gameRef.current && gameRef.current.showDialog) {
       gameRef.current.showDialog("Scrump", [
-        "oh my god this isn't just any ordinary backyard boxing ring",
-        "this is *the* boxing ring from the legendary walterweight chicken poultry championship!",
-        "The Scrumps debuted their EP First Peak right here!"
+        "Oh my god this isn't any old backyard boxing ring...",
+        "This is the legendary walterweight chicken poultry championship ring!",
+        "The Scrumps debuted their EP First Peak here!",
+        "fucking cool man"
       ], "/boxing-ring.jpg", "Boxing Ring");
     }
   };
