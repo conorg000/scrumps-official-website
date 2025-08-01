@@ -34,14 +34,16 @@ export const GameCanvas: React.FC = () => {
       const ringHeight = 6;
 
       // Check if player is touching or inside the boxing ring area
-      const playerX = Math.floor(player.x);
-      const playerY = Math.floor(player.y);
+      // Use both current position and grid position for better detection
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
       
       const isNear = (
         playerX >= ringX && playerX < ringX + ringWidth &&
         playerY >= ringY && playerY < ringY + ringHeight
       );
 
+      console.log('Player position:', playerX, playerY, 'Near ring:', isNear);
       setNearBoxingRing(isNear);
     };
 
