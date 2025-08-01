@@ -101,7 +101,7 @@ export const DialogModal: React.FC<DialogModalProps> = ({
             
             {/* Continue button */}
             <div className="flex-shrink-0" onClick={handleContinue}>
-              <div className="bg-yellow-500 hover:bg-yellow-400 text-black p-2 rounded-lg transition-colors cursor-pointer animate-pulse">
+              <div className="bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors cursor-pointer animate-pulse">
                 {isLastText ? (
                   <span className="text-lg">🖕</span>
                 ) : (
