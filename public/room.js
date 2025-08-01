@@ -41,7 +41,7 @@ class Room {
         this.addFurniture({ x: 6, y: 12, width: 1, height: 1, type: 'boxing_gloves' });
         
         // Kiddy pool in open space
-        this.addFurniture({ x: 8, y: 8, width: 3, height: 3, type: 'kiddy_pool' });
+        this.addFurniture({ x: 5, y: 8, width: 3, height: 3, type: 'kiddy_pool' });
     }
 
     addFurniture(furniture) {
