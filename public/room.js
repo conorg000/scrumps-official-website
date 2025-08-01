@@ -39,6 +39,9 @@ class Room {
         this.addFurniture({ x: 12, y: 2, width: 1, height: 1, type: 'boxing_gloves' });
         this.addFurniture({ x: 15, y: 9, width: 1, height: 1, type: 'beer_bottle' });
         this.addFurniture({ x: 6, y: 12, width: 1, height: 1, type: 'boxing_gloves' });
+        
+        // Kiddy pool in open space
+        this.addFurniture({ x: 8, y: 8, width: 3, height: 3, type: 'kiddy_pool' });
     }
 
     addFurniture(furniture) {
@@ -141,6 +144,9 @@ class Room {
                     break;
                 case 'guitar':
                     this.drawGuitar(ctx, drawX, drawY);
+                    break;
+                case 'kiddy_pool':
+                    this.drawKiddyPool(ctx, drawX, drawY, furniture.width, furniture.height);
                     break;
             }
         });
@@ -478,6 +484,58 @@ class Room {
         
         // Shadow
         drawPixelRect(ctx, x + 12, y + 4, 24, 3, COLORS.SHADOW);
+    }
+    
+    drawKiddyPool(ctx, x, y, width, height) {
+        // Kiddy pool - circular inflatable pool with water
+        const poolRim = '#ff69b4'; // Hot pink inflatable rim
+        const poolRimDark = '#dc143c'; // Darker pink for shading
+        const waterColor = '#00bfff'; // Bright blue water
+        const waterDark = '#0080ff'; // Darker blue for depth
+        const waterLight = '#87ceeb'; // Light blue for highlights
+        
+        // Pool rim (inflatable border) - draw as rounded rectangle outline
+        const rimThickness = 6;
+        
+        // Outer rim
+        drawPixelRect(ctx, x + 6, y - 6, 36, rimThickness, poolRim);
+        drawPixelRect(ctx, x + 6, y + 30, 36, rimThickness, poolRim);
+        drawPixelRect(ctx, x + 6, y - 6, rimThickness, 42, poolRim);
+        drawPixelRect(ctx, x + 36, y - 6, rimThickness, 42, poolRim);
+        
+        // Corner pieces for rounded look
+        drawPixelRect(ctx, x + 12, y - 12, 24, rimThickness, poolRim);
+        drawPixelRect(ctx, x + 12, y + 36, 24, rimThickness, poolRim);
+        drawPixelRect(ctx, x, y, rimThickness, 30, poolRim);
+        drawPixelRect(ctx, x + 42, y, rimThickness, 30, poolRim);
+        
+        // Rim shading
+        drawPixelRect(ctx, x + 36, y - 3, 6, 36, poolRimDark);
+        drawPixelRect(ctx, x + 9, y + 33, 36, 3, poolRimDark);
+        
+        // Water surface - circular-ish shape
+        drawPixelRect(ctx, x + 12, y + 6, 24, 18, waterColor);
+        drawPixelRect(ctx, x + 9, y + 9, 30, 12, waterColor);
+        drawPixelRect(ctx, x + 15, y + 3, 18, 24, waterColor);
+        drawPixelRect(ctx, x + 18, y, 12, 30, waterColor);
+        
+        // Water depth/shadows
+        drawPixelRect(ctx, x + 30, y + 9, 9, 12, waterDark);
+        drawPixelRect(ctx, x + 15, y + 21, 18, 6, waterDark);
+        drawPixelRect(ctx, x + 21, y + 24, 12, 3, waterDark);
+        
+        // Water highlights/ripples
+        drawPixelRect(ctx, x + 15, y + 6, 12, 3, waterLight);
+        drawPixelRect(ctx, x + 12, y + 12, 6, 3, waterLight);
+        drawPixelRect(ctx, x + 24, y + 15, 9, 3, waterLight);
+        
+        // Small water ripples
+        drawPixelRect(ctx, x + 18, y + 9, 3, 1, waterLight);
+        drawPixelRect(ctx, x + 27, y + 18, 3, 1, waterLight);
+        drawPixelRect(ctx, x + 21, y + 21, 3, 1, waterLight);
+        
+        // Pool shadow
+        drawPixelRect(ctx, x + 3, y + 39, 42, 4, COLORS.SHADOW);
     }
 }
 
