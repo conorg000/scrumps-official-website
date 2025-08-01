@@ -154,7 +154,7 @@ export const GameCanvas: React.FC = () => {
     const interval = setInterval(checkProximity, 100);
     return () => clearInterval(interval);
   }, [isLoading]);
-  useEffect(() => {
+
   // Check if player is at bottom edge of main room
   useEffect(() => {
     if (!gameRef.current || isLoading) return;
@@ -176,6 +176,8 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Handle dialog dismissal with keyboard
+  useEffect(() => {
     // Handle dialog dismissal with keyboard
     const handleKeyPress = (e: KeyboardEvent) => {
       if (dialogState.isVisible) {
