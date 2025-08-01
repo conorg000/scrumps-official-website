@@ -487,55 +487,47 @@ class Room {
     }
     
     drawKiddyPool(ctx, x, y, width, height) {
-        // Kiddy pool - circular inflatable pool with water
+        // Isometric kiddy pool - matches the game's perspective
         const poolRim = '#ff69b4'; // Hot pink inflatable rim
         const poolRimDark = '#dc143c'; // Darker pink for shading
         const waterColor = '#00bfff'; // Bright blue water
         const waterDark = '#0080ff'; // Darker blue for depth
-        const waterLight = '#87ceeb'; // Light blue for highlights
         
-        // Pool rim (inflatable border) - draw as rounded rectangle outline
-        const rimThickness = 6;
+        // Draw isometric shadow for the entire 3x3 pool area
+        const shadowOffset = 6;
+        const shadowPoints = [
+            { x: x + 36 + shadowOffset, y: y + 36 + shadowOffset },      // top
+            { x: x + 72 + shadowOffset, y: y + 48 + shadowOffset },      // right
+            { x: x + 36 + shadowOffset, y: y + 60 + shadowOffset },      // bottom
+            { x: x + shadowOffset, y: y + 48 + shadowOffset }            // left
+        ];
         
-        // Outer rim
-        drawPixelRect(ctx, x + 6, y - 6, 36, rimThickness, poolRim);
-        drawPixelRect(ctx, x + 6, y + 30, 36, rimThickness, poolRim);
-        drawPixelRect(ctx, x + 6, y - 6, rimThickness, 42, poolRim);
-        drawPixelRect(ctx, x + 36, y - 6, rimThickness, 42, poolRim);
+        ctx.fillStyle = COLORS.SHADOW;
+        ctx.beginPath();
+        ctx.moveTo(shadowPoints[0].x, shadowPoints[0].y);
+        ctx.lineTo(shadowPoints[1].x, shadowPoints[1].y);
+        ctx.lineTo(shadowPoints[2].x, shadowPoints[2].y);
+        ctx.lineTo(shadowPoints[3].x, shadowPoints[3].y);
+        ctx.closePath();
+        ctx.fill();
         
-        // Corner pieces for rounded look
-        drawPixelRect(ctx, x + 12, y - 12, 24, rimThickness, poolRim);
-        drawPixelRect(ctx, x + 12, y + 36, 24, rimThickness, poolRim);
-        drawPixelRect(ctx, x, y, rimThickness, 30, poolRim);
-        drawPixelRect(ctx, x + 42, y, rimThickness, 30, poolRim);
-        
-        // Rim shading
-        drawPixelRect(ctx, x + 36, y - 3, 6, 36, poolRimDark);
-        drawPixelRect(ctx, x + 9, y + 33, 36, 3, poolRimDark);
-        
-        // Water surface - circular-ish shape
-        drawPixelRect(ctx, x + 12, y + 6, 24, 18, waterColor);
-        drawPixelRect(ctx, x + 9, y + 9, 30, 12, waterColor);
-        drawPixelRect(ctx, x + 15, y + 3, 18, 24, waterColor);
-        drawPixelRect(ctx, x + 18, y, 12, 30, waterColor);
-        
-        // Water depth/shadows
-        drawPixelRect(ctx, x + 30, y + 9, 9, 12, waterDark);
-        drawPixelRect(ctx, x + 15, y + 21, 18, 6, waterDark);
-        drawPixelRect(ctx, x + 21, y + 24, 12, 3, waterDark);
-        
-        // Water highlights/ripples
-        drawPixelRect(ctx, x + 15, y + 6, 12, 3, waterLight);
-        drawPixelRect(ctx, x + 12, y + 12, 6, 3, waterLight);
-        drawPixelRect(ctx, x + 24, y + 15, 9, 3, waterLight);
-        
-        // Small water ripples
-        drawPixelRect(ctx, x + 18, y + 9, 3, 1, waterLight);
-        drawPixelRect(ctx, x + 27, y + 18, 3, 1, waterLight);
-        drawPixelRect(ctx, x + 21, y + 21, 3, 1, waterLight);
-        
-        // Pool shadow
-        drawPixelRect(ctx, x + 3, y + 39, 42, 4, COLORS.SHADOW);
+        // Draw the 3x3 grid of isometric tiles for the pool
+        for (let ry = 0; ry < height; ry++) {
+            for (let rx = 0; rx < width; rx++) {
+                const tileScreenPos = isometricToScreen(rx, ry);
+                const tileX = x + tileScreenPos.x - 24; // Adjust for tile centering
+                const tileY = y + tileScreenPos.y - 12; // Adjust for tile centering
+                
+                // Center tile is water, others are rim
+                if (rx === 1 && ry === 1) {
+                    // Water tile in the center
+                    this.drawIsometricTile(ctx, tileX, tileY, waterColor, waterDark);
+                } else {
+                    // Rim tiles around the edge
+                    this.drawIsometricTile(ctx, tileX, tileY, poolRim, poolRimDark);
+                }
+            }
+        }
     }
 }
 
