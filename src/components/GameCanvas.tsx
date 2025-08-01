@@ -38,6 +38,7 @@ export const GameCanvas: React.FC = () => {
     const initGame = async () => {
       try {
         const scripts = ['/utils.js', '/player.js', '/room.js', '/controls.js', '/game.js'];
+        const scripts = ['/utils.js', '/player.js', '/room.js', '/greenRoom.js', '/controls.js', '/game.js'];
         const totalScripts = scripts.length;
         let loadedScripts = 0;
         
@@ -219,6 +220,14 @@ export const GameCanvas: React.FC = () => {
       ], "/boxing-ring.jpg", "Boxing Ring");
     }
   };
+
+  const handleSceneChange = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      const newScene = gameRef.current.currentScene === 'mainRoom' ? 'greenRoom' : 'mainRoom';
+      gameRef.current.loadScene(newScene);
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
@@ -242,6 +251,16 @@ export const GameCanvas: React.FC = () => {
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           EXAMINE BOXING RING
+        </button>
+      )}
+      
+      {/* Scene Switch Button */}
+      {!isLoading && !dialogState.isVisible && (
+        <button
+          onClick={handleSceneChange}
+          className="fixed top-4 left-4 bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-green-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          {gameRef.current?.currentScene === 'mainRoom' ? 'GO TO GREEN ROOM' : 'GO TO MAIN ROOM'}
         </button>
       )}
       

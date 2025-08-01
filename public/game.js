@@ -16,6 +16,7 @@ class Game {
         // Game objects
         this.player = new Player(10, 7);
         this.room = new Room();
+        this.currentScene = 'mainRoom';
         window.room = this.room; // Make room global for collision checking
         this.controls = new Controls(this.player);
         
@@ -156,6 +157,36 @@ class Game {
         this.player.draw(this.ctx, this.cameraX, this.cameraY);
         
         // Dialog is now handled by React component
+    }
+    
+    loadScene(sceneName) {
+        this.currentScene = sceneName;
+        
+        switch (sceneName) {
+            case 'mainRoom':
+                this.room = new Room();
+                this.player.gridX = 10;
+                this.player.gridY = 7;
+                break;
+            case 'greenRoom':
+                this.room = new GreenRoom();
+                this.player.gridX = 10;
+                this.player.gridY = 7;
+                break;
+            default:
+                console.warn(`Unknown scene: ${sceneName}`);
+                return;
+        }
+        
+        // Reset player position
+        this.player.x = this.player.gridX;
+        this.player.y = this.player.gridY;
+        this.player.targetX = this.player.gridX;
+        this.player.targetY = this.player.gridY;
+        this.player.isMoving = false;
+        
+        // Update global room reference
+        window.room = this.room;
     }
     
     // Dialog methods will be overridden by React component
