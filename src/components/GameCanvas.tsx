@@ -10,6 +10,7 @@ export const GameCanvas: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
+  const [nearBoxingRing, setNearBoxingRing] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -108,6 +109,50 @@ export const GameCanvas: React.FC = () => {
     };
   }, []);
 
+  // Check proximity to boxing ring
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkProximity = () => {
+      const player = gameRef.current.player;
+      if (!player) return;
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+      
+      // Boxing ring is at x: 14-19, y: 0-5
+      const ringX = 14;
+      const ringY = 0;
+      const ringWidth = 6;
+      const ringHeight = 6;
+      
+      // Check if player is adjacent to (touching) the boxing ring
+      let touchingRing = false;
+      
+      // Check all 8 adjacent cells around the player
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue; // Skip player's own cell
+          
+          const adjacentX = playerX + dx;
+          const adjacentY = playerY + dy;
+          
+          // Check if this adjacent cell is part of the boxing ring
+          if (adjacentX >= ringX && adjacentX < ringX + ringWidth &&
+              adjacentY >= ringY && adjacentY < ringY + ringHeight) {
+            touchingRing = true;
+            break;
+          }
+        }
+        if (touchingRing) break;
+      }
+      
+      setNearBoxingRing(touchingRing);
+    };
+
+    const interval = setInterval(checkProximity, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
   useEffect(() => {
     // Handle dialog dismissal with keyboard
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -164,6 +209,16 @@ export const GameCanvas: React.FC = () => {
     setJoystickDirection(direction);
   };
 
+  const handleExamineBoxingRing = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Scrump", [
+        "This is a professional boxing ring!",
+        "The ropes look sturdy and the mat is well-worn.",
+        "I wonder who has fought here before...",
+        "Maybe I should try boxing sometime!"
+      ], "/boxing-ring.jpg", "Boxing Ring");
+    }
+  };
   return (
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
@@ -179,6 +234,17 @@ export const GameCanvas: React.FC = () => {
           WebkitTouchCallout: 'none'
         }}
       />
+      
+      {/* Examine Boxing Ring Button */}
+      {!isLoading && !dialogState.isVisible && nearBoxingRing && (
+        <button
+          onClick={handleExamineBoxingRing}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          EXAMINE BOXING RING
+        </button>
+      )}
+      
       {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
       
       <DialogModal
