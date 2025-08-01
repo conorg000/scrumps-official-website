@@ -11,6 +11,7 @@ export const GameCanvas: React.FC = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
   const [nearBoxingRing, setNearBoxingRing] = useState(false);
+  const [atBottomEdge, setAtBottomEdge] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -154,6 +155,27 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
   useEffect(() => {
+  // Check if player is at bottom edge of main room
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkBottomEdge = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'mainRoom') {
+        setAtBottomEdge(false);
+        return;
+      }
+
+      const playerY = Math.floor(player.gridY);
+      
+      // Check if player is at the bottom edge (y = 14, since room height is 15)
+      setAtBottomEdge(playerY === 14);
+    };
+
+    const interval = setInterval(checkBottomEdge, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
     // Handle dialog dismissal with keyboard
     const handleKeyPress = (e: KeyboardEvent) => {
       if (dialogState.isVisible) {
@@ -222,8 +244,14 @@ export const GameCanvas: React.FC = () => {
 
   const handleSceneChange = () => {
     if (gameRef.current && gameRef.current.loadScene) {
-      const newScene = gameRef.current.currentScene === 'mainRoom' ? 'greenRoom' : 'mainRoom';
+      const newScene = gameRef.current.currentScene === 'mainRoom' ? 'downstairs' : 'mainRoom';
       gameRef.current.loadScene(newScene);
+    }
+  };
+
+  const handleGoDownstairs = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('downstairs');
     }
   };
 
@@ -259,7 +287,17 @@ export const GameCanvas: React.FC = () => {
           onClick={handleSceneChange}
           className="fixed top-4 left-4 bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-green-600 transition-all duration-200 hover:scale-105 z-50"
         >
-          {gameRef.current?.currentScene === 'mainRoom' ? 'GO TO GREEN ROOM' : 'GO TO MAIN ROOM'}
+          {gameRef.current?.currentScene === 'mainRoom' ? 'GO DOWNSTAIRS' : 'GO TO MAIN ROOM'}
+        </button>
+      )}
+      
+      {/* Go Downstairs Button - appears when at bottom edge */}
+      {!isLoading && !dialogState.isVisible && atBottomEdge && (
+        <button
+          onClick={handleGoDownstairs}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO DOWNSTAIRS
         </button>
       )}
       
