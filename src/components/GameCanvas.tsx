@@ -283,16 +283,6 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
       
-      {/* Scene Switch Button */}
-      {!isLoading && !dialogState.isVisible && (
-        <button
-          onClick={handleSceneChange}
-          className="fixed top-4 left-4 bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-green-600 transition-all duration-200 hover:scale-105 z-50"
-        >
-          {gameRef.current?.currentScene === 'mainRoom' ? 'GO DOWNSTAIRS' : 'GO TO MAIN ROOM'}
-        </button>
-      )}
-      
       {/* Go Downstairs Button - appears when at bottom edge */}
       {!isLoading && !dialogState.isVisible && atBottomEdge && (
         <button
