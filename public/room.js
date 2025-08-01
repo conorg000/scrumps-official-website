@@ -42,6 +42,16 @@ class Room {
         
         // Kiddy pool in open space
         this.addFurniture({ x: 1, y: 8, width: 3, height: 3, type: 'kiddy_pool' });
+        
+        // Add invisible collision boundaries around the pool rim
+        // Top rim
+        this.addFurniture({ x: 1, y: 7, width: 3, height: 1, type: 'pool_rim' });
+        // Bottom rim  
+        this.addFurniture({ x: 1, y: 11, width: 3, height: 1, type: 'pool_rim' });
+        // Left rim
+        this.addFurniture({ x: 0, y: 8, width: 1, height: 3, type: 'pool_rim' });
+        // Right rim
+        this.addFurniture({ x: 4, y: 8, width: 1, height: 3, type: 'pool_rim' });
     }
 
     addFurniture(furniture) {
@@ -147,6 +157,9 @@ class Room {
                     break;
                 case 'kiddy_pool':
                     this.drawKiddyPool(ctx, drawX, drawY, furniture.width, furniture.height);
+                    break;
+                case 'pool_rim':
+                    // Don't draw anything for invisible collision boundaries
                     break;
             }
         });
