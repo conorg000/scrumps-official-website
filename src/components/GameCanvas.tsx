@@ -19,8 +19,40 @@ export const GameCanvas: React.FC = () => {
   const [exploreModalState, setExploreModalState] = useState({
     isVisible: false,
     imageSrc: '/scrumps-character.png',
-    title: 'Mysterious Scrump',
-    description: 'This appears to be a golden, crispy scrump - a strange creature that has found itself in an unfamiliar outdoor setting.\n\nThe scrump seems confused but determined to explore this new environment. Its wavy, chip-like form glistens in the sunlight as it contemplates the boxing ring and scattered objects around the area.\n\nWhat secrets does this place hold? Only time will tell as our brave scrump ventures forth into the unknown.'
+    title: 'Boxing Ring',
+    description: 'A professional boxing ring stands before you, its blue canvas stretched tight across the square platform. Four red corner posts rise up, connected by white ropes that have seen countless matches.\n\nThe ring looks well-maintained despite being in this outdoor setting. You can almost hear the echoes of past fights - the sound of gloves hitting flesh, the roar of crowds, the referee counting down.\n\nWho built this here? And why? The mystery deepens as you examine the sturdy construction and professional setup. This isn\'t just some makeshift ring - this is the real deal.\n\nPerhaps there are clues nearby that might explain its presence in this strange place.'
+  });
+  const [nearBoxingRing, setNearBoxingRing] = useState(false);
+
+  // Check if player is near boxing ring
+  useEffect(() => {
+    if (!gameRef.current) return;
+
+    const checkProximity = () => {
+      const player = gameRef.current.player;
+      if (!player) return;
+
+      // Boxing ring is at position (14, 0) with size 6x6
+      const ringX = 14;
+      const ringY = 0;
+      const ringWidth = 6;
+      const ringHeight = 6;
+
+      // Check if player is adjacent to or inside the boxing ring area
+      const playerX = Math.floor(player.x);
+      const playerY = Math.floor(player.y);
+      
+      const isNear = (
+        playerX >= ringX - 1 && playerX <= ringX + ringWidth &&
+        playerY >= ringY - 1 && playerY <= ringY + ringHeight
+      );
+
+      setNearBoxingRing(isNear);
+    };
+
+    // Check proximity every frame
+    const interval = setInterval(checkProximity, 100);
+    return () => clearInterval(interval);
   });
 
   useEffect(() => {
@@ -159,13 +191,19 @@ export const GameCanvas: React.FC = () => {
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
       
-      {/* Test button for ExploreModal - remove this later */}
-      {!isLoading && !dialogState.isVisible && (
+      {/* Examine boxing ring button */}
+      {!isLoading && !dialogState.isVisible && nearBoxingRing && (
         <button
-          onClick={() => setExploreModalState(prev => ({ ...prev, isVisible: true }))}
+          onClick={() => setExploreModalState(prev => ({ 
+            ...prev, 
+            isVisible: true,
+            imageSrc: '/scrumps-character.png', // You can change this to a boxing ring image later
+            title: 'Boxing Ring',
+            description: 'A professional boxing ring stands before you, its blue canvas stretched tight across the square platform. Four red corner posts rise up, connected by white ropes that have seen countless matches.\n\nThe ring looks well-maintained despite being in this outdoor setting. You can almost hear the echoes of past fights - the sound of gloves hitting flesh, the roar of crowds, the referee counting down.\n\nWho built this here? And why? The mystery deepens as you examine the sturdy construction and professional setup. This isn\'t just some makeshift ring - this is the real deal.\n\nPerhaps there are clues nearby that might explain its presence in this strange place.'
+          }))}
           className="absolute top-4 left-4 z-40 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm transition-colors"
         >
-          Test Explore Modal
+          Examine boxing ring
         </button>
       )}
       
