@@ -483,6 +483,10 @@ class Room {
         drawPixelRect(ctx, x + 30, y - 16, 2, 16, darkWood);
         
         // Shadow
+        drawPixelRect(ctx, x + 12, y + 6, 28, 3, COLORS.SHADOW);
+    }
+    
+    drawKiddyPool(ctx, x, y, width, height) {
         // Colors for the isometric kiddy pool
         const poolRim = '#ff69b4';      // Pink top surface
         const poolRimSide = '#e05c9e';  // Pink side walls
