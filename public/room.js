@@ -561,7 +561,7 @@ class Room {
         ctx.fill();
         
         // Draw blue water surface (centered 2x2 diamond on top)
-        const waterSize = 48; // 1 tile equivalent for visual balance
+        const waterSize = 72; // 1.5 tile equivalent for larger water area
         const centerX = x + 72; // Center of the 3x3 area
         const centerY = y + 36; // Center of the 3x3 area
         
