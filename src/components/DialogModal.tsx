@@ -57,7 +57,7 @@ export const DialogModal: React.FC<DialogModalProps> = ({
       )}
       
       {/* Dialog section - always at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 p-4">
+      <div className="fixed bottom-0 left-0 right-0 p-4 z-70">
         <div className="max-w-2xl mx-auto bg-gray-900 border-2 border-gray-600 rounded-xl shadow-2xl overflow-hidden backdrop-blur-sm">
           {/* Main dialog content - horizontal layout */}
           <div className="flex items-center p-4 gap-4">
