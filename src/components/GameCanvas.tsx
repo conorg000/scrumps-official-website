@@ -5,6 +5,19 @@ import { DialogModal } from './DialogModal';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gameRef = useRef<any>(null);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
+  const [dialogState, setDialogState] = useState({
+    isVisible: false,
+    characterName: '',
+    text: [] as string[],
+    currentTextIndex: 0,
+    imageSrc: '',
+    imageTitle: ''
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
