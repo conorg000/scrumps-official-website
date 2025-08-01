@@ -109,6 +109,13 @@ export const GameCanvas: React.FC = () => {
               isVisible: false,
               currentTextIndex: 0
             }));
+            // Show dialog simultaneously
+            setDialogState({
+              isVisible: true,
+              characterName: 'Scrump',
+              text: ['ah rockstars'],
+              currentTextIndex: 0
+            });
           };
           
           // Override the canvas element
