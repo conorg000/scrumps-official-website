@@ -1,0 +1,181 @@
+import React, { useRef, useEffect, useState } from 'react';
+import { VirtualJoystick } from './VirtualJoystick';
+import { LoadingScreen } from './LoadingScreen';
+import { DialogModal } from './DialogModal';
+
+export const GameCanvas: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gameRef = useRef<any>(null);
+  const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [dialogState, setDialogState] = useState({
+    isVisible: false,
+    characterName: '',
+    text: [] as string[],
+    currentTextIndex: 0
+  });
+
+  useEffect(() => {
+    // Fake loading for 4 seconds
+    const loadingInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(loadingInterval);
+          setTimeout(() => setIsLoading(false), 500); // Brief delay after 100%
+          return 100;
+        }
+        return prev + 2.5; // Increment by 2.5% every 100ms (4 seconds total)
+      });
+    }, 100);
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Load game scripts dynamically
+    const loadScript = (src: string) => {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    };
+
+    const initGame = async () => {
+      try {
+        // Wait for loading to complete before initializing game
+        if (isLoading) return;
+        
+        const scripts = ['/utils.js', '/player.js', '/room.js', '/controls.js', '/game.js'];
+        for (const script of scripts) {
+          await loadScript(script);
+        }
+
+        // Initialize the game
+        const Game = (window as any).Game;
+        if (Game) {
+          gameRef.current = new Game();
+          
+          // Override dialog system to use React modal
+          gameRef.current.showDialog = (characterName: string, text: string | string[]) => {
+            const textArray = Array.isArray(text) ? text : [text];
+            setDialogState({
+              isVisible: true,
+              characterName,
+              text: textArray,
+              currentTextIndex: 0
+            });
+          };
+          
+          gameRef.current.hideDialog = () => {
+            setDialogState(prev => ({ 
+              ...prev, 
+              isVisible: false,
+              currentTextIndex: 0
+            }));
+          };
+          
+          // Override the canvas element
+          gameRef.current.canvas = canvas;
+          gameRef.current.ctx = canvas.getContext('2d');
+          gameRef.current.ctx.imageSmoothingEnabled = false;
+          gameRef.current.resizeCanvas();
+        }
+      } catch (error) {
+        console.error('Failed to load game scripts:', error);
+      }
+    };
+
+    // Only initialize game after loading is complete
+    if (!isLoading) {
+      initGame();
+    }
+
+    return () => {
+      clearInterval(loadingInterval);
+      // Cleanup
+      if (gameRef.current) {
+        gameRef.current = null;
+      }
+    };
+  }, [isLoading]);
+
+  useEffect(() => {
+    // Handle dialog dismissal with keyboard
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (dialogState.isVisible) {
+        e.preventDefault();
+        handleDialogContinue();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [dialogState.isVisible, dialogState.currentTextIndex, dialogState.text.length]);
+
+  const handleDialogContinue = () => {
+    if (dialogState.currentTextIndex < dialogState.text.length - 1) {
+      // More text to show, go to next
+      setDialogState(prev => ({
+        ...prev,
+        currentTextIndex: prev.currentTextIndex + 1
+      }));
+    } else {
+      // End of dialog, close
+      setDialogState(prev => ({ 
+        ...prev, 
+        isVisible: false,
+        currentTextIndex: 0
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (gameRef.current && joystickDirection) {
+      // Send joystick input to game controls
+      const controls = gameRef.current.controls;
+      if (controls) {
+        controls.movePlayer(joystickDirection);
+      }
+    }
+  }, [joystickDirection]);
+
+  const handleJoystickMove = (direction: string | null) => {
+    setJoystickDirection(direction);
+  };
+
+  return (
+    <div className="relative w-full h-full">
+      {isLoading && <LoadingScreen progress={loadingProgress} />}
+      <canvas
+        ref={canvasRef}
+        className={`absolute top-0 left-0 w-full h-full bg-[#87ceeb] ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}
+        style={{
+          imageRendering: 'pixelated',
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          WebkitTouchCallout: 'none'
+        }}
+      />
+      {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
+      <DialogModal
+        isVisible={dialogState.isVisible}
+        characterName={dialogState.characterName}
+        text={dialogState.text}
+        currentTextIndex={dialogState.currentTextIndex}
+        onClose={() => setDialogState(prev => ({ 
+          ...prev, 
+          isVisible: false,
+          currentTextIndex: 0
+        }))}
+        onNextText={() => setDialogState(prev => ({
+          ...prev,
+          currentTextIndex: prev.currentTextIndex + 1
+        }))}
+      />
+    </div>
+  );
+};
