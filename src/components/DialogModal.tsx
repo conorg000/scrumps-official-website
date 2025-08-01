@@ -103,7 +103,7 @@ export const DialogModal: React.FC<DialogModalProps> = ({
             <div className="flex-shrink-0" onClick={handleContinue}>
               <div className="bg-yellow-500 hover:bg-yellow-400 text-black p-2 rounded-lg transition-colors cursor-pointer animate-pulse">
                 {isLastText ? (
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-black rounded-sm" />
+                  <span className="text-lg">🖕</span>
                 ) : (
                   <ChevronRight size={16} className="sm:w-5 sm:h-5" />
                 )}
