@@ -36,38 +36,26 @@ export const ExploreModal: React.FC<ExploreModalProps> = ({
           <X size={20} />
         </button>
         
-        {/* Image Section */}
-        <div className="relative bg-gray-800 border-b-2 border-gray-600">
-          <div className="aspect-video w-full flex items-center justify-center p-8">
+        {/* Image Section - Takes up most of the modal */}
+        <div className="relative bg-gray-800">
+          <div className="w-full h-[70vh] flex items-center justify-center p-4">
             <img 
               src={imageSrc}
               alt={title}
-              className="max-w-full max-h-full object-contain pixelated"
+              className="w-full h-full object-contain pixelated"
             />
           </div>
         </div>
         
         {/* Content Section */}
-        <div className="p-6">
-          {/* Title */}
-          <h3 className="text-2xl font-bold text-yellow-400 font-mono mb-4">
-            {title}
-          </h3>
-          
+        <div className="p-4">
           {/* Description */}
-          <div className="text-white font-mono leading-relaxed text-sm sm:text-base max-h-60 overflow-y-auto">
+          <div className="text-white font-mono leading-relaxed text-sm sm:text-base text-center">
             {description.split('\n').map((paragraph, index) => (
               <p key={index} className="mb-3 last:mb-0">
                 {paragraph}
               </p>
             ))}
-          </div>
-        </div>
-        
-        {/* Footer with close hint */}
-        <div className="px-6 pb-4">
-          <div className="text-xs text-gray-400 font-mono text-center">
-            Press ESC or click outside to close
           </div>
         </div>
       </div>
