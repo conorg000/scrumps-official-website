@@ -33,13 +33,13 @@ export const GameCanvas: React.FC = () => {
       const ringWidth = 6;
       const ringHeight = 6;
 
-      // Check if player is adjacent to or inside the boxing ring area
+      // Check if player is touching or inside the boxing ring area
       const playerX = Math.floor(player.x);
       const playerY = Math.floor(player.y);
       
       const isNear = (
-        playerX >= ringX - 1 && playerX <= ringX + ringWidth &&
-        playerY >= ringY - 1 && playerY <= ringY + ringHeight
+        playerX >= ringX && playerX < ringX + ringWidth &&
+        playerY >= ringY && playerY < ringY + ringHeight
       );
 
       setNearBoxingRing(isNear);
@@ -206,7 +206,7 @@ export const GameCanvas: React.FC = () => {
             if (gameRef.current) {
               gameRef.current.showDialog(
                 'Scrump',
-                ['ah rockstars'],
+                ['The Scrumps EP debut at The Walterweight Chicken Poultry Championship Feb 2025'],
                 '/boxing-ring.jpg',
                 'Boxing Ring'
               );
@@ -214,7 +214,7 @@ export const GameCanvas: React.FC = () => {
           }}
           className="absolute top-4 right-4 z-40 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm transition-colors"
         >
-          Examine boxing ring
+          Examine Boxing Ring
         </button>
       )}
       
