@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useState } from 'react';
 import { VirtualJoystick } from './VirtualJoystick';
 import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
-import { ExploreModal } from './ExploreModal';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,13 +13,9 @@ export const GameCanvas: React.FC = () => {
     isVisible: false,
     characterName: '',
     text: [] as string[],
-    currentTextIndex: 0
-  });
-  const [exploreModalState, setExploreModalState] = useState({
-    isVisible: false,
-    imageSrc: '/scrumps-character.png',
-    title: 'Boxing Ring',
-    description: 'A professional boxing ring stands before you, its blue canvas stretched tight across the square platform. Four red corner posts rise up, connected by white ropes that have seen countless matches.\n\nThe ring looks well-maintained despite being in this outdoor setting. You can almost hear the echoes of past fights - the sound of gloves hitting flesh, the roar of crowds, the referee counting down.\n\nWho built this here? And why? The mystery deepens as you examine the sturdy construction and professional setup. This isn\'t just some makeshift ring - this is the real deal.\n\nPerhaps there are clues nearby that might explain its presence in this strange place.'
+    currentTextIndex: 0,
+    imageSrc: '',
+    imageTitle: ''
   });
   const [nearBoxingRing, setNearBoxingRing] = useState(false);
 
@@ -93,13 +88,15 @@ export const GameCanvas: React.FC = () => {
           gameRef.current = new Game();
           
           // Override dialog system to use React modal
-          gameRef.current.showDialog = (characterName: string, text: string | string[]) => {
+          gameRef.current.showDialog = (characterName: string, text: string | string[], imageSrc?: string, imageTitle?: string) => {
             const textArray = Array.isArray(text) ? text : [text];
             setDialogState({
               isVisible: true,
               characterName,
               text: textArray,
-              currentTextIndex: 0
+              currentTextIndex: 0,
+              imageSrc: imageSrc || '',
+              imageTitle: imageTitle || ''
             });
           };
           
@@ -107,14 +104,9 @@ export const GameCanvas: React.FC = () => {
             setDialogState(prev => ({ 
               ...prev, 
               isVisible: false,
-              currentTextIndex: 0
-            }));
-            // Show dialog simultaneously
-            setDialogState({
-              isVisible: true,
-              characterName: 'Scrump',
-              text: ['ah rockstars'],
-              currentTextIndex: 0
+              currentTextIndex: 0,
+              imageSrc: '',
+              imageTitle: ''
             });
           };
           
@@ -150,18 +142,25 @@ export const GameCanvas: React.FC = () => {
   useEffect(() => {
     // Handle dialog dismissal with keyboard
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && exploreModalState.isVisible) {
+      if (dialogState.isVisible) {
         e.preventDefault();
-        setExploreModalState(prev => ({ ...prev, isVisible: false }));
-      } else if (dialogState.isVisible) {
-        e.preventDefault();
-        handleDialogContinue();
+        if (e.key === 'Escape') {
+          setDialogState(prev => ({ 
+            ...prev, 
+            isVisible: false,
+            currentTextIndex: 0,
+            imageSrc: '',
+            imageTitle: ''
+          }));
+        } else {
+          handleDialogContinue();
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [dialogState.isVisible, dialogState.currentTextIndex, dialogState.text.length, exploreModalState.isVisible]);
+  }, [dialogState.isVisible, dialogState.currentTextIndex, dialogState.text.length]);
 
   const handleDialogContinue = () => {
     if (dialogState.currentTextIndex < dialogState.text.length - 1) {
@@ -175,7 +174,9 @@ export const GameCanvas: React.FC = () => {
       setDialogState(prev => ({ 
         ...prev, 
         isVisible: false,
-        currentTextIndex: 0
+        currentTextIndex: 0,
+        imageSrc: '',
+        imageTitle: ''
       }));
     }
   };
@@ -201,13 +202,16 @@ export const GameCanvas: React.FC = () => {
       {/* Examine boxing ring button */}
       {!isLoading && !dialogState.isVisible && nearBoxingRing && (
         <button
-          onClick={() => setExploreModalState(prev => ({ 
-            ...prev, 
-            isVisible: true,
-            imageSrc: '/boxing-ring.jpg',
-            title: 'Boxing Ring',
-            description: 'The Scrumps EP debut at The Walterweight Chicken Poultry Championship Feb 2025'
-          }))}
+          onClick={() => {
+            if (gameRef.current) {
+              gameRef.current.showDialog(
+                'Scrump',
+                ['ah rockstars'],
+                '/boxing-ring.jpg',
+                'Boxing Ring'
+              );
+            }
+          }}
           className="absolute top-4 right-4 z-40 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm transition-colors"
         >
           Examine boxing ring
@@ -231,24 +235,20 @@ export const GameCanvas: React.FC = () => {
         isVisible={dialogState.isVisible}
         characterName={dialogState.characterName}
         text={dialogState.text}
+        imageSrc={dialogState.imageSrc}
+        imageTitle={dialogState.imageTitle}
         currentTextIndex={dialogState.currentTextIndex}
         onClose={() => setDialogState(prev => ({ 
           ...prev, 
           isVisible: false,
-          currentTextIndex: 0
+          currentTextIndex: 0,
+          imageSrc: '',
+          imageTitle: ''
         }))}
         onNextText={() => setDialogState(prev => ({
           ...prev,
           currentTextIndex: prev.currentTextIndex + 1
         }))}
-      />
-      
-      <ExploreModal
-        isVisible={exploreModalState.isVisible}
-        imageSrc={exploreModalState.imageSrc}
-        title={exploreModalState.title}
-        description={exploreModalState.description}
-        onClose={() => setExploreModalState(prev => ({ ...prev, isVisible: false }))}
       />
     </div>
   );
