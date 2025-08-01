@@ -487,47 +487,74 @@ class Room {
     }
     
     drawKiddyPool(ctx, x, y, width, height) {
-        // Isometric kiddy pool - matches the game's perspective
         const poolRim = '#ff69b4'; // Hot pink inflatable rim
         const poolRimDark = '#dc143c'; // Darker pink for shading
         const waterColor = '#00bfff'; // Bright blue water
-        const waterDark = '#0080ff'; // Darker blue for depth
         
-        // Draw isometric shadow for the entire 3x3 pool area
-        const shadowOffset = 6;
-        const shadowPoints = [
-            { x: x + 36 + shadowOffset, y: y + 36 + shadowOffset },      // top
-            { x: x + 72 + shadowOffset, y: y + 48 + shadowOffset },      // right
-            { x: x + 36 + shadowOffset, y: y + 60 + shadowOffset },      // bottom
-            { x: x + shadowOffset, y: y + 48 + shadowOffset }            // left
+        // Calculate the base position for the 3x3 pool
+        const baseX = x;
+        const baseY = y;
+        
+        // Draw pink base (3x3 isometric rectangle)
+        // Top surface - diamond shape
+        const basePoints = [
+            { x: baseX + 36, y: baseY },           // top
+            { x: baseX + 72, y: baseY + 36 },      // right
+            { x: baseX + 36, y: baseY + 72 },      // bottom
+            { x: baseX, y: baseY + 36 }            // left
         ];
         
-        ctx.fillStyle = COLORS.SHADOW;
+        ctx.fillStyle = poolRim;
         ctx.beginPath();
-        ctx.moveTo(shadowPoints[0].x, shadowPoints[0].y);
-        ctx.lineTo(shadowPoints[1].x, shadowPoints[1].y);
-        ctx.lineTo(shadowPoints[2].x, shadowPoints[2].y);
-        ctx.lineTo(shadowPoints[3].x, shadowPoints[3].y);
+        ctx.moveTo(basePoints[0].x, basePoints[0].y);
+        ctx.lineTo(basePoints[1].x, basePoints[1].y);
+        ctx.lineTo(basePoints[2].x, basePoints[2].y);
+        ctx.lineTo(basePoints[3].x, basePoints[3].y);
         ctx.closePath();
         ctx.fill();
         
-        // Draw the 3x3 grid of isometric tiles for the pool
-        for (let ry = 0; ry < height; ry++) {
-            for (let rx = 0; rx < width; rx++) {
-                const tileScreenPos = isometricToScreen(rx, ry);
-                const tileX = x + tileScreenPos.x - 24; // Adjust for tile centering
-                const tileY = y + tileScreenPos.y - 12; // Adjust for tile centering
-                
-                // Center tile is water, others are rim
-                if (rx === 1 && ry === 1) {
-                    // Water tile in the center
-                    this.drawIsometricTile(ctx, tileX, tileY, waterColor, waterDark);
-                } else {
-                    // Rim tiles around the edge
-                    this.drawIsometricTile(ctx, tileX, tileY, poolRim, poolRimDark);
-                }
-            }
-        }
+        // Draw pink walls (right and bottom sides)
+        const wallHeight = 12;
+        
+        // Right wall
+        ctx.fillStyle = poolRimDark;
+        ctx.beginPath();
+        ctx.moveTo(basePoints[1].x, basePoints[1].y);
+        ctx.lineTo(basePoints[2].x, basePoints[2].y);
+        ctx.lineTo(basePoints[2].x, basePoints[2].y + wallHeight);
+        ctx.lineTo(basePoints[1].x, basePoints[1].y + wallHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Bottom wall
+        ctx.fillStyle = poolRimDark;
+        ctx.beginPath();
+        ctx.moveTo(basePoints[2].x, basePoints[2].y);
+        ctx.lineTo(basePoints[3].x, basePoints[3].y);
+        ctx.lineTo(basePoints[3].x, basePoints[3].y + wallHeight);
+        ctx.lineTo(basePoints[2].x, basePoints[2].y + wallHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw blue water (2x2 area centered on the 3x3 base)
+        const waterOffsetX = 12; // Half tile offset
+        const waterOffsetY = 6;  // Quarter tile offset
+        
+        const waterPoints = [
+            { x: baseX + 24 + waterOffsetX, y: baseY + 12 + waterOffsetY },     // top
+            { x: baseX + 48 + waterOffsetX, y: baseY + 24 + waterOffsetY },     // right
+            { x: baseX + 24 + waterOffsetX, y: baseY + 36 + waterOffsetY },     // bottom
+            { x: baseX + waterOffsetX, y: baseY + 24 + waterOffsetY }           // left
+        ];
+        
+        ctx.fillStyle = waterColor;
+        ctx.beginPath();
+        ctx.moveTo(waterPoints[0].x, waterPoints[0].y);
+        ctx.lineTo(waterPoints[1].x, waterPoints[1].y);
+        ctx.lineTo(waterPoints[2].x, waterPoints[2].y);
+        ctx.lineTo(waterPoints[3].x, waterPoints[3].y);
+        ctx.closePath();
+        ctx.fill();
     }
 }
 
