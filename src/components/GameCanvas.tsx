@@ -405,7 +405,7 @@ export const GameCanvas: React.FC = () => {
       />
       
       {/* Examine Boxing Ring Button */}
-      {!isLoading && !dialogState.isVisible && nearBoxingRing && (
+      {!isLoading && !dialogState.isVisible && nearBoxingRing && gameRef.current?.currentScene === 'mainRoom' && (
         <button
           onClick={handleExamineBoxingRing}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
