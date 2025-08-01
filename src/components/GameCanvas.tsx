@@ -17,18 +17,6 @@ export const GameCanvas: React.FC = () => {
   });
 
   useEffect(() => {
-    // Fake loading for 4 seconds
-    const loadingInterval = setInterval(() => {
-      setLoadingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(loadingInterval);
-          setTimeout(() => setIsLoading(false), 500); // Brief delay after 100%
-          return 100;
-        }
-        return prev + 2.5; // Increment by 2.5% every 100ms (4 seconds total)
-      });
-    }, 100);
-
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -45,14 +33,21 @@ export const GameCanvas: React.FC = () => {
 
     const initGame = async () => {
       try {
-        // Wait for loading to complete before initializing game
-        if (isLoading) return;
-        
         const scripts = ['/utils.js', '/player.js', '/room.js', '/controls.js', '/game.js'];
+        const totalScripts = scripts.length;
+        let loadedScripts = 0;
+        
+        // Load scripts one by one and update progress
         for (const script of scripts) {
           await loadScript(script);
+          loadedScripts++;
+          const progress = Math.round((loadedScripts / totalScripts) * 90); // Reserve 10% for game initialization
+          setLoadingProgress(progress);
         }
 
+        // Final initialization step
+        setLoadingProgress(95);
+        
         // Initialize the game
         const Game = (window as any).Game;
         if (Game) {
@@ -82,25 +77,29 @@ export const GameCanvas: React.FC = () => {
           gameRef.current.ctx = canvas.getContext('2d');
           gameRef.current.ctx.imageSmoothingEnabled = false;
           gameRef.current.resizeCanvas();
+          
+          // Complete loading
+          setLoadingProgress(100);
+          setTimeout(() => setIsLoading(false), 300); // Brief delay after 100%
         }
       } catch (error) {
         console.error('Failed to load game scripts:', error);
+        // Handle loading error - you might want to show an error state
+        setLoadingProgress(0);
+        setTimeout(() => setIsLoading(false), 1000);
       }
     };
 
-    // Only initialize game after loading is complete
-    if (!isLoading) {
-      initGame();
-    }
+    // Start loading immediately
+    initGame();
 
     return () => {
-      clearInterval(loadingInterval);
       // Cleanup
       if (gameRef.current) {
         gameRef.current = null;
       }
     };
-  }, [isLoading]);
+  }, []);
 
   useEffect(() => {
     // Handle dialog dismissal with keyboard
