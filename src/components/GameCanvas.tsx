@@ -12,6 +12,9 @@ export const GameCanvas: React.FC = () => {
   const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
   const [nearBoxingRing, setNearBoxingRing] = useState(false);
   const [atBottomEdge, setAtBottomEdge] = useState(false);
+  const [nearBeerBottle, setNearBeerBottle] = useState(false);
+  const [nearBoxingGloves, setNearBoxingGloves] = useState(false);
+  const [nearTree, setNearTree] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -155,6 +158,57 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Check proximity to beer bottles, boxing gloves, and trees
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkObjectProximity = () => {
+      const player = gameRef.current.player;
+      const room = gameRef.current.room;
+      if (!player || !room) return;
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+      
+      let touchingBeerBottle = false;
+      let touchingBoxingGloves = false;
+      let touchingTree = false;
+      
+      // Check all furniture for proximity
+      room.furniture.forEach(furniture => {
+        // Check if player is adjacent to this furniture
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            if (dx === 0 && dy === 0) continue; // Skip player's own cell
+            
+            const adjacentX = playerX + dx;
+            const adjacentY = playerY + dy;
+            
+            // Check if this adjacent cell is part of the furniture
+            if (adjacentX >= furniture.x && adjacentX < furniture.x + furniture.width &&
+                adjacentY >= furniture.y && adjacentY < furniture.y + furniture.height) {
+              
+              if (furniture.type === 'beer_bottle') {
+                touchingBeerBottle = true;
+              } else if (furniture.type === 'boxing_gloves') {
+                touchingBoxingGloves = true;
+              } else if (furniture.type === 'tree') {
+                touchingTree = true;
+              }
+            }
+          }
+        }
+      });
+      
+      setNearBeerBottle(touchingBeerBottle);
+      setNearBoxingGloves(touchingBoxingGloves);
+      setNearTree(touchingTree);
+    };
+
+    const interval = setInterval(checkObjectProximity, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   // Check if player is at bottom edge of main room
   useEffect(() => {
     if (!gameRef.current || isLoading) return;
@@ -244,6 +298,39 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleExamineBeerBottle = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Scrump", [
+        "Ah, a classic beer bottle.",
+        "Looks like someone had a good time here.",
+        "Still got a few drops left... tempting.",
+        "Better leave it for now though."
+      ]);
+    }
+  };
+
+  const handleExamineBoxingGloves = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Scrump", [
+        "These are some well-worn boxing gloves.",
+        "They've seen their fair share of fights.",
+        "I can smell the sweat and determination.",
+        "Maybe I should try them on sometime..."
+      ]);
+    }
+  };
+
+  const handleExamineTree = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Scrump", [
+        "This is a magnificent tree!",
+        "Its branches reach high into the sky.",
+        "I wonder how many years it's been growing here.",
+        "Nature is pretty fucking cool."
+      ]);
+    }
+  };
+
   const handleSceneChange = () => {
     if (gameRef.current && gameRef.current.loadScene) {
       const newScene = gameRef.current.currentScene === 'mainRoom' ? 'downstairs' : 'mainRoom';
@@ -283,8 +370,38 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
       
+      {/* Examine Beer Bottle Button */}
+      {!isLoading && !dialogState.isVisible && nearBeerBottle && !nearBoxingRing && (
+        <button
+          onClick={handleExamineBeerBottle}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          EXAMINE BEER BOTTLE
+        </button>
+      )}
+      
+      {/* Examine Boxing Gloves Button */}
+      {!isLoading && !dialogState.isVisible && nearBoxingGloves && !nearBoxingRing && !nearBeerBottle && (
+        <button
+          onClick={handleExamineBoxingGloves}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          EXAMINE BOXING GLOVES
+        </button>
+      )}
+      
+      {/* Examine Tree Button */}
+      {!isLoading && !dialogState.isVisible && nearTree && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && (
+        <button
+          onClick={handleExamineTree}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          EXAMINE TREE
+        </button>
+      )}
+      
       {/* Go Downstairs Button - appears when at bottom edge */}
-      {!isLoading && !dialogState.isVisible && atBottomEdge && (
+      {!isLoading && !dialogState.isVisible && atBottomEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && (
         <button
           onClick={handleGoDownstairs}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
