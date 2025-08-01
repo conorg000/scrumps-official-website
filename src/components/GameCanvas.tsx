@@ -48,7 +48,7 @@ export const GameCanvas: React.FC = () => {
     // Check proximity every frame
     const interval = setInterval(checkProximity, 100);
     return () => clearInterval(interval);
-  });
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -107,7 +107,7 @@ export const GameCanvas: React.FC = () => {
               currentTextIndex: 0,
               imageSrc: '',
               imageTitle: ''
-            });
+            }));
           };
           
           // Override the canvas element
