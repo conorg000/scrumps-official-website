@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { VirtualJoystick } from './VirtualJoystick';
 import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
+import { ExploreModal } from './ExploreModal';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,6 +15,12 @@ export const GameCanvas: React.FC = () => {
     characterName: '',
     text: [] as string[],
     currentTextIndex: 0
+  });
+  const [exploreModalState, setExploreModalState] = useState({
+    isVisible: false,
+    imageSrc: '/scrumps-character.png',
+    title: 'Mysterious Scrump',
+    description: 'This appears to be a golden, crispy scrump - a strange creature that has found itself in an unfamiliar outdoor setting.\n\nThe scrump seems confused but determined to explore this new environment. Its wavy, chip-like form glistens in the sunlight as it contemplates the boxing ring and scattered objects around the area.\n\nWhat secrets does this place hold? Only time will tell as our brave scrump ventures forth into the unknown.'
   });
 
   useEffect(() => {
@@ -104,7 +111,10 @@ export const GameCanvas: React.FC = () => {
   useEffect(() => {
     // Handle dialog dismissal with keyboard
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (dialogState.isVisible) {
+      if (e.key === 'Escape' && exploreModalState.isVisible) {
+        e.preventDefault();
+        setExploreModalState(prev => ({ ...prev, isVisible: false }));
+      } else if (dialogState.isVisible) {
         e.preventDefault();
         handleDialogContinue();
       }
@@ -112,7 +122,7 @@ export const GameCanvas: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [dialogState.isVisible, dialogState.currentTextIndex, dialogState.text.length]);
+  }, [dialogState.isVisible, dialogState.currentTextIndex, dialogState.text.length, exploreModalState.isVisible]);
 
   const handleDialogContinue = () => {
     if (dialogState.currentTextIndex < dialogState.text.length - 1) {
@@ -148,6 +158,17 @@ export const GameCanvas: React.FC = () => {
   return (
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
+      
+      {/* Test button for ExploreModal - remove this later */}
+      {!isLoading && !dialogState.isVisible && (
+        <button
+          onClick={() => setExploreModalState(prev => ({ ...prev, isVisible: true }))}
+          className="absolute top-4 left-4 z-40 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm transition-colors"
+        >
+          Test Explore Modal
+        </button>
+      )}
+      
       <canvas
         ref={canvasRef}
         className={`absolute top-0 left-0 w-full h-full bg-[#87ceeb] ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}
@@ -160,6 +181,7 @@ export const GameCanvas: React.FC = () => {
         }}
       />
       {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
+      
       <DialogModal
         isVisible={dialogState.isVisible}
         characterName={dialogState.characterName}
@@ -174,6 +196,14 @@ export const GameCanvas: React.FC = () => {
           ...prev,
           currentTextIndex: prev.currentTextIndex + 1
         }))}
+      />
+      
+      <ExploreModal
+        isVisible={exploreModalState.isVisible}
+        imageSrc={exploreModalState.imageSrc}
+        title={exploreModalState.title}
+        description={exploreModalState.description}
+        onClose={() => setExploreModalState(prev => ({ ...prev, isVisible: false }))}
       />
     </div>
   );
