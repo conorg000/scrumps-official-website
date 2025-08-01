@@ -483,68 +483,89 @@ class Room {
         drawPixelRect(ctx, x + 30, y - 16, 2, 16, darkWood);
         
         // Shadow
-        drawPixelRect(ctx, x + 12, y + 4, 24, 3, COLORS.SHADOW);
-    }
-    
-    drawKiddyPool(ctx, x, y, width, height) {
-        const poolRim = '#ff69b4'; // Hot pink inflatable rim
-        const poolRimDark = '#dc143c'; // Darker pink for shading
-        const waterColor = '#00bfff'; // Bright blue water
+        // Colors for the isometric kiddy pool
+        const poolRim = '#ff69b4';      // Pink top surface
+        const poolRimSide = '#e05c9e';  // Pink side walls
+        const poolBaseColor = '#b2002d'; // Darker red base
+        const waterColor = '#00bfff';    // Blue water
         
-        // Calculate the base position for the 3x3 pool
-        const baseX = x;
-        const baseY = y;
+        // Calculate base coordinates for 3x3 isometric block
+        const baseWidth = 3 * 48;  // 3 tiles wide
+        const baseHeight = 3 * 24; // 3 tiles deep
         
-        // Draw pink base (3x3 isometric rectangle)
-        // Top surface - diamond shape
-        const basePoints = [
-            { x: baseX + 36, y: baseY },           // top
-            { x: baseX + 72, y: baseY + 36 },      // right
-            { x: baseX + 36, y: baseY + 72 },      // bottom
-            { x: baseX, y: baseY + 36 }            // left
+        // Top surface diamond points (3x3 area)
+        const topPoints = [
+            { x: x + 72, y: y },           // top point
+            { x: x + 144, y: y + 36 },     // right point  
+            { x: x + 72, y: y + 72 },      // bottom point
+            { x: x, y: y + 36 }            // left point
         ];
         
+        // Draw pink top surface
         ctx.fillStyle = poolRim;
         ctx.beginPath();
-        ctx.moveTo(basePoints[0].x, basePoints[0].y);
-        ctx.lineTo(basePoints[1].x, basePoints[1].y);
-        ctx.lineTo(basePoints[2].x, basePoints[2].y);
-        ctx.lineTo(basePoints[3].x, basePoints[3].y);
+        ctx.moveTo(topPoints[0].x, topPoints[0].y);
+        ctx.lineTo(topPoints[1].x, topPoints[1].y);
+        ctx.lineTo(topPoints[2].x, topPoints[2].y);
+        ctx.lineTo(topPoints[3].x, topPoints[3].y);
         ctx.closePath();
         ctx.fill();
         
-        // Draw pink walls (right and bottom sides)
-        const wallHeight = 12;
+        // Wall heights
+        const poolWallHeight = 12;
+        const baseWallHeight = 6;
         
-        // Right wall
-        ctx.fillStyle = poolRimDark;
+        // Draw right side wall (pink)
+        ctx.fillStyle = poolRimSide;
         ctx.beginPath();
-        ctx.moveTo(basePoints[1].x, basePoints[1].y);
-        ctx.lineTo(basePoints[2].x, basePoints[2].y);
-        ctx.lineTo(basePoints[2].x, basePoints[2].y + wallHeight);
-        ctx.lineTo(basePoints[1].x, basePoints[1].y + wallHeight);
+        ctx.moveTo(topPoints[1].x, topPoints[1].y);           // top-right
+        ctx.lineTo(topPoints[2].x, topPoints[2].y);           // bottom-right
+        ctx.lineTo(topPoints[2].x, topPoints[2].y + poolWallHeight); // bottom-right + height
+        ctx.lineTo(topPoints[1].x, topPoints[1].y + poolWallHeight); // top-right + height
         ctx.closePath();
         ctx.fill();
         
-        // Bottom wall
-        ctx.fillStyle = poolRimDark;
+        // Draw left side wall (pink)
+        ctx.fillStyle = poolRimSide;
         ctx.beginPath();
-        ctx.moveTo(basePoints[2].x, basePoints[2].y);
-        ctx.lineTo(basePoints[3].x, basePoints[3].y);
-        ctx.lineTo(basePoints[3].x, basePoints[3].y + wallHeight);
-        ctx.lineTo(basePoints[2].x, basePoints[2].y + wallHeight);
+        ctx.moveTo(topPoints[2].x, topPoints[2].y);           // bottom
+        ctx.lineTo(topPoints[3].x, topPoints[3].y);           // left
+        ctx.lineTo(topPoints[3].x, topPoints[3].y + poolWallHeight); // left + height
+        ctx.lineTo(topPoints[2].x, topPoints[2].y + poolWallHeight); // bottom + height
         ctx.closePath();
         ctx.fill();
         
-        // Draw blue water (2x2 area centered on the 3x3 base)
-        const waterOffsetX = 12; // Half tile offset
-        const waterOffsetY = 6;  // Quarter tile offset
+        // Draw darker red base walls
+        ctx.fillStyle = poolBaseColor;
+        
+        // Right base wall
+        ctx.beginPath();
+        ctx.moveTo(topPoints[1].x, topPoints[1].y + poolWallHeight);
+        ctx.lineTo(topPoints[2].x, topPoints[2].y + poolWallHeight);
+        ctx.lineTo(topPoints[2].x, topPoints[2].y + poolWallHeight + baseWallHeight);
+        ctx.lineTo(topPoints[1].x, topPoints[1].y + poolWallHeight + baseWallHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Left base wall
+        ctx.beginPath();
+        ctx.moveTo(topPoints[2].x, topPoints[2].y + poolWallHeight);
+        ctx.lineTo(topPoints[3].x, topPoints[3].y + poolWallHeight);
+        ctx.lineTo(topPoints[3].x, topPoints[3].y + poolWallHeight + baseWallHeight);
+        ctx.lineTo(topPoints[2].x, topPoints[2].y + poolWallHeight + baseWallHeight);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw blue water surface (centered 2x2 diamond on top)
+        const waterSize = 48; // 1 tile equivalent for visual balance
+        const centerX = x + 72; // Center of the 3x3 area
+        const centerY = y + 36; // Center of the 3x3 area
         
         const waterPoints = [
-            { x: baseX + 24 + waterOffsetX, y: baseY + 12 + waterOffsetY },     // top
-            { x: baseX + 48 + waterOffsetX, y: baseY + 24 + waterOffsetY },     // right
-            { x: baseX + 24 + waterOffsetX, y: baseY + 36 + waterOffsetY },     // bottom
-            { x: baseX + waterOffsetX, y: baseY + 24 + waterOffsetY }           // left
+            { x: centerX, y: centerY - waterSize/4 },         // top
+            { x: centerX + waterSize/2, y: centerY },         // right
+            { x: centerX, y: centerY + waterSize/4 },         // bottom
+            { x: centerX - waterSize/2, y: centerY }          // left
         ];
         
         ctx.fillStyle = waterColor;
