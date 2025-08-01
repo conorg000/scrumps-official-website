@@ -30,10 +30,11 @@ class Game {
         // Start dialog after a brief delay to ensure game is visible
         setTimeout(() => {
             if (this.showDialog) {
-                this.showDialog("Scrumps", [
-                    "what the fuck happened here?",
-                    "this place looks like a disaster zone...",
-                    "I better investigate what went down."
+                this.showDialog("Scrump", [
+                    "Where am I? What the fuck happened here?",
+                    "Hm, seems I am a scrump. That's cool.",
+                    "I better figure out what's going on.",
+                    "Is that a boxing ring?"
                 ]);
             }
         }, 500);
