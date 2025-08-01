@@ -201,7 +201,7 @@ export const GameCanvas: React.FC = () => {
             title: 'Boxing Ring',
             description: 'A professional boxing ring stands before you, its blue canvas stretched tight across the square platform. Four red corner posts rise up, connected by white ropes that have seen countless matches.\n\nThe ring looks well-maintained despite being in this outdoor setting. You can almost hear the echoes of past fights - the sound of gloves hitting flesh, the roar of crowds, the referee counting down.\n\nWho built this here? And why? The mystery deepens as you examine the sturdy construction and professional setup. This isn\'t just some makeshift ring - this is the real deal.\n\nPerhaps there are clues nearby that might explain its presence in this strange place.'
           }))}
-          className="absolute top-4 left-4 z-40 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm transition-colors"
+          className="absolute top-4 right-4 z-40 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm transition-colors"
         >
           Examine boxing ring
         </button>
