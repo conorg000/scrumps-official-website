@@ -18,6 +18,7 @@ export const GameCanvas: React.FC = () => {
   const [nearKiddyPool, setNearKiddyPool] = useState(false);
   const [atTopEdge, setAtTopEdge] = useState(false);
   const [atRightEdge, setAtRightEdge] = useState(false);
+  const [atLeftEdge, setAtLeftEdge] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -279,6 +280,27 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Check if player is at left edge of upstairs room
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkLeftEdge = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'upstairs') {
+        setAtLeftEdge(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      
+      // Check if player is at the left edge (x = 0)
+      setAtLeftEdge(playerX === 0);
+    };
+
+    const interval = setInterval(checkLeftEdge, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   // Handle dialog dismissal with keyboard
   useEffect(() => {
     // Handle dialog dismissal with keyboard
@@ -416,6 +438,12 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleGoToBackyardFromUpstairs = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('mainRoom');
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
@@ -503,12 +531,22 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Go Upstairs Button - appears when at right edge of main room */}
-      {!isLoading && !dialogState.isVisible && atRightEdge && gameRef.current?.currentScene === 'mainRoom' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+      {!isLoading && !dialogState.isVisible && atRightEdge && gameRef.current?.currentScene === 'mainRoom' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !atBottomEdge && (
         <button
           onClick={handleGoUpstairs}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO UPSTAIRS
+        </button>
+      )}
+      
+      {/* Go to Backyard Button - appears when at left edge of upstairs room */}
+      {!isLoading && !dialogState.isVisible && atLeftEdge && gameRef.current?.currentScene === 'upstairs' && (
+        <button
+          onClick={handleGoToBackyardFromUpstairs}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO BACKYARD
         </button>
       )}
       
