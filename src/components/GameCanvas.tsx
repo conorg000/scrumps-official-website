@@ -17,6 +17,7 @@ export const GameCanvas: React.FC = () => {
   const [nearTree, setNearTree] = useState(false);
   const [nearKiddyPool, setNearKiddyPool] = useState(false);
   const [atTopEdge, setAtTopEdge] = useState(false);
+  const [atRightEdge, setAtRightEdge] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -43,7 +44,7 @@ export const GameCanvas: React.FC = () => {
 
     const initGame = async () => {
       try {
-        const scripts = ['/utils.js', '/player.js', '/room.js', '/greenRoom.js', '/controls.js', '/game.js'];
+        const scripts = ['/utils.js', '/player.js', '/room.js', '/greenRoom.js', '/upstairsRoom.js', '/controls.js', '/game.js'];
         const totalScripts = scripts.length;
         let loadedScripts = 0;
         
@@ -257,6 +258,27 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Check if player is at right edge of main room
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkRightEdge = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'mainRoom') {
+        setAtRightEdge(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      
+      // Check if player is at the right edge (x = 19, since room width is 20)
+      setAtRightEdge(playerX === 19);
+    };
+
+    const interval = setInterval(checkRightEdge, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
   // Handle dialog dismissal with keyboard
   useEffect(() => {
     // Handle dialog dismissal with keyboard
@@ -388,6 +410,12 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleGoUpstairs = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('upstairs');
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
@@ -465,12 +493,22 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Go to Backyard Button - appears when at top edge of downstairs room */}
-      {!isLoading && !dialogState.isVisible && atTopEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+      {!isLoading && !dialogState.isVisible && atTopEdge && gameRef.current?.currentScene === 'downstairs' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
         <button
           onClick={handleGoToBackyard}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO BACKYARD
+        </button>
+      )}
+      
+      {/* Go Upstairs Button - appears when at right edge of main room */}
+      {!isLoading && !dialogState.isVisible && atRightEdge && gameRef.current?.currentScene === 'mainRoom' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+        <button
+          onClick={handleGoUpstairs}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO UPSTAIRS
         </button>
       )}
       

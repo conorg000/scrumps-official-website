@@ -173,6 +173,11 @@ class Game {
                 this.player.gridX = 10;
                 this.player.gridY = 7;
                 break;
+            case 'upstairs':
+                this.room = new UpstairsRoom();
+                this.player.gridX = 10;
+                this.player.gridY = 7;
+                break;
             default:
                 console.warn(`Unknown scene: ${sceneName}`);
                 return;
