@@ -5,52 +5,6 @@ import { DialogModal } from './DialogModal';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameRef = useRef<any>(null);
-  const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [dialogState, setDialogState] = useState({
-    isVisible: false,
-    characterName: '',
-    text: [] as string[],
-    currentTextIndex: 0,
-    imageSrc: '',
-    imageTitle: ''
-  });
-  const [nearBoxingRing, setNearBoxingRing] = useState(false);
-
-  // Check if player is near boxing ring
-  useEffect(() => {
-    if (!gameRef.current) return;
-
-    const checkProximity = () => {
-      const player = gameRef.current.player;
-      if (!player) return;
-
-      // Boxing ring is at position (14, 0) with size 6x6
-      const ringX = 14;
-      const ringY = 0;
-      const ringWidth = 6;
-      const ringHeight = 6;
-
-      // Check if player is touching or inside the boxing ring area
-      // Use both current position and grid position for better detection
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-      
-      const isNear = (
-        playerX >= ringX && playerX < ringX + ringWidth &&
-        playerY >= ringY && playerY < ringY + ringHeight
-      );
-
-      console.log('Player position:', playerX, playerY, 'Near ring:', isNear);
-      setNearBoxingRing(isNear);
-    };
-
-    // Check proximity every frame
-    const interval = setInterval(checkProximity, 100);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -200,25 +154,6 @@ export const GameCanvas: React.FC = () => {
   return (
     <div className="relative w-full h-full">
       {isLoading && <LoadingScreen progress={loadingProgress} />}
-      
-      {/* Examine boxing ring button */}
-      {!isLoading && !dialogState.isVisible && nearBoxingRing && (
-        <button
-          onClick={() => {
-            if (gameRef.current) {
-              gameRef.current.showDialog(
-                'Scrump',
-                ['The Scrumps EP debut at The Walterweight Chicken Poultry Championship Feb 2025'],
-                '/boxing-ring.jpg',
-                'Boxing Ring'
-              );
-            }
-          }}
-          className="absolute top-4 right-4 z-40 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm transition-colors"
-        >
-          Examine Boxing Ring
-        </button>
-      )}
       
       <canvas
         ref={canvasRef}
