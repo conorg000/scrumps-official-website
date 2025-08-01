@@ -37,7 +37,6 @@ export const GameCanvas: React.FC = () => {
 
     const initGame = async () => {
       try {
-        const scripts = ['/utils.js', '/player.js', '/room.js', '/controls.js', '/game.js'];
         const scripts = ['/utils.js', '/player.js', '/room.js', '/greenRoom.js', '/controls.js', '/game.js'];
         const totalScripts = scripts.length;
         let loadedScripts = 0;
