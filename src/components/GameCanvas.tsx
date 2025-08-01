@@ -336,6 +336,17 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleExamineKiddyPool = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Scrump", [
+        "Oh wow, a kiddy pool!",
+        "The water looks refreshingly cool.",
+        "I wonder if I should take a dip...",
+        "Nah, I'm a crisp - I'd probably get soggy!"
+      ]);
+    }
+  };
+
   const handleSceneChange = () => {
     if (gameRef.current && gameRef.current.loadScene) {
       const newScene = gameRef.current.currentScene === 'mainRoom' ? 'downstairs' : 'mainRoom';
