@@ -176,52 +176,61 @@ class DownstairsRoom {
         
         // Shadow
         drawPixelRect(ctx, x + 4, y + 16, width * 40, 4, 'rgba(0,0,0,0.3)');
-        // Draw enhanced couch spanning multiple tiles
-        for (let cy = 0; cy < height; cy++) {
-            for (let cx = 0; cx < width; cx++) {
-                const tileX = x + (cx - cy) * 24;
-                const tileY = y + (cx + cy) * 12;
-                
-                // Main couch frame with depth
-                drawPixelRect(ctx, tileX + 4, tileY - 16, 40, 28, couchMain);
-                drawPixelRect(ctx, tileX + 38, tileY - 12, 6, 24, couchDark);
-                drawPixelRect(ctx, tileX + 4, tileY + 8, 40, 4, couchDark);
-                
-                // Backrest
-                drawPixelRect(ctx, tileX + 6, tileY - 24, 36, 12, couchMain);
-                drawPixelRect(ctx, tileX + 36, tileY - 20, 6, 8, couchDark);
-                
-                // Seat cushions with individual sections
-                drawPixelRect(ctx, tileX + 8, tileY - 8, 14, 12, cushionMain);
-                drawPixelRect(ctx, tileX + 24, tileY - 8, 14, 12, cushionMain);
-                
-                // Cushion shadows and highlights
-                drawPixelRect(ctx, tileX + 20, tileY - 6, 2, 8, cushionDark);
-                drawPixelRect(ctx, tileX + 10, tileY - 6, 10, 2, fabricTexture);
-                drawPixelRect(ctx, tileX + 26, tileY - 6, 10, 2, fabricTexture);
-                
-                // Armrests with proper 3D shape
-                if (cx === 0) {
-                    drawPixelRect(ctx, tileX, tileY - 20, 10, 32, couchMain);
-                    drawPixelRect(ctx, tileX + 8, tileY - 16, 2, 28, couchDark);
-                    drawPixelRect(ctx, tileX + 2, tileY - 18, 6, 4, couchLight);
-                }
-                if (cx === width - 1) {
-                    drawPixelRect(ctx, tileX + 38, tileY - 20, 10, 32, couchMain);
-                    drawPixelRect(ctx, tileX + 38, tileY - 16, 2, 28, couchDark);
-                    drawPixelRect(ctx, tileX + 40, tileY - 18, 6, 4, couchLight);
-                }
-                
-                // Couch legs
-                if ((cx === 0 || cx === width - 1) && cy === 0) {
-                    drawPixelRect(ctx, tileX + 8, tileY + 8, 4, 6, '#654321');
-                    drawPixelRect(ctx, tileX + 32, tileY + 8, 4, 6, '#654321');
-                }
-            }
+        // Calculate the full couch dimensions in isometric space
+        const couchWidth = width * 48;  // 4 tiles wide
+        const couchDepth = height * 24; // 2 tiles deep
+        
+        // Main couch base (seat level)
+        drawPixelRect(ctx, x + 12, y - 8, couchWidth - 24, couchDepth + 16, couchMain);
+        drawPixelRect(ctx, x + couchWidth - 18, y - 4, 6, couchDepth + 12, couchDark);
+        drawPixelRect(ctx, x + 12, y + couchDepth + 4, couchWidth - 24, 4, couchDark);
+        
+        // Backrest - runs along the back edge
+        drawPixelRect(ctx, x + 18, y - 32, couchWidth - 36, 24, couchMain);
+        drawPixelRect(ctx, x + couchWidth - 24, y - 28, 6, 20, couchDark);
+        drawPixelRect(ctx, x + 18, y - 12, couchWidth - 36, 4, couchDark);
+        
+        // Left armrest
+        drawPixelRect(ctx, x + 6, y - 24, 18, couchDepth + 20, couchMain);
+        drawPixelRect(ctx, x + 18, y - 20, 6, couchDepth + 16, couchDark);
+        drawPixelRect(ctx, x + 6, y + couchDepth - 8, 18, 4, couchDark);
+        
+        // Right armrest
+        drawPixelRect(ctx, x + couchWidth - 18, y - 24, 18, couchDepth + 20, couchMain);
+        drawPixelRect(ctx, x + couchWidth - 6, y - 20, 6, couchDepth + 16, couchDark);
+        drawPixelRect(ctx, x + couchWidth - 18, y + couchDepth - 8, 18, 4, couchDark);
+        
+        // Seat cushions - 3 individual cushions
+        const cushionWidth = (couchWidth - 60) / 3;
+        for (let i = 0; i < 3; i++) {
+            const cushionX = x + 30 + i * (cushionWidth + 4);
+            drawPixelRect(ctx, cushionX, y - 6, cushionWidth, couchDepth - 4, cushionMain);
+            drawPixelRect(ctx, cushionX + cushionWidth - 4, y - 2, 4, couchDepth - 8, cushionDark);
+            
+            // Cushion button/tuft in center
+            drawPixelRect(ctx, cushionX + cushionWidth/2 - 1, y + couchDepth/2 - 1, 2, 2, cushionDark);
         }
         
+        // Back cushions
+        for (let i = 0; i < 3; i++) {
+            const backCushionX = x + 30 + i * (cushionWidth + 4);
+            drawPixelRect(ctx, backCushionX, y - 28, cushionWidth, 16, cushionMain);
+            drawPixelRect(ctx, backCushionX + cushionWidth - 4, y - 24, 4, 12, cushionDark);
+            
+            // Back cushion button/tuft
+            drawPixelRect(ctx, backCushionX + cushionWidth/2 - 1, y - 20, 2, 2, cushionDark);
+        }
+        
+        // Couch legs - visible at front corners
+        drawPixelRect(ctx, x + 18, y + couchDepth + 8, 6, 8, '#654321');
+        drawPixelRect(ctx, x + couchWidth - 30, y + couchDepth + 8, 6, 8, '#654321');
+        
+        // Fabric texture details
+        drawPixelRect(ctx, x + 24, y - 4, couchWidth - 48, 1, fabricTexture);
+        drawPixelRect(ctx, x + 24, y - 26, couchWidth - 48, 1, fabricTexture);
+        
         // Enhanced shadow
-        drawPixelRect(ctx, x + 2, y + 18, width * 44, 6, 'rgba(0,0,0,0.4)');
+        drawPixelRect(ctx, x + 4, y + couchDepth + 12, couchWidth - 8, 6, 'rgba(0,0,0,0.4)');
     }
 
     drawChair(ctx, x, y) {
