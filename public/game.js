@@ -143,12 +143,15 @@ class Game {
         this.ctx.fillRect(x + baseSize * 0.6, y + baseSize * 0.05, baseSize * 0.3, baseSize * 0.25);
     }
     draw() {
-        // Clear canvas with baby blue sky
-        this.ctx.fillStyle = '#87ceeb';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Draw clouds
-        this.drawClouds();
+        // Only draw sky and clouds for main room
+        if (this.currentScene === 'mainRoom') {
+            // Clear canvas with baby blue sky
+            this.ctx.fillStyle = '#87ceeb';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            // Draw clouds
+            this.drawClouds();
+        }
 
         // Draw room
         this.room.draw(this.ctx, this.cameraX, this.cameraY);

@@ -30,6 +30,26 @@ class UpstairsRoom {
     }
 
     draw(ctx, offsetX, offsetY) {
+        // Purple cosmic background
+        const gradient = ctx.createLinearGradient(0, 0, ctx.canvas.width, ctx.canvas.height);
+        gradient.addColorStop(0, '#4a0e4e');    // Dark purple
+        gradient.addColorStop(0.5, '#2d1b69');  // Deep blue-purple
+        gradient.addColorStop(1, '#1a0033');    // Very dark purple
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        
+        // Add some twinkling stars
+        const time = Date.now() * 0.001;
+        for (let i = 0; i < 50; i++) {
+            const x = (i * 123.456) % ctx.canvas.width;
+            const y = (i * 789.012) % ctx.canvas.height;
+            const twinkle = Math.sin(time * 2 + i) * 0.5 + 0.5;
+            
+            ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.8})`;
+            ctx.fillRect(x, y, 2, 2);
+        }
+        
         this.drawFloor(ctx, offsetX, offsetY);
         this.drawWalls(ctx, offsetX, offsetY);
         this.drawFurniture(ctx, offsetX, offsetY);

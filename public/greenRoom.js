@@ -48,9 +48,111 @@ class DownstairsRoom {
     }
 
     draw(ctx, offsetX, offsetY) {
+        this.drawTrippyBackground(ctx);
         this.drawFloor(ctx, offsetX, offsetY);
         this.drawWalls(ctx, offsetX, offsetY);
         this.drawFurniture(ctx, offsetX, offsetY);
+    }
+
+    drawTrippyBackground(ctx) {
+        // Fill canvas with base gradient
+        const gradient = ctx.createLinearGradient(0, 0, ctx.canvas.width, ctx.canvas.height);
+        gradient.addColorStop(0, '#ff00ff');    // Magenta
+        gradient.addColorStop(0.2, '#00ffff');  // Cyan
+        gradient.addColorStop(0.4, '#ffff00');  // Yellow
+        gradient.addColorStop(0.6, '#ff8000');  // Orange
+        gradient.addColorStop(0.8, '#8000ff');  // Purple
+        gradient.addColorStop(1, '#ff0080');    // Pink
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        
+        // Add animated psychedelic patterns
+        const time = Date.now() * 0.001;
+        
+        // Swirling circles
+        for (let i = 0; i < 20; i++) {
+            const angle = time + i * 0.5;
+            const x = ctx.canvas.width / 2 + Math.cos(angle) * (100 + i * 20);
+            const y = ctx.canvas.height / 2 + Math.sin(angle * 1.3) * (80 + i * 15);
+            const radius = 30 + Math.sin(time * 2 + i) * 20;
+            
+            const circleGradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            circleGradient.addColorStop(0, `hsla(${(time * 50 + i * 30) % 360}, 100%, 50%, 0.3)`);
+            circleGradient.addColorStop(1, `hsla(${(time * 50 + i * 30 + 180) % 360}, 100%, 50%, 0.1)`);
+            
+            ctx.fillStyle = circleGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Wavy lines
+        for (let i = 0; i < 10; i++) {
+            ctx.strokeStyle = `hsla(${(time * 100 + i * 36) % 360}, 100%, 50%, 0.4)`;
+            ctx.lineWidth = 3 + Math.sin(time + i) * 2;
+            ctx.beginPath();
+            
+            for (let x = 0; x < ctx.canvas.width; x += 5) {
+                const y = ctx.canvas.height / 2 + 
+                         Math.sin((x + time * 100) * 0.01 + i) * (50 + i * 10) +
+                         Math.cos((x + time * 80) * 0.008 + i * 0.5) * (30 + i * 5);
+                
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        // Floating geometric shapes
+        for (let i = 0; i < 15; i++) {
+            const shapeTime = time + i * 0.3;
+            const x = (ctx.canvas.width * 0.2) + (Math.sin(shapeTime * 0.5) * ctx.canvas.width * 0.6);
+            const y = (ctx.canvas.height * 0.2) + (Math.cos(shapeTime * 0.7) * ctx.canvas.height * 0.6);
+            const size = 20 + Math.sin(shapeTime * 2) * 15;
+            const rotation = shapeTime;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+            
+            ctx.fillStyle = `hsla(${(shapeTime * 80) % 360}, 80%, 60%, 0.6)`;
+            
+            if (i % 3 === 0) {
+                // Triangle
+                ctx.beginPath();
+                ctx.moveTo(0, -size);
+                ctx.lineTo(-size * 0.866, size * 0.5);
+                ctx.lineTo(size * 0.866, size * 0.5);
+                ctx.closePath();
+                ctx.fill();
+            } else if (i % 3 === 1) {
+                // Square
+                ctx.fillRect(-size/2, -size/2, size, size);
+            } else {
+                // Circle
+                ctx.beginPath();
+                ctx.arc(0, 0, size/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        }
+        
+        // Pulsing overlay
+        const pulseAlpha = 0.1 + Math.sin(time * 3) * 0.05;
+        const pulseGradient = ctx.createRadialGradient(
+            ctx.canvas.width / 2, ctx.canvas.height / 2, 0,
+            ctx.canvas.width / 2, ctx.canvas.height / 2, Math.max(ctx.canvas.width, ctx.canvas.height)
+        );
+        pulseGradient.addColorStop(0, `rgba(255, 255, 255, ${pulseAlpha})`);
+        pulseGradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+        
+        ctx.fillStyle = pulseGradient;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     }
 
     drawFloor(ctx, offsetX, offsetY) {
