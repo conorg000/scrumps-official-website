@@ -171,255 +171,567 @@ class DownstairsRoom {
         
         // Shadow
         drawPixelRect(ctx, x + 4, y + 16, width * 40, 4, 'rgba(0,0,0,0.3)');
+        const couchMain = '#8b4513';
+        const couchDark = '#654321';
+        const couchLight = '#cd853f';
+        const cushionMain = '#a0522d';
+        const cushionDark = '#8b4513';
+        const fabricTexture = '#deb887';
+        
+        // Draw enhanced couch spanning multiple tiles
+        for (let cy = 0; cy < height; cy++) {
+            for (let cx = 0; cx < width; cx++) {
+                const tileX = x + (cx - cy) * 24;
+                const tileY = y + (cx + cy) * 12;
+                
+                // Main couch frame with depth
+                drawPixelRect(ctx, tileX + 4, tileY - 16, 40, 28, couchMain);
+                drawPixelRect(ctx, tileX + 38, tileY - 12, 6, 24, couchDark);
+                drawPixelRect(ctx, tileX + 4, tileY + 8, 40, 4, couchDark);
+                
+                // Backrest
+                drawPixelRect(ctx, tileX + 6, tileY - 24, 36, 12, couchMain);
+                drawPixelRect(ctx, tileX + 36, tileY - 20, 6, 8, couchDark);
+                
+                // Seat cushions with individual sections
+                drawPixelRect(ctx, tileX + 8, tileY - 8, 14, 12, cushionMain);
+                drawPixelRect(ctx, tileX + 24, tileY - 8, 14, 12, cushionMain);
+                
+                // Cushion shadows and highlights
+                drawPixelRect(ctx, tileX + 20, tileY - 6, 2, 8, cushionDark);
+                drawPixelRect(ctx, tileX + 10, tileY - 6, 10, 2, fabricTexture);
+                drawPixelRect(ctx, tileX + 26, tileY - 6, 10, 2, fabricTexture);
+                
+                // Armrests with proper 3D shape
+                if (cx === 0) {
+                    drawPixelRect(ctx, tileX, tileY - 20, 10, 32, couchMain);
+                    drawPixelRect(ctx, tileX + 8, tileY - 16, 2, 28, couchDark);
+                    drawPixelRect(ctx, tileX + 2, tileY - 18, 6, 4, couchLight);
+                }
+                if (cx === width - 1) {
+                    drawPixelRect(ctx, tileX + 38, tileY - 20, 10, 32, couchMain);
+                    drawPixelRect(ctx, tileX + 38, tileY - 16, 2, 28, couchDark);
+                    drawPixelRect(ctx, tileX + 40, tileY - 18, 6, 4, couchLight);
+                }
+                
+                // Couch legs
+                if ((cx === 0 || cx === width - 1) && cy === 0) {
+                    drawPixelRect(ctx, tileX + 8, tileY + 8, 4, 6, '#654321');
+                    drawPixelRect(ctx, tileX + 32, tileY + 8, 4, 6, '#654321');
+                }
+            }
+        }
+        
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 2, y + 18, width * 44, 6, 'rgba(0,0,0,0.4)');
     }
 
     drawChair(ctx, x, y) {
-        const chairColor = '#654321';
-        const chairDark = '#4a2c17';
+        const chairMain = '#8b4513';
+        const chairDark = '#654321';
+        const chairLight = '#cd853f';
+        const seatPad = '#dc143c';
         
-        // Chair seat
-        drawPixelRect(ctx, x + 12, y - 4, 24, 16, chairColor);
-        drawPixelRect(ctx, x + 30, y, 6, 12, chairDark);
+        // Chair legs (front two visible)
+        drawPixelRect(ctx, x + 14, y + 8, 4, 12, chairDark);
+        drawPixelRect(ctx, x + 30, y + 8, 4, 12, chairDark);
+        drawPixelRect(ctx, x + 18, y + 12, 4, 8, chairDark);
+        drawPixelRect(ctx, x + 26, y + 12, 4, 8, chairDark);
         
-        // Chair back
-        drawPixelRect(ctx, x + 14, y - 20, 20, 16, chairColor);
-        drawPixelRect(ctx, x + 28, y - 16, 6, 12, chairDark);
+        // Chair seat with padding
+        drawPixelRect(ctx, x + 10, y - 2, 28, 18, chairMain);
+        drawPixelRect(ctx, x + 32, y + 2, 6, 14, chairDark);
+        drawPixelRect(ctx, x + 12, y, 24, 12, seatPad);
+        drawPixelRect(ctx, x + 30, y + 4, 6, 8, '#8b0000');
         
-        // Chair legs
-        drawPixelRect(ctx, x + 14, y + 8, 4, 8, chairColor);
-        drawPixelRect(ctx, x + 30, y + 8, 4, 8, chairColor);
+        // Chair backrest with slats
+        drawPixelRect(ctx, x + 12, y - 28, 24, 26, chairMain);
+        drawPixelRect(ctx, x + 30, y - 24, 6, 22, chairDark);
         
-        // Shadow
-        drawPixelRect(ctx, x + 10, y + 14, 28, 3, 'rgba(0,0,0,0.3)');
+        // Backrest slats for detail
+        drawPixelRect(ctx, x + 16, y - 24, 2, 18, chairLight);
+        drawPixelRect(ctx, x + 20, y - 24, 2, 18, chairLight);
+        drawPixelRect(ctx, x + 24, y - 24, 2, 18, chairLight);
+        drawPixelRect(ctx, x + 28, y - 24, 2, 18, chairLight);
+        
+        // Chair frame highlights
+        drawPixelRect(ctx, x + 12, y - 26, 20, 2, chairLight);
+        drawPixelRect(ctx, x + 12, y - 2, 20, 2, chairLight);
+        
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 8, y + 18, 32, 4, 'rgba(0,0,0,0.4)');
     }
 
     drawCoffeeTable(ctx, x, y, width, height) {
-        const tableColor = '#8b7355';
-        const tableDark = '#5d4c37';
+        const tableTop = '#deb887';
+        const tableEdge = '#cd853f';
+        const tableDark = '#8b7355';
+        const legColor = '#654321';
         
-        // Draw table spanning multiple tiles
+        // Draw enhanced table spanning multiple tiles
         for (let ty = 0; ty < height; ty++) {
             for (let tx = 0; tx < width; tx++) {
                 const tileX = x + (tx - ty) * 24;
                 const tileY = y + (tx + ty) * 12;
                 
-                // Table top
-                drawPixelRect(ctx, tileX + 4, tileY - 6, 40, 20, tableColor);
-                drawPixelRect(ctx, tileX + 36, tileY - 2, 8, 16, tableDark);
+                // Table top with wood grain effect
+                drawPixelRect(ctx, tileX + 2, tileY - 8, 44, 24, tableTop);
+                drawPixelRect(ctx, tileX + 40, tileY - 4, 6, 20, tableDark);
+                drawPixelRect(ctx, tileX + 2, tileY + 12, 44, 4, tableDark);
+                
+                // Table edge/rim
+                drawPixelRect(ctx, tileX + 2, tileY - 8, 44, 3, tableEdge);
+                drawPixelRect(ctx, tileX + 2, tileY + 13, 44, 3, tableEdge);
+                
+                // Wood grain lines
+                drawPixelRect(ctx, tileX + 6, tileY - 4, 36, 1, '#f5deb3');
+                drawPixelRect(ctx, tileX + 8, tileY + 2, 32, 1, '#f5deb3');
+                drawPixelRect(ctx, tileX + 10, tileY + 8, 28, 1, '#f5deb3');
                 
                 // Table legs (only on corners)
                 if ((tx === 0 || tx === width - 1) && (ty === 0 || ty === height - 1)) {
-                    drawPixelRect(ctx, tileX + 8, tileY + 10, 4, 8, tableDark);
-                    drawPixelRect(ctx, tileX + 32, tileY + 10, 4, 8, tableDark);
+                    drawPixelRect(ctx, tileX + 8, tileY + 16, 6, 12, legColor);
+                    drawPixelRect(ctx, tileX + 32, tileY + 16, 6, 12, legColor);
+                    // Leg shadows
+                    drawPixelRect(ctx, tileX + 12, tileY + 20, 2, 8, '#4a2c17');
+                    drawPixelRect(ctx, tileX + 36, tileY + 20, 2, 8, '#4a2c17');
                 }
             }
         }
         
-        // Shadow
-        drawPixelRect(ctx, x + 2, y + 16, width * 42, 4, 'rgba(0,0,0,0.3)');
+        // Enhanced shadow
+        drawPixelRect(ctx, x, y + 24, width * 48, 6, 'rgba(0,0,0,0.4)');
     }
 
     drawGuitar(ctx, x, y) {
-        const woodColor = '#deb887';
-        const darkWood = '#8b7355';
+        const bodyWood = '#deb887';
+        const neckWood = '#8b7355';
+        const darkWood = '#654321';
         const soundHole = '#2d1810';
         const stringColor = '#c0c0c0';
+        const fretColor = '#silver';
+        const tuningPeg = '#b8860b';
         
-        // Guitar body
-        drawPixelRect(ctx, x + 14, y - 24, 20, 32, woodColor);
-        drawPixelRect(ctx, x + 16, y - 20, 16, 24, woodColor);
-        drawPixelRect(ctx, x + 18, y - 16, 12, 16, woodColor);
+        // Guitar body (acoustic shape)
+        drawPixelRect(ctx, x + 12, y - 28, 24, 36, bodyWood);
+        drawPixelRect(ctx, x + 14, y - 24, 20, 28, bodyWood);
+        drawPixelRect(ctx, x + 16, y - 20, 16, 20, bodyWood);
         
-        // Guitar neck
-        drawPixelRect(ctx, x + 22, y - 32, 4, 20, darkWood);
+        // Body curves and shaping
+        drawPixelRect(ctx, x + 18, y - 16, 12, 12, bodyWood);
+        drawPixelRect(ctx, x + 20, y - 12, 8, 8, bodyWood);
+        
+        // Body edge and binding
+        drawPixelRect(ctx, x + 12, y - 28, 24, 2, darkWood);
+        drawPixelRect(ctx, x + 12, y + 6, 24, 2, darkWood);
+        drawPixelRect(ctx, x + 12, y - 26, 2, 32, darkWood);
+        drawPixelRect(ctx, x + 34, y - 26, 2, 32, darkWood);
+        
+        // Guitar neck with proper proportions
+        drawPixelRect(ctx, x + 20, y - 40, 8, 16, neckWood);
+        drawPixelRect(ctx, x + 22, y - 36, 4, 12, neckWood);
+        
+        // Fretboard
+        drawPixelRect(ctx, x + 21, y - 38, 6, 14, darkWood);
+        
+        // Frets
+        drawPixelRect(ctx, x + 21, y - 35, 6, 1, fretColor);
+        drawPixelRect(ctx, x + 21, y - 32, 6, 1, fretColor);
+        drawPixelRect(ctx, x + 21, y - 29, 6, 1, fretColor);
+        drawPixelRect(ctx, x + 21, y - 26, 6, 1, fretColor);
+        
+        // Headstock
+        drawPixelRect(ctx, x + 19, y - 44, 10, 8, neckWood);
+        drawPixelRect(ctx, x + 27, y - 42, 2, 4, darkWood);
+        
+        // Tuning pegs
+        drawPixelRect(ctx, x + 17, y - 42, 2, 2, tuningPeg);
+        drawPixelRect(ctx, x + 17, y - 39, 2, 2, tuningPeg);
+        drawPixelRect(ctx, x + 29, y - 42, 2, 2, tuningPeg);
+        drawPixelRect(ctx, x + 29, y - 39, 2, 2, tuningPeg);
         
         // Sound hole
-        drawPixelRect(ctx, x + 20, y - 12, 8, 8, soundHole);
+        drawPixelRect(ctx, x + 20, y - 14, 8, 8, soundHole);
+        drawPixelRect(ctx, x + 22, y - 12, 4, 4, '#000000');
+        
+        // Sound hole rosette
+        drawPixelRect(ctx, x + 19, y - 15, 10, 1, darkWood);
+        drawPixelRect(ctx, x + 19, y - 7, 10, 1, darkWood);
+        drawPixelRect(ctx, x + 19, y - 14, 1, 8, darkWood);
+        drawPixelRect(ctx, x + 28, y - 14, 1, 8, darkWood);
         
         // Guitar strings
         for (let i = 0; i < 6; i++) {
-            drawPixelRect(ctx, x + 23 + i, y - 30, 1, 36, stringColor);
+            drawPixelRect(ctx, x + 22 + i, y - 38, 1, 44, stringColor);
         }
         
-        // Wood grain/highlights
-        drawPixelRect(ctx, x + 15, y - 20, 2, 24, '#f5deb3');
-        drawPixelRect(ctx, x + 30, y - 16, 2, 16, darkWood);
+        // Bridge
+        drawPixelRect(ctx, x + 20, y - 2, 8, 3, darkWood);
         
-        // Shadow
-        drawPixelRect(ctx, x + 12, y + 6, 28, 3, 'rgba(0,0,0,0.3)');
+        // Wood grain and highlights
+        drawPixelRect(ctx, x + 15, y - 22, 2, 26, '#f5deb3');
+        drawPixelRect(ctx, x + 31, y - 18, 2, 18, darkWood);
+        drawPixelRect(ctx, x + 18, y - 8, 12, 1, '#f5deb3');
+        
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 10, y + 8, 32, 4, 'rgba(0,0,0,0.4)');
     }
 
     drawDrumKit(ctx, x, y, width, height) {
-        const drumColor = '#dc143c';
+        const bassDrumColor = '#dc143c';
+        const snareDrumColor = '#f5f5f5';
+        const tomColor = '#4169e1';
         const drumDark = '#8b0000';
+        const snareRim = '#c0c0c0';
         const metalColor = '#c0c0c0';
+        const standColor = '#2f2f2f';
         
-        // Draw drum kit spanning multiple tiles
+        // Draw enhanced drum kit spanning multiple tiles
         for (let dy = 0; dy < height; dy++) {
             for (let dx = 0; dx < width; dx++) {
                 const tileX = x + (dx - dy) * 24;
                 const tileY = y + (dx + dy) * 12;
                 
-                // Bass drum (center)
+                // Bass drum (center) - larger and more detailed
                 if (dx === 0 && dy === 1) {
-                    drawPixelRect(ctx, tileX + 8, tileY - 16, 32, 24, drumColor);
-                    drawPixelRect(ctx, tileX + 32, tileY - 12, 8, 20, drumDark);
+                    drawPixelRect(ctx, tileX + 4, tileY - 20, 40, 32, bassDrumColor);
+                    drawPixelRect(ctx, tileX + 36, tileY - 16, 8, 28, drumDark);
+                    drawPixelRect(ctx, tileX + 4, tileY + 8, 40, 4, drumDark);
+                    
+                    // Bass drum hoops
+                    drawPixelRect(ctx, tileX + 4, tileY - 20, 40, 3, metalColor);
+                    drawPixelRect(ctx, tileX + 4, tileY + 9, 40, 3, metalColor);
+                    
+                    // Bass drum logo area
+                    drawPixelRect(ctx, tileX + 16, tileY - 8, 16, 8, '#ffffff');
+                    drawPixelRect(ctx, tileX + 18, tileY - 6, 12, 4, bassDrumColor);
                 }
                 
-                // Snare drum (front)
+                // Snare drum (front) - white with snares
                 if (dx === 1 && dy === 0) {
-                    drawPixelRect(ctx, tileX + 12, tileY - 12, 24, 16, drumColor);
-                    drawPixelRect(ctx, tileX + 30, tileY - 8, 6, 12, drumDark);
+                    drawPixelRect(ctx, tileX + 10, tileY - 16, 28, 20, snareDrumColor);
+                    drawPixelRect(ctx, tileX + 32, tileY - 12, 6, 16, '#d3d3d3');
+                    drawPixelRect(ctx, tileX + 10, tileY + 0, 28, 4, '#d3d3d3');
+                    
+                    // Snare drum rim
+                    drawPixelRect(ctx, tileX + 10, tileY - 16, 28, 2, snareRim);
+                    drawPixelRect(ctx, tileX + 10, tileY + 2, 28, 2, snareRim);
+                    
+                    // Snare wires (visible on side)
+                    for (let i = 0; i < 8; i++) {
+                        drawPixelRect(ctx, tileX + 32, tileY - 10 + i * 2, 4, 1, metalColor);
+                    }
+                    
+                    // Snare stand
+                    drawPixelRect(ctx, tileX + 20, tileY + 4, 8, 12, standColor);
+                    drawPixelRect(ctx, tileX + 16, tileY + 12, 16, 4, standColor);
                 }
                 
-                // Hi-hat (corner)
+                // Hi-hat (corner) - two cymbals on stand
                 if (dx === 0 && dy === 0) {
-                    drawPixelRect(ctx, tileX + 20, tileY - 24, 8, 4, metalColor);
-                    drawPixelRect(ctx, tileX + 22, tileY - 20, 4, 16, metalColor);
+                    // Hi-hat stand
+                    drawPixelRect(ctx, tileX + 22, tileY - 32, 4, 24, standColor);
+                    drawPixelRect(ctx, tileX + 18, tileY - 12, 12, 4, standColor);
+                    
+                    // Top cymbal
+                    drawPixelRect(ctx, tileX + 16, tileY - 36, 16, 4, metalColor);
+                    drawPixelRect(ctx, tileX + 18, tileY - 34, 12, 2, '#ffd700');
+                    
+                    // Bottom cymbal (slightly offset)
+                    drawPixelRect(ctx, tileX + 17, tileY - 32, 14, 3, metalColor);
+                    drawPixelRect(ctx, tileX + 19, tileY - 30, 10, 2, '#ffd700');
                 }
                 
-                // Floor tom (back corner)
+                // Floor tom (back corner) - blue tom with legs
                 if (dx === 1 && dy === 1) {
-                    drawPixelRect(ctx, tileX + 10, tileY - 14, 28, 20, drumColor);
-                    drawPixelRect(ctx, tileX + 30, tileY - 10, 8, 16, drumDark);
+                    drawPixelRect(ctx, tileX + 8, tileY - 18, 32, 24, tomColor);
+                    drawPixelRect(ctx, tileX + 32, tileY - 14, 8, 20, '#1e3a8a');
+                    drawPixelRect(ctx, tileX + 8, tileY + 2, 32, 4, '#1e3a8a');
+                    
+                    // Tom hoops
+                    drawPixelRect(ctx, tileX + 8, tileY - 18, 32, 2, metalColor);
+                    drawPixelRect(ctx, tileX + 8, tileY + 4, 32, 2, metalColor);
+                    
+                    // Floor tom legs
+                    drawPixelRect(ctx, tileX + 12, tileY + 6, 4, 12, standColor);
+                    drawPixelRect(ctx, tileX + 32, tileY + 6, 4, 12, standColor);
+                    drawPixelRect(ctx, tileX + 22, tileY + 6, 4, 12, standColor);
                 }
             }
         }
         
-        // Shadow
-        drawPixelRect(ctx, x + 6, y + 20, width * 36, 4, 'rgba(0,0,0,0.3)');
+        // Crash cymbal (separate from grid)
+        const crashX = x + 60;
+        const crashY = y - 40;
+        drawPixelRect(ctx, crashX, crashY, 20, 4, metalColor);
+        drawPixelRect(ctx, crashX + 2, crashY + 2, 16, 2, '#ffd700');
+        drawPixelRect(ctx, crashX + 8, crashY + 4, 4, 20, standColor);
+        
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 4, y + 24, width * 40, 6, 'rgba(0,0,0,0.4)');
     }
 
     drawMicrophone(ctx, x, y) {
-        const micColor = '#2f2f2f';
+        const micHead = '#2f2f2f';
+        const micGrill = '#c0c0c0';
         const standColor = '#c0c0c0';
+        const baseColor = '#1a1a1a';
         
-        // Mic stand
-        drawPixelRect(ctx, x + 22, y - 32, 4, 40, standColor);
+        // Mic stand base (tripod)
+        drawPixelRect(ctx, x + 16, y + 8, 16, 4, baseColor);
+        drawPixelRect(ctx, x + 12, y + 6, 8, 2, baseColor);
+        drawPixelRect(ctx, x + 28, y + 6, 8, 2, baseColor);
+        drawPixelRect(ctx, x + 20, y + 4, 8, 2, baseColor);
         
-        // Mic head
-        drawPixelRect(ctx, x + 18, y - 36, 12, 8, micColor);
-        drawPixelRect(ctx, x + 20, y - 34, 8, 4, '#4f4f4f');
+        // Main stand pole
+        drawPixelRect(ctx, x + 22, y - 36, 4, 44, standColor);
+        drawPixelRect(ctx, x + 24, y - 32, 2, 40, '#a0a0a0');
         
-        // Stand base
-        drawPixelRect(ctx, x + 16, y + 4, 16, 4, standColor);
+        // Boom arm
+        drawPixelRect(ctx, x + 26, y - 32, 12, 3, standColor);
+        drawPixelRect(ctx, x + 26, y - 30, 12, 1, '#a0a0a0');
         
-        // Shadow
-        drawPixelRect(ctx, x + 14, y + 6, 20, 3, 'rgba(0,0,0,0.3)');
+        // Microphone head (larger and more detailed)
+        drawPixelRect(ctx, x + 34, y - 40, 12, 16, micHead);
+        drawPixelRect(ctx, x + 36, y - 38, 8, 12, micGrill);
+        
+        // Mic grill pattern
+        for (let i = 0; i < 6; i++) {
+            drawPixelRect(ctx, x + 37, y - 36 + i * 2, 6, 1, '#808080');
+        }
+        
+        // Mic clip/shock mount
+        drawPixelRect(ctx, x + 32, y - 34, 4, 8, standColor);
+        drawPixelRect(ctx, x + 46, y - 34, 4, 8, standColor);
+        
+        // Cable
+        drawPixelRect(ctx, x + 38, y - 24, 2, 32, '#000000');
+        
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 10, y + 10, 40, 4, 'rgba(0,0,0,0.4)');
     }
 
     drawKeyboard(ctx, x, y) {
-        const keyboardColor = '#2f2f2f';
+        const keyboardBody = '#2f2f2f';
+        const keyboardTop = '#1a1a1a';
         const whiteKeys = '#ffffff';
         const blackKeys = '#000000';
+        const standColor = '#c0c0c0';
+        const controlColor = '#ff0000';
         
-        // Keyboard body
-        drawPixelRect(ctx, x + 8, y - 8, 32, 16, keyboardColor);
-        drawPixelRect(ctx, x + 32, y - 4, 8, 12, '#1f1f1f');
+        // Keyboard stand
+        drawPixelRect(ctx, x + 4, y + 8, 8, 12, standColor);
+        drawPixelRect(ctx, x + 36, y + 8, 8, 12, standColor);
+        drawPixelRect(ctx, x + 4, y + 16, 40, 4, standColor);
         
-        // White keys
-        for (let i = 0; i < 7; i++) {
-            drawPixelRect(ctx, x + 10 + i * 4, y - 6, 3, 8, whiteKeys);
+        // Keyboard body (larger and more detailed)
+        drawPixelRect(ctx, x + 2, y - 12, 44, 20, keyboardBody);
+        drawPixelRect(ctx, x + 40, y - 8, 6, 16, keyboardTop);
+        drawPixelRect(ctx, x + 2, y + 4, 44, 4, keyboardTop);
+        
+        // Control panel
+        drawPixelRect(ctx, x + 4, y - 10, 36, 4, keyboardTop);
+        
+        // Control knobs and buttons
+        drawPixelRect(ctx, x + 6, y - 9, 2, 2, controlColor);
+        drawPixelRect(ctx, x + 10, y - 9, 2, 2, '#00ff00');
+        drawPixelRect(ctx, x + 14, y - 9, 2, 2, '#0000ff');
+        drawPixelRect(ctx, x + 18, y - 9, 2, 2, '#ffff00');
+        
+        // Display screen
+        drawPixelRect(ctx, x + 24, y - 10, 12, 4, '#000080');
+        drawPixelRect(ctx, x + 26, y - 9, 8, 2, '#00ffff');
+        
+        // White keys (more realistic proportions)
+        for (let i = 0; i < 10; i++) {
+            drawPixelRect(ctx, x + 4 + i * 4, y - 6, 3, 10, whiteKeys);
+            drawPixelRect(ctx, x + 4 + i * 4, y + 2, 3, 2, '#f0f0f0');
         }
         
-        // Black keys
-        for (let i = 0; i < 5; i++) {
-            if (i !== 2) { // Skip the gap between E and F
-                drawPixelRect(ctx, x + 12 + i * 4, y - 6, 2, 4, blackKeys);
+        // Black keys (proper piano layout)
+        const blackKeyPositions = [1, 2, 4, 5, 6, 8, 9]; // Skip positions 3 and 7 (E-F and B-C gaps)
+        blackKeyPositions.forEach(pos => {
+            if (pos < 10) {
+                drawPixelRect(ctx, x + 2 + pos * 4, y - 6, 2, 6, blackKeys);
             }
-        }
+        });
         
-        // Stand legs
-        drawPixelRect(ctx, x + 12, y + 4, 4, 8, keyboardColor);
-        drawPixelRect(ctx, x + 32, y + 4, 4, 8, keyboardColor);
+        // Brand logo
+        drawPixelRect(ctx, x + 38, y - 10, 6, 2, whiteKeys);
         
-        // Shadow
-        drawPixelRect(ctx, x + 6, y + 10, 36, 3, 'rgba(0,0,0,0.3)');
+        // Enhanced shadow
+        drawPixelRect(ctx, x, y + 18, 48, 4, 'rgba(0,0,0,0.4)');
     }
 
     drawBeerBottle(ctx, x, y) {
-        const bottleDark = '#5a2e0c';
-        const bottleMid = '#8b4513';
-        const bottleHighlight = '#a0522d';
-        const labelColor = '#f4f4f4';
+        const bottleGlass = '#2d5016';
+        const bottleHighlight = '#4a7c59';
+        const bottleShadow = '#1a3009';
+        const labelColor = '#ffffff';
+        const labelText = '#000080';
         const capColor = '#ffd700';
+        const capShadow = '#b8860b';
     
-        // Shadow
-        drawPixelRect(ctx, x + 16, y + 2, 16, 3, 'rgba(0,0,0,0.3)');
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 18, y + 4, 14, 4, 'rgba(0,0,0,0.4)');
     
-        // Base (slightly wider)
-        drawPixelRect(ctx, x + 17, y + 6, 14, 2, bottleDark);
+        // Bottle base (more realistic)
+        drawPixelRect(ctx, x + 16, y + 2, 16, 4, bottleGlass);
+        drawPixelRect(ctx, x + 18, y, 12, 2, bottleGlass);
     
-        // Body
-        drawPixelRect(ctx, x + 18, y - 12, 12, 18, bottleMid);
+        // Main bottle body
+        drawPixelRect(ctx, x + 18, y - 16, 12, 18, bottleGlass);
+        drawPixelRect(ctx, x + 28, y - 12, 2, 14, bottleShadow);
     
-        // Shoulders (taper inwards)
-        drawPixelRect(ctx, x + 19, y - 14, 10, 2, bottleMid);
-        drawPixelRect(ctx, x + 20, y - 16, 8, 2, bottleMid);
+        // Bottle shoulders (gradual taper)
+        drawPixelRect(ctx, x + 19, y - 18, 10, 2, bottleGlass);
+        drawPixelRect(ctx, x + 20, y - 20, 8, 2, bottleGlass);
+        drawPixelRect(ctx, x + 21, y - 22, 6, 2, bottleGlass);
     
-        // Neck
-        drawPixelRect(ctx, x + 21, y - 20, 6, 4, bottleMid);
+        // Bottle neck
+        drawPixelRect(ctx, x + 21, y - 26, 6, 4, bottleGlass);
+        drawPixelRect(ctx, x + 25, y - 24, 2, 2, bottleShadow);
     
-        // Cap (gold)
-        drawPixelRect(ctx, x + 21, y - 24, 6, 4, capColor);
-        drawPixelRect(ctx, x + 21, y - 24, 6, 1, '#e6c200'); // cap rim
+        // Bottle cap (more detailed)
+        drawPixelRect(ctx, x + 20, y - 30, 8, 4, capColor);
+        drawPixelRect(ctx, x + 26, y - 28, 2, 2, capShadow);
+        drawPixelRect(ctx, x + 20, y - 30, 8, 1, '#ffff99'); // cap highlight
+        
+        // Cap ridges
+        for (let i = 0; i < 3; i++) {
+            drawPixelRect(ctx, x + 20, y - 29 + i, 8, 1, capShadow);
+        }
     
-        // Label
-        drawPixelRect(ctx, x + 19, y - 6, 10, 6, labelColor);
+        // Beer label (larger and more detailed)
+        drawPixelRect(ctx, x + 17, y - 10, 14, 8, labelColor);
+        drawPixelRect(ctx, x + 29, y - 8, 2, 6, '#e0e0e0');
+        
+        // Label text/design
+        drawPixelRect(ctx, x + 19, y - 8, 10, 1, labelText);
+        drawPixelRect(ctx, x + 21, y - 6, 6, 1, labelText);
+        drawPixelRect(ctx, x + 23, y - 4, 2, 1, labelText);
     
-        // Highlight stripe
-        drawPixelRect(ctx, x + 19, y - 10, 1, 16, bottleHighlight);
+        // Glass highlights (to show transparency)
+        drawPixelRect(ctx, x + 19, y - 14, 1, 14, bottleHighlight);
+        drawPixelRect(ctx, x + 20, y - 8, 8, 1, bottleHighlight);
     
-        // Shadowed side
-        drawPixelRect(ctx, x + 28, y - 10, 1, 16, bottleDark);
+        // Liquid level indicator
+        drawPixelRect(ctx, x + 20, y - 12, 8, 8, '#ffb347');
+        drawPixelRect(ctx, x + 26, y - 10, 2, 6, '#ff8c00');
     }
 
     drawPlant(ctx, x, y) {
-        const potColor = '#8b4513';
-        const leafColor = '#228b22';
+        const potColor = '#cd853f';
+        const potRim = '#deb887';
+        const potShadow = '#8b4513';
+        const soilColor = '#654321';
+        const leafGreen = '#228b22';
         const darkLeaf = '#006400';
+        const lightLeaf = '#32cd32';
+        const stemColor = '#8b4513';
         
-        // Pot
-        drawPixelRect(ctx, x + 16, y - 4, 16, 12, potColor);
-        drawPixelRect(ctx, x + 28, y, 4, 8, '#654321');
+        // Enhanced pot with 3D appearance
+        drawPixelRect(ctx, x + 14, y - 6, 20, 16, potColor);
+        drawPixelRect(ctx, x + 30, y - 2, 4, 12, potShadow);
+        drawPixelRect(ctx, x + 14, y + 6, 20, 4, potShadow);
         
-        // Plant stems
-        drawPixelRect(ctx, x + 22, y - 16, 2, 12, '#8b4513');
-        drawPixelRect(ctx, x + 26, y - 14, 2, 10, '#8b4513');
+        // Pot rim
+        drawPixelRect(ctx, x + 12, y - 8, 24, 4, potRim);
+        drawPixelRect(ctx, x + 32, y - 6, 4, 2, potShadow);
         
-        // Leaves
-        drawPixelRect(ctx, x + 18, y - 20, 8, 6, leafColor);
-        drawPixelRect(ctx, x + 24, y - 18, 6, 4, leafColor);
-        drawPixelRect(ctx, x + 28, y - 16, 4, 4, darkLeaf);
+        // Soil surface
+        drawPixelRect(ctx, x + 16, y - 4, 16, 3, soilColor);
+        drawPixelRect(ctx, x + 18, y - 2, 12, 1, '#4a2c17');
         
-        // Shadow
-        drawPixelRect(ctx, x + 14, y + 6, 20, 3, 'rgba(0,0,0,0.3)');
+        // Multiple plant stems
+        drawPixelRect(ctx, x + 20, y - 20, 2, 16, stemColor);
+        drawPixelRect(ctx, x + 24, y - 18, 2, 14, stemColor);
+        drawPixelRect(ctx, x + 28, y - 16, 2, 12, stemColor);
+        
+        // Large leaves with more detail
+        drawPixelRect(ctx, x + 14, y - 26, 12, 8, leafGreen);
+        drawPixelRect(ctx, x + 22, y - 24, 10, 6, leafGreen);
+        drawPixelRect(ctx, x + 26, y - 22, 8, 6, leafGreen);
+        drawPixelRect(ctx, x + 30, y - 20, 6, 4, darkLeaf);
+        
+        // Leaf highlights and veins
+        drawPixelRect(ctx, x + 16, y - 24, 6, 2, lightLeaf);
+        drawPixelRect(ctx, x + 24, y - 22, 4, 2, lightLeaf);
+        drawPixelRect(ctx, x + 28, y - 20, 4, 2, lightLeaf);
+        
+        // Leaf veins
+        drawPixelRect(ctx, x + 18, y - 22, 4, 1, darkLeaf);
+        drawPixelRect(ctx, x + 26, y - 20, 3, 1, darkLeaf);
+        
+        // Additional smaller leaves
+        drawPixelRect(ctx, x + 12, y - 18, 6, 4, leafGreen);
+        drawPixelRect(ctx, x + 32, y - 18, 4, 3, leafGreen);
+        
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 12, y + 8, 24, 4, 'rgba(0,0,0,0.4)');
     }
 
     drawAmp(ctx, x, y) {
-        const ampColor = '#2f2f2f';
-        const speakerColor = '#1a1a1a';
-        const grillColor = '#4f4f4f';
+        const ampBody = '#2f2f2f';
+        const ampTop = '#1a1a1a';
+        const speakerCone = '#8b4513';
+        const grillMetal = '#c0c0c0';
+        const controlKnob = '#ff0000';
+        const logo = '#ffffff';
         
-        // Amp body
-        drawPixelRect(ctx, x + 12, y - 16, 24, 24, ampColor);
-        drawPixelRect(ctx, x + 30, y - 12, 6, 20, '#1f1f1f');
+        // Enhanced amp body with 3D appearance
+        drawPixelRect(ctx, x + 8, y - 20, 32, 32, ampBody);
+        drawPixelRect(ctx, x + 34, y - 16, 6, 28, ampTop);
+        drawPixelRect(ctx, x + 8, y + 8, 32, 4, ampTop);
         
-        // Speaker
-        drawPixelRect(ctx, x + 16, y - 12, 16, 16, speakerColor);
+        // Amp corners and edges
+        drawPixelRect(ctx, x + 8, y - 20, 32, 2, '#404040');
+        drawPixelRect(ctx, x + 8, y - 18, 2, 28, '#404040');
         
-        // Speaker grill
-        for (let i = 0; i < 4; i++) {
-            drawPixelRect(ctx, x + 18 + i * 3, y - 10, 1, 12, grillColor);
+        // Speaker area (larger)
+        drawPixelRect(ctx, x + 12, y - 16, 24, 20, ampTop);
+        
+        // Speaker cone
+        drawPixelRect(ctx, x + 18, y - 12, 12, 12, speakerCone);
+        drawPixelRect(ctx, x + 20, y - 10, 8, 8, '#654321');
+        drawPixelRect(ctx, x + 22, y - 8, 4, 4, '#4a2c17');
+        
+        // Speaker grill (more detailed mesh pattern)
+        for (let i = 0; i < 6; i++) {
+            drawPixelRect(ctx, x + 14 + i * 3, y - 14, 1, 16, grillMetal);
+        }
+        for (let i = 0; i < 5; i++) {
+            drawPixelRect(ctx, x + 14, y - 12 + i * 3, 18, 1, grillMetal);
         }
         
-        // Control knobs
-        drawPixelRect(ctx, x + 14, y - 14, 2, 2, grillColor);
-        drawPixelRect(ctx, x + 18, y - 14, 2, 2, grillColor);
-        drawPixelRect(ctx, x + 22, y - 14, 2, 2, grillColor);
+        // Control panel
+        drawPixelRect(ctx, x + 10, y - 18, 28, 4, ampTop);
         
-        // Shadow
-        drawPixelRect(ctx, x + 10, y + 6, 28, 3, 'rgba(0,0,0,0.3)');
+        // Control knobs (more detailed)
+        drawPixelRect(ctx, x + 12, y - 17, 3, 3, controlKnob);
+        drawPixelRect(ctx, x + 17, y - 17, 3, 3, '#00ff00');
+        drawPixelRect(ctx, x + 22, y - 17, 3, 3, '#0000ff');
+        drawPixelRect(ctx, x + 27, y - 17, 3, 3, '#ffff00');
+        drawPixelRect(ctx, x + 32, y - 17, 3, 3, '#ff00ff');
+        
+        // Knob indicators
+        drawPixelRect(ctx, x + 13, y - 16, 1, 1, '#ffffff');
+        drawPixelRect(ctx, x + 18, y - 16, 1, 1, '#ffffff');
+        drawPixelRect(ctx, x + 23, y - 16, 1, 1, '#ffffff');
+        drawPixelRect(ctx, x + 28, y - 16, 1, 1, '#ffffff');
+        drawPixelRect(ctx, x + 33, y - 16, 1, 1, '#ffffff');
+        
+        // Brand logo
+        drawPixelRect(ctx, x + 14, y + 2, 20, 4, logo);
+        drawPixelRect(ctx, x + 16, y + 3, 16, 2, ampBody);
+        
+        // Handle on top
+        drawPixelRect(ctx, x + 20, y - 22, 8, 2, grillMetal);
+        drawPixelRect(ctx, x + 18, y - 21, 2, 1, grillMetal);
+        drawPixelRect(ctx, x + 28, y - 21, 2, 1, grillMetal);
+        
+        // Enhanced shadow
+        drawPixelRect(ctx, x + 6, y + 10, 36, 4, 'rgba(0,0,0,0.4)');
     }
 }
 
