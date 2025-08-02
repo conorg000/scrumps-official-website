@@ -41,7 +41,7 @@ class Room {
         this.addFurniture({ x: 6, y: 12, width: 1, height: 1, type: 'boxing_gloves' });
         
         // Kiddy pool in open space
-        this.addFurniture({ x: 1, y: 8, width: 3, height: 3, type: 'kiddy_pool' });
+        this.addFurniture({ x: 2, y: 8, width: 3, height: 3, type: 'kiddy_pool' });
         
         // Remove the old rim collision boundaries - the pool itself now handles collision properly
     }
