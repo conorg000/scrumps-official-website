@@ -11,15 +11,15 @@ class DownstairsRoom {
 
     setupFurniture() {
         // Living room furniture
-        this.addFurniture({ x: 3, y: 8, width: 4, height: 2, type: 'couch' });
+        this.addFurniture({ x: 1, y: 1, width: 4, height: 2, type: 'couch' });
         this.addFurniture({ x: 8, y: 9, width: 1, height: 1, type: 'chair' });
         this.addFurniture({ x: 5, y: 6, width: 2, height: 1, type: 'coffee_table' });
         
-        // Musical instruments corner (top-right)
-        this.addFurniture({ x: 16, y: 2, width: 1, height: 1, type: 'guitar' });
-        this.addFurniture({ x: 17, y: 3, width: 2, height: 2, type: 'drum_kit' });
-        this.addFurniture({ x: 15, y: 4, width: 1, height: 1, type: 'microphone' });
-        this.addFurniture({ x: 18, y: 1, width: 1, height: 1, type: 'keyboard' });
+        // Musical instruments corner - moved to front right corner
+        this.addFurniture({ x: 16, y: 11, width: 1, height: 1, type: 'guitar' });
+        this.addFurniture({ x: 17, y: 12, width: 2, height: 2, type: 'drum_kit' });
+        this.addFurniture({ x: 15, y: 13, width: 1, height: 1, type: 'microphone' });
+        this.addFurniture({ x: 18, y: 10, width: 1, height: 1, type: 'keyboard' });
         
         // Some decorative items
         this.addFurniture({ x: 6, y: 6, width: 1, height: 1, type: 'beer_bottle' });
