@@ -193,6 +193,7 @@ export const GameCanvas: React.FC = () => {
             if (adjacentX >= furniture.x && adjacentX < furniture.x + furniture.width &&
                 adjacentY >= furniture.y && adjacentY < furniture.y + furniture.height) {
               
+              // Only check for examine-able furniture types, not collision boundaries
               if (furniture.type === 'beer_bottle') {
                 touchingBeerBottle = true;
               } else if (furniture.type === 'boxing_gloves') {
