@@ -157,10 +157,98 @@ class Room {
         });
     }
 
-
-
-
-
+    drawClouds() {
+        const time = Date.now() * 0.001;
+        const cloudColor = '#ffffff';
+        const cloudShadow = '#f0f8ff';
+        
+        // Moving clouds with wind drift
+        const clouds = [
+            { baseX: 200, y: 80, size: 1.2, speed: 0.3 },
+            { baseX: 500, y: 120, size: 0.8, speed: 0.5 },
+            { baseX: 800, y: 60, size: 1.0, speed: 0.2 },
+            { baseX: 1200, y: 100, size: 1.5, speed: 0.4 },
+            { baseX: 1500, y: 140, size: 0.9, speed: 0.6 },
+            { baseX: 300, y: 200, size: 1.1, speed: 0.35 },
+            { baseX: 700, y: 180, size: 0.7, speed: 0.45 },
+            { baseX: 1000, y: 40, size: 1.3, speed: 0.25 },
+            { baseX: 1400, y: 160, size: 1.0, speed: 0.55 },
+            { baseX: 100, y: 160, size: 0.8, speed: 0.4 }
+        ];
+        
+        clouds.forEach(cloud => {
+            // Wind drift + parallax effect
+            const windDrift = time * cloud.speed * 20;
+            const parallaxX = (cloud.baseX + windDrift) % (this.canvas.width + 200) - 100 + this.cameraX * 0.1;
+            const parallaxY = cloud.y + this.cameraY * 0.05;
+            
+            this.drawCloud(parallaxX, parallaxY, cloud.size, cloudColor, cloudShadow);
+        });
+        
+        // Flying slug in the sky!
+        this.drawFlyingSlug(time);
+    }
+    
+    drawFlyingSlug(time) {
+        // Slug follows a figure-8 pattern across the sky
+        const slugSpeed = 0.3;
+        const centerX = this.canvas.width * 0.6;
+        const centerY = this.canvas.height * 0.3;
+        
+        // Figure-8 parametric equations
+        const t = time * slugSpeed;
+        const slugX = centerX + Math.sin(t) * 200 + this.cameraX * 0.05;
+        const slugY = centerY + Math.sin(t * 2) * 100 + this.cameraY * 0.03;
+        
+        // Slug body colors
+        const slugBody = '#8fbc8f';
+        const slugBelly = '#98fb98';
+        const slugDark = '#556b2f';
+        const slugSpot = '#6b8e23';
+        
+        // Slug body (elongated oval)
+        this.ctx.fillStyle = slugBody;
+        this.ctx.fillRect(slugX - 15, slugY - 4, 30, 8);
+        this.ctx.fillRect(slugX - 12, slugY - 6, 24, 12);
+        this.ctx.fillRect(slugX - 8, slugY - 7, 16, 14);
+        
+        // Slug belly
+        this.ctx.fillStyle = slugBelly;
+        this.ctx.fillRect(slugX - 10, slugY + 2, 20, 4);
+        
+        // Slug head (slightly larger front)
+        this.ctx.fillStyle = slugBody;
+        this.ctx.fillRect(slugX + 8, slugY - 5, 8, 10);
+        this.ctx.fillRect(slugX + 12, slugY - 3, 4, 6);
+        
+        // Eye stalks (animated)
+        const eyeWiggle = Math.sin(time * 4) * 2;
+        this.ctx.fillStyle = slugDark;
+        this.ctx.fillRect(slugX + 14, slugY - 8 + eyeWiggle, 2, 6);
+        this.ctx.fillRect(slugX + 17, slugY - 9 - eyeWiggle, 2, 6);
+        
+        // Eyes
+        this.ctx.fillStyle = '#000000';
+        this.ctx.fillRect(slugX + 14, slugY - 9 + eyeWiggle, 2, 2);
+        this.ctx.fillRect(slugX + 17, slugY - 10 - eyeWiggle, 2, 2);
+        
+        // Slug spots
+        this.ctx.fillStyle = slugSpot;
+        this.ctx.fillRect(slugX - 5, slugY - 2, 3, 3);
+        this.ctx.fillRect(slugX + 2, slugY - 4, 4, 4);
+        this.ctx.fillRect(slugX - 8, slugY + 1, 2, 2);
+        
+        // Slug trail (fading slime trail)
+        for (let i = 0; i < 10; i++) {
+            const trailT = t - i * 0.1;
+            const trailX = centerX + Math.sin(trailT) * 200 + this.cameraX * 0.05;
+            const trailY = centerY + Math.sin(trailT * 2) * 100 + this.cameraY * 0.03;
+            const alpha = (10 - i) / 10 * 0.3;
+            
+            this.ctx.fillStyle = `rgba(144, 238, 144, ${alpha})`;
+            this.ctx.fillRect(trailX - 2, trailY + 6, 4, 2);
+        }
+    }
 
     drawTree(ctx, x, y, width, height) {
         const treeWidth = width * 48;

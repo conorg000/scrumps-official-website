@@ -149,6 +149,9 @@ class Game {
             this.ctx.fillStyle = '#87ceeb';
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             
+            // Draw sunshine rays from top-right corner
+            this.drawSunshine();
+            
             // Draw clouds
             this.drawClouds();
         }
@@ -160,6 +163,66 @@ class Game {
         this.player.draw(this.ctx, this.cameraX, this.cameraY);
         
         // Dialog is now handled by React component
+    }
+    
+    drawSunshine() {
+        const time = Date.now() * 0.001;
+        const sunX = this.canvas.width - 100;
+        const sunY = 50;
+        
+        // Animated sun rays
+        const rayCount = 12;
+        for (let i = 0; i < rayCount; i++) {
+            const angle = (i / rayCount) * Math.PI * 2 + time * 0.5;
+            const rayLength = 150 + Math.sin(time * 2 + i) * 30;
+            const rayWidth = 8 + Math.sin(time * 3 + i) * 4;
+            
+            const endX = sunX + Math.cos(angle) * rayLength;
+            const endY = sunY + Math.sin(angle) * rayLength;
+            
+            // Create gradient for each ray
+            const gradient = this.ctx.createLinearGradient(sunX, sunY, endX, endY);
+            gradient.addColorStop(0, 'rgba(255, 255, 0, 0.8)');
+            gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.4)');
+            gradient.addColorStop(1, 'rgba(255, 255, 0, 0.1)');
+            
+            this.ctx.strokeStyle = gradient;
+            this.ctx.lineWidth = rayWidth;
+            this.ctx.lineCap = 'round';
+            this.ctx.beginPath();
+            this.ctx.moveTo(sunX, sunY);
+            this.ctx.lineTo(endX, endY);
+            this.ctx.stroke();
+        }
+        
+        // Main sun body
+        const sunGradient = this.ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 40);
+        sunGradient.addColorStop(0, '#ffff99');
+        sunGradient.addColorStop(0.7, '#ffd700');
+        sunGradient.addColorStop(1, '#ff8c00');
+        
+        this.ctx.fillStyle = sunGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(sunX, sunY, 35, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Sun highlight
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        this.ctx.beginPath();
+        this.ctx.arc(sunX - 8, sunY - 8, 12, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Warm light overlay on entire scene
+        const lightGradient = this.ctx.createRadialGradient(
+            sunX, sunY, 0,
+            sunX, sunY, this.canvas.width
+        );
+        lightGradient.addColorStop(0, 'rgba(255, 255, 0, 0.1)');
+        lightGradient.addColorStop(0.3, 'rgba(255, 215, 0, 0.05)');
+        lightGradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+        
+        this.ctx.fillStyle = lightGradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
     loadScene(sceneName) {
