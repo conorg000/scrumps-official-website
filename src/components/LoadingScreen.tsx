@@ -365,7 +365,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
               {progress >= 60 && progress < 75 && "TUNING INSTRUMENTS..."}
               {progress >= 75 && progress < 90 && "WARMING UP AMPLIFIERS..."}
               {progress >= 90 && progress < 95 && "FINAL SOUND CHECK..."}
-              {progress >= 95 && "READY TO ROCK! 🤘"}
+              {progress >= 95 && "NOW FUCK OFF 🖕"}
             </div>
           </div>
 
