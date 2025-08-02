@@ -8,6 +8,10 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
   const [dots, setDots] = useState('');
   const [glitch, setGlitch] = useState(false);
   const [matrixChars, setMatrixChars] = useState<Array<{char: string, x: number, y: number, speed: number}>>([]);
+  const [horizontalGlitches, setHorizontalGlitches] = useState<Array<{id: number, y: number, width: number, opacity: number}>>([]);
+  const [staticNoise, setStaticNoise] = useState(0.1);
+  const [crtFlicker, setCrtFlicker] = useState(false);
+  const [titleGlitch, setTitleGlitch] = useState({ active: false, offset: 0, color: '' });
 
   useEffect(() => {
     // Animate loading dots
@@ -15,22 +19,59 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
       setDots(prev => prev.length >= 3 ? '' : prev + '.');
     }, 300);
 
-    // Random glitch effect
+    // Enhanced glitch effect
     const glitchInterval = setInterval(() => {
       setGlitch(true);
       setTimeout(() => setGlitch(false), 150);
-    }, 1200);
+    }, 800 + Math.random() * 800);
+
+    // Title glitch effect
+    const titleGlitchInterval = setInterval(() => {
+      setTitleGlitch({
+        active: true,
+        offset: Math.random() * 4 - 2,
+        color: Math.random() > 0.5 ? '#ff0000' : '#00ffff'
+      });
+      setTimeout(() => setTitleGlitch({ active: false, offset: 0, color: '' }), 100);
+    }, 1500 + Math.random() * 2000);
+
+    // CRT flicker effect
+    const crtInterval = setInterval(() => {
+      setCrtFlicker(true);
+      setTimeout(() => setCrtFlicker(false), 50);
+    }, 3000 + Math.random() * 5000);
+
+    // Horizontal glitch lines
+    const horizontalGlitchInterval = setInterval(() => {
+      const newGlitch = {
+        id: Date.now(),
+        y: Math.random() * 100,
+        width: Math.random() * 80 + 20,
+        opacity: Math.random() * 0.8 + 0.2
+      };
+      
+      setHorizontalGlitches(prev => [...prev, newGlitch]);
+      
+      setTimeout(() => {
+        setHorizontalGlitches(prev => prev.filter(g => g.id !== newGlitch.id));
+      }, 150);
+    }, 500 + Math.random() * 1000);
+
+    // Static noise animation
+    const staticInterval = setInterval(() => {
+      setStaticNoise(Math.random() * 0.15 + 0.05);
+    }, 50);
 
     // Matrix rain effect
-    const chars = '01SCRUMP!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const chars = '01SCRUMP!@#$%^&*()_+-=[]{}|;:,.<>?ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ';
     const initMatrix = () => {
       const newChars = [];
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 80; i++) {
         newChars.push({
           char: chars[Math.floor(Math.random() * chars.length)],
           x: Math.random() * 100,
           y: Math.random() * 100,
-          speed: Math.random() * 2 + 0.5
+          speed: Math.random() * 3 + 0.5
         });
       }
       setMatrixChars(newChars);
@@ -44,19 +85,80 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
         char: chars[Math.floor(Math.random() * chars.length)],
         y: (item.y + item.speed) % 100
       })));
-    }, 100);
+    }, 80);
 
     return () => {
       clearInterval(dotInterval);
       clearInterval(glitchInterval);
+      clearInterval(titleGlitchInterval);
+      clearInterval(crtInterval);
+      clearInterval(horizontalGlitchInterval);
+      clearInterval(staticInterval);
       clearInterval(matrixInterval);
     };
   }, []);
 
   return (
     <div className="fixed inset-0 bg-black flex items-center justify-center overflow-hidden">
-      {/* Matrix rain background */}
-      <div className="absolute inset-0 opacity-10">
+      {/* CRT Screen Overlay */}
+      <div 
+        className={`absolute inset-0 pointer-events-none z-50 ${crtFlicker ? 'animate-pulse' : ''}`}
+        style={{
+          background: `
+            radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.1) 100%),
+            linear-gradient(0deg, transparent 50%, rgba(0,255,0,0.03) 50%, rgba(0,255,0,0.03) 52%, transparent 52%)
+          `,
+          backgroundSize: '100% 100%, 100% 4px',
+          filter: `
+            contrast(1.1) 
+            brightness(1.1) 
+            hue-rotate(${Math.sin(Date.now() * 0.001) * 5}deg)
+            ${crtFlicker ? 'brightness(1.3) contrast(1.3)' : ''}
+          `,
+          borderRadius: '20px',
+          boxShadow: `
+            inset 0 0 100px rgba(0,255,0,0.1),
+            0 0 50px rgba(0,255,0,0.2)
+          `
+        }}
+      />
+
+      {/* Static Noise Overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none z-40"
+        style={{
+          opacity: staticNoise,
+          background: `
+            repeating-conic-gradient(
+              from 0deg at 50% 50%,
+              transparent 0deg,
+              rgba(255,255,255,0.1) 1deg,
+              transparent 2deg
+            )
+          `,
+          backgroundSize: '2px 2px',
+          filter: 'blur(0.5px)',
+          animation: 'staticNoise 0.1s infinite linear'
+        }}
+      />
+
+      {/* Horizontal Glitch Lines */}
+      {horizontalGlitches.map(glitchLine => (
+        <div
+          key={glitchLine.id}
+          className="absolute left-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent z-30"
+          style={{
+            top: `${glitchLine.y}%`,
+            width: `${glitchLine.width}%`,
+            opacity: glitchLine.opacity,
+            boxShadow: '0 0 10px currentColor',
+            animation: 'horizontalGlitch 0.15s ease-out'
+          }}
+        />
+      ))}
+
+      {/* Enhanced Matrix rain background */}
+      <div className="absolute inset-0 opacity-20">
         {matrixChars.map((item, i) => (
           <div
             key={i}
@@ -64,7 +166,9 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
             style={{
               left: `${item.x}%`,
               top: `${item.y}%`,
-              transform: 'translateY(-50%)'
+              transform: 'translateY(-50%)',
+              textShadow: '0 0 10px currentColor',
+              filter: `hue-rotate(${Math.sin(i * 0.1) * 60}deg)`
             }}
           >
             {item.char}
@@ -72,146 +176,239 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
         ))}
       </div>
 
-      {/* Animated scanlines */}
-      <div className="absolute inset-0 opacity-15">
-        {Array.from({ length: 30 }).map((_, i) => (
+      {/* Enhanced animated scanlines */}
+      <div className="absolute inset-0 opacity-20">
+        {Array.from({ length: 50 }).map((_, i) => (
           <div
             key={i}
             className="w-full h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent"
             style={{
               position: 'absolute',
-              top: `${i * 3.33}%`,
-              animation: `scanline 3s linear infinite ${i * 0.1}s`
+              top: `${i * 2}%`,
+              animation: `scanline ${2 + Math.random() * 3}s linear infinite ${i * 0.05}s`,
+              boxShadow: '0 0 5px currentColor'
             }}
           />
         ))}
       </div>
 
-      {/* Pulsing grid overlay */}
-      <div className="absolute inset-0 opacity-5">
+      {/* Pulsing grid overlay with enhanced effects */}
+      <div className="absolute inset-0 opacity-10">
         <div 
           className="w-full h-full"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(0,255,0,0.3) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,255,0,0.3) 1px, transparent 1px)
+              linear-gradient(rgba(0,255,0,0.4) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0,255,0,0.4) 1px, transparent 1px),
+              radial-gradient(circle at 25% 25%, rgba(255,255,0,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(0,255,255,0.1) 0%, transparent 50%)
             `,
-            backgroundSize: '20px 20px',
-            animation: 'pulse 2s ease-in-out infinite'
+            backgroundSize: '15px 15px, 15px 15px, 200px 200px, 200px 200px',
+            animation: 'gridPulse 3s ease-in-out infinite'
           }}
         />
       </div>
 
       {/* Main content */}
-      <div className="text-center z-10 relative">
-        {/* Glowing border effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-yellow-400/20 to-green-400/20 blur-xl animate-pulse" />
+      <div className="text-center z-20 relative">
+        {/* Enhanced glowing border effect */}
+        <div 
+          className="absolute inset-0 blur-2xl animate-pulse"
+          style={{
+            background: `
+              conic-gradient(
+                from 0deg,
+                #00ff00 0deg,
+                #ffff00 90deg,
+                #ff0000 180deg,
+                #00ffff 270deg,
+                #00ff00 360deg
+              )
+            `,
+            animation: 'rainbowSpin 4s linear infinite'
+          }}
+        />
         
-        <div className={`relative transition-all duration-150 ${glitch ? 'transform translate-x-2 skew-x-2 text-red-500' : ''}`}>
-          {/* Title with enhanced glow */}
+        <div className={`relative transition-all duration-100 ${glitch ? 'transform translate-x-3 skew-x-3 text-red-500 scale-105' : ''}`}>
+          {/* Enhanced title with advanced glow */}
           <div className="mb-8">
-            <h1 className="text-2xl sm:text-4xl lg:text-6xl xl:text-8xl font-mono font-bold text-green-400 mb-2 tracking-wider pixel-text title-glow">
+            <h1 
+              className={`text-2xl sm:text-4xl lg:text-6xl xl:text-8xl font-mono font-bold text-green-400 mb-2 tracking-wider pixel-text title-glow ${titleGlitch.active ? 'title-glitch' : ''}`}
+              style={titleGlitch.active ? {
+                transform: `translateX(${titleGlitch.offset}px) skewX(${titleGlitch.offset}deg)`,
+                color: titleGlitch.color,
+                textShadow: `
+                  ${titleGlitch.offset}px 0 ${titleGlitch.color},
+                  ${-titleGlitch.offset}px 0 #00ff00,
+                  0 0 20px currentColor
+                `
+              } : {}}
+            >
               THE
             </h1>
-            <h1 className="text-3xl sm:text-5xl lg:text-7xl xl:text-9xl font-mono font-bold text-yellow-400 tracking-wider pixel-text main-glow animate-pulse">
+            <h1 
+              className={`text-3xl sm:text-5xl lg:text-7xl xl:text-9xl font-mono font-bold text-yellow-400 tracking-wider pixel-text main-glow animate-pulse ${titleGlitch.active ? 'title-glitch' : ''}`}
+              style={titleGlitch.active ? {
+                transform: `translateX(${-titleGlitch.offset}px) skewX(${-titleGlitch.offset}deg)`,
+                color: titleGlitch.color,
+                textShadow: `
+                  ${titleGlitch.offset}px 0 ${titleGlitch.color},
+                  ${-titleGlitch.offset}px 0 #ffff00,
+                  0 0 30px currentColor
+                `
+              } : {}}
+            >
               SCRUMPS
             </h1>
             
-            {/* Subtitle with typewriter effect */}
+            {/* Enhanced subtitle with typewriter effect */}
             <div className="text-sm sm:text-lg lg:text-xl xl:text-2xl font-mono text-green-300 mt-4 pixel-text typewriter">
               FUCK OFF
             </div>
           </div>
 
-          {/* Enhanced loading section */}
-          <div className="bg-black/50 backdrop-blur-sm border border-green-400/30 rounded-lg p-6 mx-4">
-            {/* Loading text with enhanced styling */}
-            <div className="text-base sm:text-lg lg:text-xl font-mono text-white pixel-text mb-4 loading-text">
-              LOADING{dots} {Math.round(progress)}%
-            </div>
-
-            {/* Enhanced progress bar */}
-            <div className="w-48 sm:w-64 lg:w-80 h-3 sm:h-4 lg:h-5 bg-gray-900 border-2 border-green-400 mx-auto relative overflow-hidden rounded-sm">
-              {/* Main progress */}
-              <div 
-                className="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-green-300 relative"
-                style={{
-                  width: `${progress}%`,
-                  transition: 'width 0.3s ease-out'
-                }}
-              >
-                {/* Animated shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
-              </div>
-              
-              {/* Progress bar glow */}
-              <div 
-                className="absolute top-0 left-0 h-full bg-green-400/50 blur-sm"
-                style={{
-                  width: `${progress}%`,
-                  transition: 'width 0.3s ease-out'
-                }}
-              />
-              
-              {/* Pulsing segments */}
-              {Array.from({ length: 10 }).map((_, i) => (
+          {/* Enhanced loading section with animated border */}
+          <div 
+            className="bg-black/60 backdrop-blur-md border-2 rounded-lg p-6 mx-4 relative overflow-hidden"
+            style={{
+              borderColor: 'transparent',
+              background: `
+                linear-gradient(black, black) padding-box,
+                conic-gradient(
+                  from ${Date.now() * 0.001}rad,
+                  #00ff00,
+                  #ffff00,
+                  #ff0000,
+                  #00ffff,
+                  #00ff00
+                ) border-box
+              `,
+              animation: 'borderGlow 3s linear infinite'
+            }}
+          >
+            {/* Animated background particles */}
+            <div className="absolute inset-0 overflow-hidden">
+              {Array.from({ length: 20 }).map((_, i) => (
                 <div
                   key={i}
-                  className={`absolute top-0 w-1 h-full bg-white/20 ${
-                    progress > i * 10 ? 'animate-pulse' : ''
-                  }`}
-                  style={{ left: `${i * 10}%` }}
+                  className="absolute w-1 h-1 bg-green-400 rounded-full opacity-30"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    animation: `particleFloat ${2 + Math.random() * 3}s ease-in-out infinite ${Math.random() * 2}s`
+                  }}
                 />
               ))}
             </div>
 
-            {/* Loading status messages */}
-            <div className="text-xs font-mono text-green-300 mt-3 pixel-text">
-              {progress < 20 && "INITIALIZING SCRUMP PROTOCOLS..."}
-              {progress >= 20 && progress < 40 && "LOADING CRISPY TEXTURES..."}
-              {progress >= 40 && progress < 60 && "CALIBRATING BOXING RING..."}
-              {progress >= 60 && progress < 80 && "FILLING KIDDY POOL..."}
-              {progress >= 80 && progress < 95 && "TUNING INSTRUMENTS..."}
-              {progress >= 95 && "READY TO ROCK!"}
+            {/* Enhanced loading text */}
+            <div className="text-base sm:text-lg lg:text-xl font-mono text-white pixel-text mb-4 loading-text relative z-10">
+              LOADING{dots} {Math.round(progress)}%
+            </div>
+
+            {/* Ultra-enhanced progress bar */}
+            <div className="w-48 sm:w-64 lg:w-80 h-4 sm:h-5 lg:h-6 bg-gray-900 border-2 border-green-400 mx-auto relative overflow-hidden rounded-sm">
+              {/* Main progress with enhanced gradient */}
+              <div 
+                className="h-full relative overflow-hidden"
+                style={{
+                  width: `${progress}%`,
+                  background: `
+                    linear-gradient(90deg, 
+                      #00ff00 0%, 
+                      #ffff00 25%, 
+                      #ff8800 50%, 
+                      #ff0000 75%, 
+                      #ff00ff 100%
+                    )
+                  `,
+                  transition: 'width 0.3s ease-out',
+                  boxShadow: '0 0 20px currentColor'
+                }}
+              >
+                {/* Multiple animated shine effects */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent animate-shimmer2" />
+              </div>
+              
+              {/* Enhanced progress bar glow */}
+              <div 
+                className="absolute top-0 left-0 h-full blur-md"
+                style={{
+                  width: `${progress}%`,
+                  background: 'linear-gradient(90deg, #00ff00, #ffff00, #ff0000)',
+                  transition: 'width 0.3s ease-out'
+                }}
+              />
+              
+              {/* Enhanced pulsing segments */}
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`absolute top-0 w-0.5 h-full ${
+                    progress > i * 5 ? 'bg-white animate-pulse' : 'bg-gray-700'
+                  }`}
+                  style={{ 
+                    left: `${i * 5}%`,
+                    boxShadow: progress > i * 5 ? '0 0 5px white' : 'none'
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Enhanced loading status messages */}
+            <div className="text-xs font-mono text-green-300 mt-3 pixel-text relative z-10">
+              {progress < 15 && "INITIALIZING SCRUMP PROTOCOLS..."}
+              {progress >= 15 && progress < 30 && "LOADING CRISPY TEXTURES..."}
+              {progress >= 30 && progress < 45 && "CALIBRATING BOXING RING..."}
+              {progress >= 45 && progress < 60 && "FILLING KIDDY POOL..."}
+              {progress >= 60 && progress < 75 && "TUNING INSTRUMENTS..."}
+              {progress >= 75 && progress < 90 && "WARMING UP AMPLIFIERS..."}
+              {progress >= 90 && progress < 95 && "FINAL SOUND CHECK..."}
+              {progress >= 95 && "READY TO ROCK! 🤘"}
             </div>
           </div>
 
-          {/* Copyright with enhanced styling */}
-          <div className="text-xs font-mono text-gray-500 mt-6 pixel-text opacity-60">
-            © 2025 SCRUMP STUDIOS • EST. IN A BACKYARD
+          {/* Enhanced copyright with glitch effect */}
+          <div className={`text-xs font-mono text-gray-500 mt-6 pixel-text opacity-60 ${Math.random() > 0.95 ? 'animate-pulse text-red-500' : ''}`}>
+            © 2025 SCRUMP STUDIOS • EST. IN A BACKYARD • FUCK THE SYSTEM
           </div>
         </div>
       </div>
 
-      {/* Enhanced floating elements */}
-      {Array.from({ length: 30 }).map((_, i) => (
+      {/* Enhanced floating elements with more variety */}
+      {Array.from({ length: 50 }).map((_, i) => (
         <div
           key={i}
-          className={`absolute opacity-40 ${
-            i % 3 === 0 ? 'w-1 h-1 bg-green-400' :
-            i % 3 === 1 ? 'w-2 h-2 bg-yellow-400 rounded-full' :
-            'w-1 h-3 bg-green-300'
+          className={`absolute ${
+            i % 5 === 0 ? 'w-1 h-1 bg-green-400' :
+            i % 5 === 1 ? 'w-2 h-2 bg-yellow-400 rounded-full' :
+            i % 5 === 2 ? 'w-1 h-3 bg-green-300' :
+            i % 5 === 3 ? 'w-3 h-1 bg-cyan-400' :
+            'w-2 h-2 bg-red-400 rotate-45'
           }`}
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
-            animation: `float ${3 + Math.random() * 4}s ease-in-out infinite ${Math.random() * 2}s`
+            opacity: 0.6,
+            animation: `float ${2 + Math.random() * 4}s ease-in-out infinite ${Math.random() * 2}s`,
+            boxShadow: '0 0 10px currentColor'
           }}
         />
       ))}
 
-      {/* Corner decorations */}
-      <div className="absolute top-4 left-4 text-green-400 font-mono text-xs opacity-30">
-        [SYSTEM ONLINE]
+      {/* Enhanced corner decorations with animations */}
+      <div className="absolute top-4 left-4 text-green-400 font-mono text-xs opacity-40 animate-pulse">
+        [SYSTEM ONLINE] ▲
       </div>
-      <div className="absolute top-4 right-4 text-green-400 font-mono text-xs opacity-30">
-        [AUDIO: OK]
+      <div className="absolute top-4 right-4 text-yellow-400 font-mono text-xs opacity-40 animate-pulse">
+        [AUDIO: OK] ♪
       </div>
-      <div className="absolute bottom-4 left-4 text-green-400 font-mono text-xs opacity-30">
-        [GRAPHICS: OK]
+      <div className="absolute bottom-4 left-4 text-cyan-400 font-mono text-xs opacity-40 animate-pulse">
+        [GRAPHICS: OK] ◆
       </div>
-      <div className="absolute bottom-4 right-4 text-green-400 font-mono text-xs opacity-30">
-        [READY]
+      <div className="absolute bottom-4 right-4 text-green-400 font-mono text-xs opacity-40 animate-pulse">
+        [READY] ●
       </div>
 
       <style jsx>{`
@@ -227,6 +424,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
             0 0 5px currentColor,
             0 0 10px currentColor,
             0 0 15px currentColor,
+            0 0 20px currentColor,
             2px 2px 0px rgba(0,0,0,0.8);
         }
 
@@ -236,12 +434,14 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
             0 0 20px currentColor,
             0 0 30px currentColor,
             0 0 40px currentColor,
+            0 0 50px currentColor,
             2px 2px 0px rgba(0,0,0,0.8);
         }
 
         .loading-text {
           text-shadow: 
             0 0 5px currentColor,
+            0 0 10px currentColor,
             2px 2px 0px rgba(0,0,0,0.8);
         }
 
@@ -250,6 +450,16 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
           border-right: 2px solid currentColor;
           white-space: nowrap;
           animation: typewriter 2s steps(8) 1s both, blink 1s infinite;
+        }
+
+        .title-glitch {
+          animation: titleGlitchAnim 0.1s ease-in-out;
+        }
+
+        @keyframes titleGlitchAnim {
+          0%, 100% { transform: translateX(0) skewX(0); }
+          25% { transform: translateX(-2px) skewX(-2deg); }
+          75% { transform: translateX(2px) skewX(2deg); }
         }
 
         @keyframes typewriter {
@@ -262,9 +472,9 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
         }
 
         @keyframes scanline {
-          0% { opacity: 0; transform: translateY(-10px); }
-          50% { opacity: 1; transform: translateY(0px); }
-          100% { opacity: 0; transform: translateY(10px); }
+          0% { opacity: 0; transform: translateY(-10px) scaleX(0); }
+          50% { opacity: 1; transform: translateY(0px) scaleX(1); }
+          100% { opacity: 0; transform: translateY(10px) scaleX(0); }
         }
 
         @keyframes shimmer {
@@ -272,14 +482,69 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
           100% { transform: translateX(100%); }
         }
 
+        @keyframes shimmer2 {
+          0% { transform: translateX(-100%) skewX(-10deg); }
+          100% { transform: translateX(100%) skewX(-10deg); }
+        }
+
+        @keyframes horizontalGlitch {
+          0% { transform: translateX(-100%) scaleX(0); opacity: 0; }
+          50% { transform: translateX(0) scaleX(1); opacity: 1; }
+          100% { transform: translateX(100%) scaleX(0); opacity: 0; }
+        }
+
+        @keyframes staticNoise {
+          0% { transform: translate(0, 0); }
+          25% { transform: translate(-1px, 1px); }
+          50% { transform: translate(1px, -1px); }
+          75% { transform: translate(-1px, -1px); }
+          100% { transform: translate(1px, 1px); }
+        }
+
+        @keyframes rainbowSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
+        @keyframes borderGlow {
+          0%, 100% { filter: brightness(1) hue-rotate(0deg); }
+          50% { filter: brightness(1.2) hue-rotate(180deg); }
+        }
+
+        @keyframes gridPulse {
+          0%, 100% { 
+            opacity: 0.1; 
+            transform: scale(1);
+          }
+          50% { 
+            opacity: 0.2; 
+            transform: scale(1.02);
+          }
+        }
+
+        @keyframes particleFloat {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg); 
+            opacity: 0.3;
+          }
+          50% { 
+            transform: translateY(-20px) rotate(180deg); 
+            opacity: 0.8;
+          }
+        }
+
         @keyframes float {
           0%, 100% { 
             transform: translateY(0px) rotate(0deg); 
-            opacity: 0.4;
+            opacity: 0.6;
           }
-          50% { 
-            transform: translateY(-30px) rotate(180deg); 
+          25% { 
+            transform: translateY(-15px) rotate(90deg); 
             opacity: 0.8;
+          }
+          75% { 
+            transform: translateY(-30px) rotate(270deg); 
+            opacity: 1;
           }
         }
       `}</style>
