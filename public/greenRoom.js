@@ -145,6 +145,11 @@ class DownstairsRoom {
         const couchColor = '#8b4513';
         const couchDark = '#654321';
         const cushionColor = '#a0522d';
+        const couchMain = '#8b4513';
+        const cushionMain = '#a0522d';
+        const cushionDark = '#654321';
+        const fabricTexture = '#cd853f';
+        const couchLight = '#deb887';
         
         // Draw couch base spanning multiple tiles
         for (let cy = 0; cy < height; cy++) {
