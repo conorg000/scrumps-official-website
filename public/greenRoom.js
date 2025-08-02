@@ -171,13 +171,6 @@ class DownstairsRoom {
         
         // Shadow
         drawPixelRect(ctx, x + 4, y + 16, width * 40, 4, 'rgba(0,0,0,0.3)');
-        const couchMain = '#8b4513';
-        const couchDark = '#654321';
-        const couchLight = '#cd853f';
-        const cushionMain = '#a0522d';
-        const cushionDark = '#8b4513';
-        const fabricTexture = '#deb887';
-        
         // Draw enhanced couch spanning multiple tiles
         for (let cy = 0; cy < height; cy++) {
             for (let cx = 0; cx < width; cx++) {
