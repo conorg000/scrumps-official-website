@@ -80,47 +80,57 @@ class UpstairsRoom {
         const cloudShadow = '#d84315';
         const cloudHighlight = '#ffcc80';
         
-        // Long thin clouds at different heights
+        // More realistic puffy clouds at different heights
         const clouds = [
-            { baseX: 100, y: 80, length: 300, height: 20, speed: 0.2 },
-            { baseX: 400, y: 120, length: 250, height: 15, speed: 0.3 },
-            { baseX: 200, y: 160, length: 400, height: 25, speed: 0.15 },
-            { baseX: 600, y: 200, length: 200, height: 18, speed: 0.4 },
-            { baseX: 50, y: 240, length: 350, height: 22, speed: 0.25 },
-            { baseX: 500, y: 100, length: 180, height: 12, speed: 0.35 },
-            { baseX: 300, y: 280, length: 280, height: 20, speed: 0.18 }
+            { baseX: 100, y: 80, scale: 1.2, speed: 0.2 },
+            { baseX: 400, y: 120, scale: 0.8, speed: 0.3 },
+            { baseX: 200, y: 160, scale: 1.5, speed: 0.15 },
+            { baseX: 600, y: 200, scale: 0.9, speed: 0.4 },
+            { baseX: 50, y: 240, scale: 1.1, speed: 0.25 },
+            { baseX: 500, y: 100, scale: 0.7, speed: 0.35 },
+            { baseX: 300, y: 280, scale: 1.3, speed: 0.18 }
         ];
         
         clouds.forEach(cloud => {
             const windDrift = time * cloud.speed * 15;
-            const cloudX = (cloud.baseX + windDrift) % (ctx.canvas.width + cloud.length) - cloud.length;
+            const cloudX = (cloud.baseX + windDrift) % (ctx.canvas.width + 200) - 100;
             
-            // Main cloud body (long and thin)
-            ctx.fillStyle = cloudColor;
-            ctx.fillRect(cloudX, cloud.y, cloud.length, cloud.height);
-            
-            // Cloud shadow/depth
-            ctx.fillStyle = cloudShadow;
-            ctx.fillRect(cloudX, cloud.y + cloud.height - 4, cloud.length, 4);
-            
-            // Cloud highlights on top
-            ctx.fillStyle = cloudHighlight;
-            ctx.fillRect(cloudX, cloud.y, cloud.length, 3);
-            
-            // Wispy edges
-            ctx.fillStyle = cloudColor;
-            ctx.fillRect(cloudX - 20, cloud.y + 2, 25, cloud.height - 4);
-            ctx.fillRect(cloudX + cloud.length - 5, cloud.y + 2, 25, cloud.height - 4);
-            
-            // Soft cloud variations
-            const segments = Math.floor(cloud.length / 40);
-            for (let i = 0; i < segments; i++) {
-                const segmentX = cloudX + i * 40;
-                const puff = Math.sin(time + i) * 3;
-                ctx.fillStyle = cloudHighlight;
-                ctx.fillRect(segmentX, cloud.y - puff, 30, cloud.height + puff * 2);
-            }
+            // Draw realistic puffy cloud using the existing drawCloud method style
+            this.drawSunsetCloud(ctx, cloudX, cloud.y, cloud.scale, cloudColor, cloudShadow, cloudHighlight, time);
         });
+    }
+    
+    drawSunsetCloud(ctx, x, y, scale, lightColor, shadowColor, highlightColor, time) {
+        const baseSize = 30 * scale;
+        const puff = Math.sin(time * 0.5) * 2;
+        
+        // Cloud shadow parts (slightly offset for depth)
+        ctx.fillStyle = shadowColor;
+        ctx.fillRect(x + 2, y + 2 + puff, baseSize * 2, baseSize * 0.6);
+        ctx.fillRect(x + baseSize * 0.4 + 2, y - baseSize * 0.2 + 2 + puff, baseSize * 1.2, baseSize * 0.8);
+        ctx.fillRect(x + baseSize * 1.2 + 2, y + baseSize * 0.1 + 2 + puff, baseSize, baseSize * 0.7);
+        ctx.fillRect(x - baseSize * 0.1 + 2, y + baseSize * 0.2 + 2 + puff, baseSize * 0.8, baseSize * 0.5);
+        ctx.fillRect(x + baseSize * 1.8 + 2, y - baseSize * 0.1 + 2 + puff, baseSize * 0.6, baseSize * 0.6);
+        
+        // Main cloud body (multiple overlapping puffs)
+        ctx.fillStyle = lightColor;
+        ctx.fillRect(x, y + puff, baseSize * 2, baseSize * 0.6);
+        ctx.fillRect(x + baseSize * 0.4, y - baseSize * 0.2 + puff, baseSize * 1.2, baseSize * 0.8);
+        ctx.fillRect(x + baseSize * 1.2, y + baseSize * 0.1 + puff, baseSize, baseSize * 0.7);
+        ctx.fillRect(x - baseSize * 0.1, y + baseSize * 0.2 + puff, baseSize * 0.8, baseSize * 0.5);
+        ctx.fillRect(x + baseSize * 1.8, y - baseSize * 0.1 + puff, baseSize * 0.6, baseSize * 0.6);
+        
+        // Additional puffs for more realistic shape
+        ctx.fillRect(x + baseSize * 0.8, y - baseSize * 0.3 + puff, baseSize * 0.8, baseSize * 0.6);
+        ctx.fillRect(x + baseSize * 1.5, y + baseSize * 0.3 + puff, baseSize * 0.7, baseSize * 0.5);
+        ctx.fillRect(x + baseSize * 0.2, y - baseSize * 0.1 + puff, baseSize * 0.6, baseSize * 0.4);
+        
+        // Cloud highlights (bright spots where sun hits)
+        ctx.fillStyle = highlightColor;
+        ctx.fillRect(x + baseSize * 0.1, y - baseSize * 0.1 + puff, baseSize * 0.5, baseSize * 0.3);
+        ctx.fillRect(x + baseSize * 0.7, y + baseSize * 0.05 + puff, baseSize * 0.4, baseSize * 0.25);
+        ctx.fillRect(x + baseSize * 1.3, y - baseSize * 0.15 + puff, baseSize * 0.3, baseSize * 0.2);
+        ctx.fillRect(x + baseSize * 1.6, y + baseSize * 0.1 + puff, baseSize * 0.25, baseSize * 0.15);
     }
     
     drawFlyingBirds(ctx, time) {
