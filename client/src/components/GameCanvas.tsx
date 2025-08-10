@@ -119,7 +119,7 @@ export const GameCanvas: React.FC = () => {
       const audio = audioRef.current;
       if (audio) {
         audio.loop = true;
-        audio.volume = 0.3;
+        audio.volume = 0.5;
         audio.play().catch(() => {
           // Auto-play prevented, music will start on first user interaction
         });
