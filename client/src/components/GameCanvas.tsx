@@ -180,7 +180,7 @@ export const GameCanvas: React.FC = () => {
       let touchingKiddyPool = false;
       
       // Check all furniture for proximity
-      room.furniture.forEach(furniture => {
+      room.furniture.forEach((furniture: any) => {
         // Check if player is adjacent to this furniture
         for (let dx = -1; dx <= 1; dx++) {
           for (let dy = -1; dy <= 1; dy++) {

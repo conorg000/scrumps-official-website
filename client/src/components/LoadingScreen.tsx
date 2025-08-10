@@ -411,7 +411,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ progress }) => {
         [READY] ●
       </div>
 
-      <style jsx>{`
+      <style>{`
         .pixel-text {
           image-rendering: pixelated;
           image-rendering: -moz-crisp-edges;

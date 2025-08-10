@@ -113,7 +113,7 @@ export const DialogModal: React.FC<DialogModalProps> = ({
         </div>
       </div>
     
-    <style jsx>{`
+    <style>{`
       .pixelated {
         image-rendering: pixelated;
         image-rendering: -moz-crisp-edges;
