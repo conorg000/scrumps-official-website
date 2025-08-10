@@ -2,13 +2,17 @@ import React, { useRef, useEffect, useState } from 'react';
 import { VirtualJoystick } from './VirtualJoystick';
 import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
+import { Volume2, VolumeX } from 'lucide-react';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isMusicMuted, setIsMusicMuted] = useState(false);
   const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
   const [nearBoxingRing, setNearBoxingRing] = useState(false);
   const [atBottomEdge, setAtBottomEdge] = useState(false);
@@ -96,7 +100,11 @@ export const GameCanvas: React.FC = () => {
           
           // Complete loading
           setLoadingProgress(100);
-          setTimeout(() => setIsLoading(false), 300); // Brief delay after 100%
+          setTimeout(() => {
+            setIsLoading(false);
+            // Start background music after game loads
+            initBackgroundMusic();
+          }, 300); // Brief delay after 100%
         }
       } catch (error) {
         console.error('Failed to load game scripts:', error);
@@ -109,10 +117,34 @@ export const GameCanvas: React.FC = () => {
     // Start loading immediately
     initGame();
 
+    // Background music initialization function
+    const initBackgroundMusic = () => {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.loop = true;
+        audio.volume = 0.3; // Set to 30% volume by default
+        
+        // Try to play audio (modern browsers require user interaction)
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            setIsMusicPlaying(true);
+          }).catch((error) => {
+            console.log('Auto-play prevented:', error);
+            // Auto-play was prevented, user will need to click to start music
+          });
+        }
+      }
+    };
+
     return () => {
       // Cleanup
       if (gameRef.current) {
         gameRef.current = null;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
       }
     };
   }, []);
@@ -445,8 +477,45 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const toggleMusic = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      if (isMusicPlaying) {
+        audio.pause();
+        setIsMusicPlaying(false);
+      } else {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            setIsMusicPlaying(true);
+          }).catch((error) => {
+            console.log('Play failed:', error);
+          });
+        }
+      }
+    }
+  };
+
+  const toggleMute = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.muted = !audio.muted;
+      setIsMusicMuted(audio.muted);
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
+      {/* Background Music Audio Element */}
+      <audio 
+        ref={audioRef}
+        preload="auto"
+        style={{ display: 'none' }}
+      >
+        <source src="/background-music.wav" type="audio/wav" />
+        Your browser does not support the audio element.
+      </audio>
+
       {isLoading && <LoadingScreen progress={loadingProgress} />}
       
       <canvas
@@ -552,6 +621,26 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
+
+      {/* Music Controls */}
+      {!isLoading && (
+        <div className="fixed top-4 left-4 flex gap-2 z-50">
+          <button
+            onClick={toggleMusic}
+            className="bg-black/30 backdrop-blur-sm text-white p-2 rounded-lg border-2 border-white/20 hover:bg-white/10 transition-all duration-200"
+            title={isMusicPlaying ? "Pause Music" : "Play Music"}
+          >
+            {isMusicPlaying ? "⏸️" : "▶️"}
+          </button>
+          <button
+            onClick={toggleMute}
+            className="bg-black/30 backdrop-blur-sm text-white p-2 rounded-lg border-2 border-white/20 hover:bg-white/10 transition-all duration-200"
+            title={isMusicMuted ? "Unmute" : "Mute"}
+          >
+            {isMusicMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+        </div>
+      )}
       
       <DialogModal
         isVisible={dialogState.isVisible}
