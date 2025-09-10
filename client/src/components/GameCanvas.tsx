@@ -476,7 +476,7 @@ export const GameCanvas: React.FC = () => {
         preload="auto"
         style={{ display: 'none' }}
       >
-        <source src="/background-music.wav" type="audio/wav" />
+        <source src="/background-music.mp3" type="audio/mp3" />
         Your browser does not support the audio element.
       </audio>
 
