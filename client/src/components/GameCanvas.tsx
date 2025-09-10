@@ -117,12 +117,37 @@ export const GameCanvas: React.FC = () => {
     // Background music initialization function
     const initBackgroundMusic = () => {
       const audio = audioRef.current;
+      console.log('Initializing background music...', audio);
       if (audio) {
         audio.loop = true;
         audio.volume = 0.5;
-        audio.play().catch(() => {
-          // Auto-play prevented, music will start on first user interaction
+        console.log('Audio element configured. Attempting to play...');
+        audio.play().then(() => {
+          console.log('Background music started playing successfully!');
+        }).catch((error) => {
+          console.log('Auto-play prevented or failed:', error);
+          console.log('Music will start on first user interaction');
+          
+          // Set up one-time event listener for first user interaction
+          const startAudioOnInteraction = () => {
+            audio.play().then(() => {
+              console.log('Background music started after user interaction!');
+            }).catch((err) => {
+              console.error('Failed to start audio even after user interaction:', err);
+            });
+            
+            // Remove listeners after first successful interaction
+            document.removeEventListener('click', startAudioOnInteraction);
+            document.removeEventListener('touchstart', startAudioOnInteraction);
+            document.removeEventListener('keydown', startAudioOnInteraction);
+          };
+          
+          document.addEventListener('click', startAudioOnInteraction);
+          document.addEventListener('touchstart', startAudioOnInteraction);
+          document.addEventListener('keydown', startAudioOnInteraction);
         });
+      } else {
+        console.error('Audio element not found!');
       }
     };
 
