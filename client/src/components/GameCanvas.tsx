@@ -33,6 +33,31 @@ export const GameCanvas: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Background music initialization function
+    const initBackgroundMusic = () => {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.src = '/background-music.mp3';
+        audio.volume = 0.5;
+        audio.play().catch(() => {
+          // Auto-play prevented, music will start on first user interaction
+          const startAudioOnInteraction = () => {
+            audio.play();
+            document.removeEventListener('click', startAudioOnInteraction);
+            document.removeEventListener('touchstart', startAudioOnInteraction);
+            document.removeEventListener('keydown', startAudioOnInteraction);
+          };
+          
+          document.addEventListener('click', startAudioOnInteraction);
+          document.addEventListener('touchstart', startAudioOnInteraction);
+          document.addEventListener('keydown', startAudioOnInteraction);
+        });
+      }
+    };
+
+    // Start background music immediately
+    initBackgroundMusic();
+
     // Load game scripts dynamically
     const loadScript = (src: string) => {
       return new Promise((resolve, reject) => {
@@ -99,8 +124,6 @@ export const GameCanvas: React.FC = () => {
           setLoadingProgress(100);
           setTimeout(() => {
             setIsLoading(false);
-            // Start background music after game loads
-            initBackgroundMusic();
           }, 300); // Brief delay after 100%
         }
       } catch (error) {
@@ -113,28 +136,6 @@ export const GameCanvas: React.FC = () => {
 
     // Start loading immediately
     initGame();
-
-    // Background music initialization function
-    const initBackgroundMusic = () => {
-      const audio = audioRef.current;
-      if (audio) {
-        audio.src = '/background-music.mp3';
-        audio.volume = 0.5;
-        audio.play().catch(() => {
-          // Auto-play prevented, music will start on first user interaction
-          const startAudioOnInteraction = () => {
-            audio.play();
-            document.removeEventListener('click', startAudioOnInteraction);
-            document.removeEventListener('touchstart', startAudioOnInteraction);
-            document.removeEventListener('keydown', startAudioOnInteraction);
-          };
-          
-          document.addEventListener('click', startAudioOnInteraction);
-          document.addEventListener('touchstart', startAudioOnInteraction);
-          document.addEventListener('keydown', startAudioOnInteraction);
-        });
-      }
-    };
 
     return () => {
       // Cleanup
