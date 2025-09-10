@@ -24,7 +24,7 @@ class Game {
         this.cameraX = 0;
         this.cameraY = 0;
         this.cameraSmoothing = 0.1;
-        this.zoom = 1.5; // Zoom level for closer perspective
+        this.zoom = 2.0; // Zoom level for closer perspective
         
         // Dialog system
         this.dialog = null; // Will be handled by React component
