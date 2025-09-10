@@ -117,26 +117,13 @@ export const GameCanvas: React.FC = () => {
     // Background music initialization function
     const initBackgroundMusic = () => {
       const audio = audioRef.current;
-      console.log('Initializing background music...', audio);
       if (audio) {
-        audio.loop = true;
+        audio.src = '/background-music.mp3';
         audio.volume = 0.5;
-        console.log('Audio element configured. Attempting to play...');
-        audio.play().then(() => {
-          console.log('Background music started playing successfully!');
-        }).catch((error) => {
-          console.log('Auto-play prevented or failed:', error);
-          console.log('Music will start on first user interaction');
-          
-          // Set up one-time event listener for first user interaction
+        audio.play().catch(() => {
+          // Auto-play prevented, music will start on first user interaction
           const startAudioOnInteraction = () => {
-            audio.play().then(() => {
-              console.log('Background music started after user interaction!');
-            }).catch((err) => {
-              console.error('Failed to start audio even after user interaction:', err);
-            });
-            
-            // Remove listeners after first successful interaction
+            audio.play();
             document.removeEventListener('click', startAudioOnInteraction);
             document.removeEventListener('touchstart', startAudioOnInteraction);
             document.removeEventListener('keydown', startAudioOnInteraction);
@@ -146,8 +133,6 @@ export const GameCanvas: React.FC = () => {
           document.addEventListener('touchstart', startAudioOnInteraction);
           document.addEventListener('keydown', startAudioOnInteraction);
         });
-      } else {
-        console.error('Audio element not found!');
       }
     };
 
@@ -498,12 +483,11 @@ export const GameCanvas: React.FC = () => {
       {/* Background Music Audio Element */}
       <audio 
         ref={audioRef}
+        src="/background-music.mp3"
         preload="auto"
+        loop
         style={{ display: 'none' }}
-      >
-        <source src="/background-music.mp3" type="audio/mp3" />
-        Your browser does not support the audio element.
-      </audio>
+      />
 
       {isLoading && <LoadingScreen progress={loadingProgress} />}
       
