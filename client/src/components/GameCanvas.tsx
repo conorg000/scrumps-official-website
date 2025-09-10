@@ -70,7 +70,6 @@ export const GameCanvas: React.FC = () => {
     };
 
     const initGame = async () => {
-      const loadingStartTime = Date.now();
       try {
         const scripts = ['/utils.js', '/player.js', '/room.js', '/greenRoom.js', '/upstairsRoom.js', '/controls.js', '/game.js'];
         const totalScripts = scripts.length;
@@ -123,15 +122,9 @@ export const GameCanvas: React.FC = () => {
           
           // Complete loading
           setLoadingProgress(100);
-          
-          // Ensure loading screen shows for minimum 5 seconds
-          const elapsedTime = Date.now() - loadingStartTime;
-          const minimumLoadingTime = 5000; // 5 seconds
-          const remainingTime = Math.max(minimumLoadingTime - elapsedTime, 300);
-          
           setTimeout(() => {
             setIsLoading(false);
-          }, remainingTime);
+          }, 300); // Brief delay after 100%
         }
       } catch (error) {
         console.error('Failed to load game scripts:', error);
