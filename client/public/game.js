@@ -24,6 +24,7 @@ class Game {
         this.cameraX = 0;
         this.cameraY = 0;
         this.cameraSmoothing = 0.1;
+        this.zoom = 1.5; // Zoom level for closer perspective
         
         // Dialog system
         this.dialog = null; // Will be handled by React component
@@ -60,9 +61,9 @@ class Game {
         // Get player's screen position
         const playerScreenPos = isometricToScreen(this.player.x, this.player.y);
         
-        // Calculate where camera should be to center player
-        const targetCameraX = this.canvas.width / 2 - playerScreenPos.x;
-        const targetCameraY = this.canvas.height / 2 - playerScreenPos.y;
+        // Calculate where camera should be to center player, accounting for zoom
+        const targetCameraX = this.canvas.width / 2 - playerScreenPos.x * this.zoom;
+        const targetCameraY = this.canvas.height / 2 - playerScreenPos.y * this.zoom;
         
         // Smooth camera movement
         this.cameraX += (targetCameraX - this.cameraX) * this.cameraSmoothing;
@@ -222,11 +223,24 @@ class Game {
             this.drawClouds();
         }
 
+        // Save context state
+        this.ctx.save();
+        
+        // Apply zoom scaling
+        this.ctx.scale(this.zoom, this.zoom);
+        
+        // Adjust camera position for zoom
+        const zoomedCameraX = this.cameraX / this.zoom;
+        const zoomedCameraY = this.cameraY / this.zoom;
+
         // Draw room
-        this.room.draw(this.ctx, this.cameraX, this.cameraY);
+        this.room.draw(this.ctx, zoomedCameraX, zoomedCameraY);
         
         // Draw player
-        this.player.draw(this.ctx, this.cameraX, this.cameraY);
+        this.player.draw(this.ctx, zoomedCameraX, zoomedCameraY);
+        
+        // Restore context state
+        this.ctx.restore();
         
         // Dialog is now handled by React component
     }
