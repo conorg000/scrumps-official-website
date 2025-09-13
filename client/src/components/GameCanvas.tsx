@@ -17,6 +17,7 @@ export const GameCanvas: React.FC = () => {
   const [nearBoxingGloves, setNearBoxingGloves] = useState(false);
   const [nearTree, setNearTree] = useState(false);
   const [nearKiddyPool, setNearKiddyPool] = useState(false);
+  const [nearBeerPyramid, setNearBeerPyramid] = useState(false);
   const [atTopEdge, setAtTopEdge] = useState(false);
   const [atRightEdge, setAtRightEdge] = useState(false);
   const [atLeftEdge, setAtLeftEdge] = useState(false);
@@ -210,6 +211,7 @@ export const GameCanvas: React.FC = () => {
       let touchingBoxingGloves = false;
       let touchingTree = false;
       let touchingKiddyPool = false;
+      let touchingBeerPyramid = false;
       
       // Check all furniture for proximity
       room.furniture.forEach((furniture: any) => {
@@ -234,6 +236,8 @@ export const GameCanvas: React.FC = () => {
                 touchingTree = true;
               } else if (furniture.type === 'kiddy_pool') {
                 touchingKiddyPool = true;
+              } else if (furniture.type === 'beer_pyramid') {
+                touchingBeerPyramid = true;
               }
             }
           }
@@ -244,6 +248,7 @@ export const GameCanvas: React.FC = () => {
       setNearBoxingGloves(touchingBoxingGloves);
       setNearTree(touchingTree);
       setNearKiddyPool(touchingKiddyPool);
+      setNearBeerPyramid(touchingBeerPyramid);
     };
 
     const interval = setInterval(checkObjectProximity, 100);
@@ -446,6 +451,17 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleExamineBeerPyramid = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Scrump", [
+        "Holy shit, that's an epic beer pyramid!",
+        "Someone really went all out building this masterpiece.",
+        "Look at how perfectly balanced those bottles are...",
+        "I bet whoever built this knows how to party!"
+      ]);
+    }
+  };
+
   const handleSceneChange = () => {
     if (gameRef.current && gameRef.current.loadScene) {
       const newScene = gameRef.current.currentScene === 'mainRoom' ? 'downstairs' : 'mainRoom';
@@ -515,7 +531,7 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Examine Beer Bottle Button */}
-      {!isLoading && !dialogState.isVisible && nearBeerBottle && !nearBoxingRing && (
+      {!isLoading && !dialogState.isVisible && nearBeerBottle && !nearBoxingRing && !nearBeerPyramid && (
         <button
           onClick={handleExamineBeerBottle}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -525,7 +541,7 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Examine Boxing Gloves Button */}
-      {!isLoading && !dialogState.isVisible && nearBoxingGloves && !nearBoxingRing && !nearBeerBottle && (
+      {!isLoading && !dialogState.isVisible && nearBoxingGloves && !nearBoxingRing && !nearBeerBottle && !nearBeerPyramid && (
         <button
           onClick={handleExamineBoxingGloves}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -535,7 +551,7 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Examine Tree Button */}
-      {!isLoading && !dialogState.isVisible && nearTree && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearKiddyPool && (
+      {!isLoading && !dialogState.isVisible && nearTree && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearKiddyPool && !nearBeerPyramid && (
         <button
           onClick={handleExamineTree}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -545,7 +561,7 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Examine Kiddy Pool Button */}
-      {!isLoading && !dialogState.isVisible && nearKiddyPool && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && (
+      {!isLoading && !dialogState.isVisible && nearKiddyPool && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearBeerPyramid && (
         <button
           onClick={handleExamineKiddyPool}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -554,8 +570,18 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
       
+      {/* Examine Beer Pyramid Button */}
+      {!isLoading && !dialogState.isVisible && nearBeerPyramid && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+        <button
+          onClick={handleExamineBeerPyramid}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          EXAMINE BEER PYRAMID
+        </button>
+      )}
+      
       {/* Go Downstairs Button - appears when at bottom edge */}
-      {!isLoading && !dialogState.isVisible && atBottomEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+      {!isLoading && !dialogState.isVisible && atBottomEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && (
         <button
           onClick={handleGoDownstairs}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -565,7 +591,7 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Go to Backyard Button - appears when at top edge of downstairs room */}
-      {!isLoading && !dialogState.isVisible && atTopEdge && gameRef.current?.currentScene === 'downstairs' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+      {!isLoading && !dialogState.isVisible && atTopEdge && gameRef.current?.currentScene === 'downstairs' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && (
         <button
           onClick={handleGoToBackyard}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -575,7 +601,7 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Go Upstairs Button - appears when at right edge of main room */}
-      {!isLoading && !dialogState.isVisible && atRightEdge && gameRef.current?.currentScene === 'mainRoom' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !atBottomEdge && (
+      {!isLoading && !dialogState.isVisible && atRightEdge && gameRef.current?.currentScene === 'mainRoom' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && !atBottomEdge && (
         <button
           onClick={handleGoUpstairs}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
