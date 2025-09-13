@@ -377,73 +377,6 @@ class DownstairsRoom {
         drawPixelRect(ctx, x + 8, y + 18, 32, 4, 'rgba(0,0,0,0.4)');
     }
 
-    drawBeerPyramid(ctx, x, y, width, height) {
-        // Colors for the beer bottles from the pixel art
-        const bottleOutline = '#000000';  // Black outline
-        const bottleBody = '#228b22';     // Green body
-        const bottleMid = '#32cd32';      // Lighter green
-        const labelYellow = '#ffd700';    // Gold label
-        const labelOrange = '#ffa500';    // Orange accent
-        const capWhite = '#ffffff';       // White cap
-        const capGrey = '#c0c0c0';        // Grey cap shadow
-        
-        // Beer pyramid structure - 5 rows from bottom to top
-        const pyramidData = [
-            { row: 4, bottles: 7, yOffset: 40 },  // Bottom row
-            { row: 3, bottles: 5, yOffset: 20 },  // Second row
-            { row: 2, bottles: 3, yOffset: 0 },   // Third row  
-            { row: 1, bottles: 1, yOffset: -20 }, // Fourth row
-            { row: 0, bottles: 1, yOffset: -40 }  // Top row
-        ];
-        
-        pyramidData.forEach(rowData => {
-            const { bottles, yOffset } = rowData;
-            const startX = x + (width * 24) - (bottles * 12); // Center the row
-            
-            for (let i = 0; i < bottles; i++) {
-                const bottleX = startX + i * 24;
-                const bottleY = y + yOffset;
-                
-                // Draw individual beer bottle
-                this.drawPyramidBottle(ctx, bottleX, bottleY, 
-                    bottleOutline, bottleBody, bottleMid, labelYellow, labelOrange, capWhite, capGrey);
-            }
-        });
-        
-        // Shadow for the entire pyramid
-        drawPixelRect(ctx, x + 10, y + 50, width * 40, 6, 'rgba(0,0,0,0.5)');
-    }
-    
-    drawPyramidBottle(ctx, x, y, outline, body, bodyMid, labelYellow, labelOrange, capWhite, capGrey) {
-        const bottleWidth = 20;
-        const bottleHeight = 32;
-        
-        // Bottle outline
-        drawPixelRect(ctx, x, y - bottleHeight, bottleWidth, bottleHeight, outline);
-        drawPixelRect(ctx, x + bottleWidth, y - bottleHeight + 4, 2, bottleHeight - 4, outline);
-        drawPixelRect(ctx, x, y, bottleWidth + 2, 2, outline);
-        
-        // Main bottle body (green)
-        drawPixelRect(ctx, x + 2, y - bottleHeight + 2, bottleWidth - 2, bottleHeight - 4, body);
-        
-        // Bottle body highlight (lighter green)
-        drawPixelRect(ctx, x + 2, y - bottleHeight + 2, 6, bottleHeight - 6, bodyMid);
-        
-        // Label area (yellow/gold)
-        drawPixelRect(ctx, x + 4, y - 20, bottleWidth - 6, 12, labelYellow);
-        drawPixelRect(ctx, x + 6, y - 18, bottleWidth - 10, 8, labelOrange);
-        
-        // Bottle neck
-        drawPixelRect(ctx, x + 6, y - bottleHeight + 2, 8, 6, body);
-        drawPixelRect(ctx, x + 7, y - bottleHeight + 2, 6, 4, bodyMid);
-        
-        // Bottle cap (white/grey)
-        drawPixelRect(ctx, x + 5, y - bottleHeight, 10, 4, capWhite);
-        drawPixelRect(ctx, x + 6, y - bottleHeight + 1, 8, 2, capGrey);
-        
-        // Bottle bottom highlight
-        drawPixelRect(ctx, x + 2, y - 6, bottleWidth - 2, 4, capWhite);
-    }
 
     drawCoffeeTable(ctx, x, y, width, height) {
         const tableTop = '#deb887';
@@ -918,71 +851,29 @@ class DownstairsRoom {
     }
 
     drawBeerPyramid(ctx, x, y, width, height) {
-        // Colors for the beer bottles from the pixel art
-        const bottleOutline = '#000000';  // Black outline
-        const bottleBody = '#228b22';     // Green body
-        const bottleMid = '#32cd32';      // Lighter green
-        const labelYellow = '#ffd700';    // Gold label
-        const labelOrange = '#ffa500';    // Orange accent
-        const capWhite = '#ffffff';       // White cap
-        const capGrey = '#c0c0c0';        // Grey cap shadow
+        // Load and cache the beer pyramid image
+        if (!this.beerPyramidImage) {
+            this.beerPyramidImage = new Image();
+            this.beerPyramidImage.src = '/beer-pyramid.png';
+        }
         
-        // Beer pyramid structure - 5 rows from bottom to top
-        const pyramidData = [
-            { row: 4, bottles: 7, yOffset: 40 },  // Bottom row
-            { row: 3, bottles: 5, yOffset: 20 },  // Second row
-            { row: 2, bottles: 3, yOffset: 0 },   // Third row  
-            { row: 1, bottles: 1, yOffset: -20 }, // Fourth row
-            { row: 0, bottles: 1, yOffset: -40 }  // Top row
-        ];
-        
-        pyramidData.forEach(rowData => {
-            const { bottles, yOffset } = rowData;
-            const startX = x + (width * 24) - (bottles * 12); // Center the row
+        // Only draw if the image has loaded
+        if (this.beerPyramidImage.complete && this.beerPyramidImage.naturalHeight !== 0) {
+            // Calculate drawing position and size
+            const imageWidth = 120; // Scale the image appropriately
+            const imageHeight = 80;
             
-            for (let i = 0; i < bottles; i++) {
-                const bottleX = startX + i * 24;
-                const bottleY = y + yOffset;
-                
-                // Draw individual beer bottle
-                this.drawPyramidBottle(ctx, bottleX, bottleY, 
-                    bottleOutline, bottleBody, bottleMid, labelYellow, labelOrange, capWhite, capGrey);
-            }
-        });
-        
-        // Shadow for the entire pyramid
-        drawPixelRect(ctx, x + 10, y + 50, width * 40, 6, 'rgba(0,0,0,0.5)');
-    }
-    
-    drawPyramidBottle(ctx, x, y, outline, body, bodyMid, labelYellow, labelOrange, capWhite, capGrey) {
-        const bottleWidth = 20;
-        const bottleHeight = 32;
-        
-        // Bottle outline
-        drawPixelRect(ctx, x, y - bottleHeight, bottleWidth, bottleHeight, outline);
-        drawPixelRect(ctx, x + bottleWidth, y - bottleHeight + 4, 2, bottleHeight - 4, outline);
-        drawPixelRect(ctx, x, y, bottleWidth + 2, 2, outline);
-        
-        // Main bottle body (green)
-        drawPixelRect(ctx, x + 2, y - bottleHeight + 2, bottleWidth - 2, bottleHeight - 4, body);
-        
-        // Bottle body highlight (lighter green)
-        drawPixelRect(ctx, x + 2, y - bottleHeight + 2, 6, bottleHeight - 6, bodyMid);
-        
-        // Label area (yellow/gold)
-        drawPixelRect(ctx, x + 4, y - 20, bottleWidth - 6, 12, labelYellow);
-        drawPixelRect(ctx, x + 6, y - 18, bottleWidth - 10, 8, labelOrange);
-        
-        // Bottle neck
-        drawPixelRect(ctx, x + 6, y - bottleHeight + 2, 8, 6, body);
-        drawPixelRect(ctx, x + 7, y - bottleHeight + 2, 6, 4, bodyMid);
-        
-        // Bottle cap (white/grey)
-        drawPixelRect(ctx, x + 5, y - bottleHeight, 10, 4, capWhite);
-        drawPixelRect(ctx, x + 6, y - bottleHeight + 1, 8, 2, capGrey);
-        
-        // Bottle bottom highlight
-        drawPixelRect(ctx, x + 2, y - 6, bottleWidth - 2, 4, capWhite);
+            // Center the image in the furniture space
+            const drawX = x - (imageWidth / 2) + (width * 24);
+            const drawY = y - imageHeight + 20;
+            
+            // Draw the image with pixelated rendering
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(this.beerPyramidImage, drawX, drawY, imageWidth, imageHeight);
+            
+            // Add shadow underneath
+            drawPixelRect(ctx, drawX + 10, y + 25, imageWidth - 20, 6, 'rgba(0,0,0,0.4)');
+        }
     }
 }
 
