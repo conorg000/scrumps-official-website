@@ -859,9 +859,9 @@ class DownstairsRoom {
         
         // Only draw if the image has loaded
         if (this.beerPyramidImage.complete && this.beerPyramidImage.naturalHeight !== 0) {
-            // Calculate drawing position and size
-            const imageWidth = 120; // Scale the image appropriately
-            const imageHeight = 80;
+            // Calculate drawing position and size - maintain aspect ratio for new image
+            const imageWidth = 90; // Adjusted for taller pyramid image
+            const imageHeight = 120; // Maintains roughly 3:4 aspect ratio
             
             // Center the image in the furniture space
             const drawX = x - (imageWidth / 2) + (width * 24);
