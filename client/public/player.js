@@ -39,9 +39,6 @@ class Player {
             return false;
         }
 
-        if (room.isCollision(newX, newY)) {
-            return false;
-        }
 
         this.targetX = newX;
         this.targetY = newY;
