@@ -579,7 +579,7 @@ export const GameCanvas: React.FC = () => {
       {!isLoading && (
         <button
           onClick={toggleSound}
-          className="fixed top-4 left-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg font-mono text-lg shadow-lg border-2 border-gray-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 left-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg font-mono text-lg shadow-lg border-2 border-gray-600 transition-all duration-200 hover:scale-105 z-[150]"
           title={isMuted ? "Unmute Sound" : "Mute Sound"}
           data-testid="button-sound-toggle"
         >
