@@ -71,21 +71,17 @@ export const GameCanvas: React.FC = () => {
     };
 
     const initGame = async () => {
+      const MINIMUM_LOADING_TIME = 10000; // 10 seconds minimum display time
+      const loadingStartTime = Date.now();
+      let gameReady = false;
+      
       try {
         const scripts = ['/utils.js', '/player.js', '/room.js', '/greenRoom.js', '/upstairsRoom.js', '/controls.js', '/game.js'];
-        const totalScripts = scripts.length;
-        let loadedScripts = 0;
         
-        // Load scripts one by one and update progress
+        // Load scripts one by one (actual loading happens fast)
         for (const script of scripts) {
           await loadScript(script);
-          loadedScripts++;
-          const progress = Math.round((loadedScripts / totalScripts) * 90); // Reserve 10% for game initialization
-          setLoadingProgress(progress);
         }
-
-        // Final initialization step
-        setLoadingProgress(95);
         
         // Initialize the game
         const Game = (window as any).Game;
@@ -121,12 +117,29 @@ export const GameCanvas: React.FC = () => {
           gameRef.current.ctx.imageSmoothingEnabled = false;
           gameRef.current.resizeCanvas();
           
-          // Complete loading
-          setLoadingProgress(100);
-          setTimeout(() => {
-            setIsLoading(false);
-          }, 300); // Brief delay after 100%
+          gameReady = true;
         }
+        
+        // Animate progress over minimum loading time regardless of actual load speed
+        const animateProgress = () => {
+          const elapsed = Date.now() - loadingStartTime;
+          const targetProgress = Math.min((elapsed / MINIMUM_LOADING_TIME) * 100, 100);
+          setLoadingProgress(Math.round(targetProgress));
+          
+          if (elapsed < MINIMUM_LOADING_TIME || !gameReady) {
+            // Keep animating until both time elapsed AND game is ready
+            requestAnimationFrame(animateProgress);
+          } else {
+            // Loading time complete and game is ready
+            setLoadingProgress(100);
+            setTimeout(() => {
+              setIsLoading(false);
+            }, 300);
+          }
+        };
+        
+        animateProgress();
+        
       } catch (error) {
         console.error('Failed to load game scripts:', error);
         // Handle loading error - you might want to show an error state
