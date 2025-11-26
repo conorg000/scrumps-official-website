@@ -8,6 +8,7 @@ export const GameCanvas: React.FC = () => {
   const gameRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const isLoadingRef = useRef(true);
+  const pendingDialogRef = useRef<{characterName: string, text: string[], imageSrc: string, imageTitle: string} | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -91,17 +92,24 @@ export const GameCanvas: React.FC = () => {
           
           // Override dialog system to use React modal
           gameRef.current.showDialog = (characterName: string, text: string | string[], imageSrc?: string, imageTitle?: string) => {
-            // Don't show dialogs while loading screen is visible
-            if (isLoadingRef.current) return;
-            
             const textArray = Array.isArray(text) ? text : [text];
-            setDialogState({
-              isVisible: true,
+            const dialogData = {
               characterName,
               text: textArray,
-              currentTextIndex: 0,
               imageSrc: imageSrc || '',
               imageTitle: imageTitle || ''
+            };
+            
+            // Queue dialogs during loading, show immediately after
+            if (isLoadingRef.current) {
+              pendingDialogRef.current = dialogData;
+              return;
+            }
+            
+            setDialogState({
+              isVisible: true,
+              ...dialogData,
+              currentTextIndex: 0
             });
           };
           
@@ -139,6 +147,22 @@ export const GameCanvas: React.FC = () => {
             setTimeout(() => {
               isLoadingRef.current = false;
               setIsLoading(false);
+              
+              // Show any dialog that was queued during loading
+              if (pendingDialogRef.current) {
+                const pending = pendingDialogRef.current;
+                pendingDialogRef.current = null;
+                setTimeout(() => {
+                  setDialogState({
+                    isVisible: true,
+                    characterName: pending.characterName,
+                    text: pending.text,
+                    currentTextIndex: 0,
+                    imageSrc: pending.imageSrc,
+                    imageTitle: pending.imageTitle
+                  });
+                }, 500); // Small delay after loading screen fades
+              }
             }, 300);
           }
         };
