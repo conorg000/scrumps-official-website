@@ -7,6 +7,7 @@ export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isLoadingRef = useRef(true);
   
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -90,6 +91,9 @@ export const GameCanvas: React.FC = () => {
           
           // Override dialog system to use React modal
           gameRef.current.showDialog = (characterName: string, text: string | string[], imageSrc?: string, imageTitle?: string) => {
+            // Don't show dialogs while loading screen is visible
+            if (isLoadingRef.current) return;
+            
             const textArray = Array.isArray(text) ? text : [text];
             setDialogState({
               isVisible: true,
@@ -133,6 +137,7 @@ export const GameCanvas: React.FC = () => {
             // Loading time complete and game is ready
             setLoadingProgress(100);
             setTimeout(() => {
+              isLoadingRef.current = false;
               setIsLoading(false);
             }, 300);
           }
@@ -144,7 +149,10 @@ export const GameCanvas: React.FC = () => {
         console.error('Failed to load game scripts:', error);
         // Handle loading error - you might want to show an error state
         setLoadingProgress(0);
-        setTimeout(() => setIsLoading(false), 1000);
+        setTimeout(() => {
+          isLoadingRef.current = false;
+          setIsLoading(false);
+        }, 1000);
       }
     };
 
