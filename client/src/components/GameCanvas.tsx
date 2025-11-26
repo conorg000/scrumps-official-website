@@ -579,11 +579,21 @@ export const GameCanvas: React.FC = () => {
       {!isLoading && (
         <button
           onClick={toggleSound}
-          className="fixed top-4 left-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg font-mono text-lg shadow-lg border-2 border-gray-600 transition-all duration-200 hover:scale-105 z-[150]"
+          className={`fixed top-4 left-4 w-14 h-14 rounded-full font-mono text-2xl shadow-xl border-4 transition-all duration-300 hover:scale-110 hover:rotate-12 active:scale-95 z-[150] flex items-center justify-center ${
+            isMuted 
+              ? 'bg-gradient-to-br from-red-500 to-red-700 border-red-400 hover:from-red-400 hover:to-red-600 animate-pulse' 
+              : 'bg-gradient-to-br from-green-400 to-green-600 border-green-300 hover:from-green-300 hover:to-green-500'
+          }`}
+          style={{
+            boxShadow: isMuted 
+              ? '0 0 20px rgba(239, 68, 68, 0.5), inset 0 2px 4px rgba(255,255,255,0.3)' 
+              : '0 0 20px rgba(34, 197, 94, 0.5), inset 0 2px 4px rgba(255,255,255,0.3)',
+            textShadow: '2px 2px 0px rgba(0,0,0,0.3)'
+          }}
           title={isMuted ? "Unmute Sound" : "Mute Sound"}
           data-testid="button-sound-toggle"
         >
-          {isMuted ? '🔇' : '🔊'}
+          {isMuted ? '🔇' : '🎵'}
         </button>
       )}
       
