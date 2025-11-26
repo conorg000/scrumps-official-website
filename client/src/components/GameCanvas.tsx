@@ -12,6 +12,10 @@ export const GameCanvas: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isMuted, setIsMuted] = useState(() => {
+    const saved = localStorage.getItem('scrumps-sound-muted');
+    return saved === 'true';
+  });
   const [joystickDirection, setJoystickDirection] = useState<string | null>(null);
   const [nearBoxingRing, setNearBoxingRing] = useState(false);
   const [atBottomEdge, setAtBottomEdge] = useState(false);
@@ -42,19 +46,26 @@ export const GameCanvas: React.FC = () => {
       if (audio) {
         audio.src = '/background-music.mp3';
         audio.volume = 0.5;
-        audio.play().catch(() => {
-          // Auto-play prevented, music will start on first user interaction
-          const startAudioOnInteraction = () => {
-            audio.play();
-            document.removeEventListener('click', startAudioOnInteraction);
-            document.removeEventListener('touchstart', startAudioOnInteraction);
-            document.removeEventListener('keydown', startAudioOnInteraction);
-          };
-          
-          document.addEventListener('click', startAudioOnInteraction);
-          document.addEventListener('touchstart', startAudioOnInteraction);
-          document.addEventListener('keydown', startAudioOnInteraction);
-        });
+        const savedMuted = localStorage.getItem('scrumps-sound-muted') === 'true';
+        audio.muted = savedMuted;
+        
+        if (!savedMuted) {
+          audio.play().catch(() => {
+            // Auto-play prevented, music will start on first user interaction
+            const startAudioOnInteraction = () => {
+              if (!audio.muted) {
+                audio.play();
+              }
+              document.removeEventListener('click', startAudioOnInteraction);
+              document.removeEventListener('touchstart', startAudioOnInteraction);
+              document.removeEventListener('keydown', startAudioOnInteraction);
+            };
+            
+            document.addEventListener('click', startAudioOnInteraction);
+            document.addEventListener('touchstart', startAudioOnInteraction);
+            document.addEventListener('keydown', startAudioOnInteraction);
+          });
+        }
       }
     };
 
@@ -538,7 +549,18 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
-
+  const toggleSound = () => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    localStorage.setItem('scrumps-sound-muted', String(newMuted));
+    
+    if (audioRef.current) {
+      audioRef.current.muted = newMuted;
+      if (!newMuted) {
+        audioRef.current.play().catch(() => {});
+      }
+    }
+  };
 
   return (
     <div className="relative w-full h-full">
@@ -552,6 +574,18 @@ export const GameCanvas: React.FC = () => {
       />
 
       {isLoading && <LoadingScreen progress={loadingProgress} />}
+      
+      {/* Sound Toggle Button - Top Left */}
+      {!isLoading && (
+        <button
+          onClick={toggleSound}
+          className="fixed top-4 left-4 bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg font-mono text-lg shadow-lg border-2 border-gray-600 transition-all duration-200 hover:scale-105 z-50"
+          title={isMuted ? "Unmute Sound" : "Mute Sound"}
+          data-testid="button-sound-toggle"
+        >
+          {isMuted ? '🔇' : '🔊'}
+        </button>
+      )}
       
       <canvas
         ref={canvasRef}
