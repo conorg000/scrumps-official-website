@@ -42,8 +42,9 @@ class Room {
         
         // Kiddy pool in open space
         this.addFurniture({ x: 4, y: 8, width: 3, height: 3, type: 'kiddy_pool' });
-        
-        // Remove the old rim collision boundaries - the pool itself now handles collision properly
+
+        // Mr Tibbles - cute white fluffy cat
+        this.addFurniture({ x: 8, y: 5, width: 1, height: 1, type: 'mr_tibbles' });
     }
 
     addFurniture(furniture) {
@@ -152,6 +153,9 @@ class Room {
                     break;
                 case 'pool_rim':
                     // Don't draw anything for invisible collision boundaries
+                    break;
+                case 'mr_tibbles':
+                    this.drawMrTibbles(ctx, drawX, drawY);
                     break;
             }
         });
@@ -603,6 +607,85 @@ class Room {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(ball.x + 1, ball.y + 1, Math.max(1, ball.size - 3), Math.max(1, ball.size - 3));
         });
+    }
+
+    drawMrTibbles(ctx, x, y) {
+        // Mr Tibbles - a cute white fluffy cat
+        const white = '#ffffff';
+        const lightGray = '#e8e8e8';
+        const gray = '#c0c0c0';
+        const darkGray = '#808080';
+        const pink = '#ffb6c1';
+        const black = '#000000';
+
+        // Shadow
+        drawPixelRect(ctx, x + 12, y + 8, 24, 4, 'rgba(0,0,0,0.3)');
+
+        // Body - fluffy oval shape
+        drawPixelRect(ctx, x + 14, y - 8, 20, 16, white);
+        drawPixelRect(ctx, x + 12, y - 6, 24, 12, white);
+        drawPixelRect(ctx, x + 16, y - 10, 16, 4, white);
+
+        // Fluffy chest
+        drawPixelRect(ctx, x + 18, y - 4, 12, 10, lightGray);
+
+        // Body shading
+        drawPixelRect(ctx, x + 30, y - 4, 4, 8, gray);
+
+        // Head - round and fluffy
+        drawPixelRect(ctx, x + 10, y - 24, 16, 16, white);
+        drawPixelRect(ctx, x + 8, y - 22, 20, 12, white);
+        drawPixelRect(ctx, x + 12, y - 26, 12, 4, white);
+
+        // Fluffy cheeks
+        drawPixelRect(ctx, x + 6, y - 18, 6, 8, white);
+        drawPixelRect(ctx, x + 24, y - 18, 6, 8, white);
+
+        // Ears - triangular
+        drawPixelRect(ctx, x + 10, y - 30, 4, 6, white);
+        drawPixelRect(ctx, x + 12, y - 32, 2, 4, white);
+        drawPixelRect(ctx, x + 22, y - 30, 4, 6, white);
+        drawPixelRect(ctx, x + 22, y - 32, 2, 4, white);
+
+        // Inner ears - pink
+        drawPixelRect(ctx, x + 12, y - 28, 2, 4, pink);
+        drawPixelRect(ctx, x + 22, y - 28, 2, 4, pink);
+
+        // Eyes - big and cute
+        drawPixelRect(ctx, x + 12, y - 20, 4, 4, black);
+        drawPixelRect(ctx, x + 20, y - 20, 4, 4, black);
+
+        // Eye shine
+        drawPixelRect(ctx, x + 13, y - 19, 2, 2, white);
+        drawPixelRect(ctx, x + 21, y - 19, 2, 2, white);
+
+        // Nose - pink triangle
+        drawPixelRect(ctx, x + 16, y - 14, 4, 2, pink);
+        drawPixelRect(ctx, x + 17, y - 13, 2, 2, pink);
+
+        // Mouth
+        drawPixelRect(ctx, x + 15, y - 11, 2, 2, darkGray);
+        drawPixelRect(ctx, x + 19, y - 11, 2, 2, darkGray);
+
+        // Whiskers
+        drawPixelRect(ctx, x + 4, y - 16, 6, 1, darkGray);
+        drawPixelRect(ctx, x + 4, y - 14, 6, 1, darkGray);
+        drawPixelRect(ctx, x + 26, y - 16, 6, 1, darkGray);
+        drawPixelRect(ctx, x + 26, y - 14, 6, 1, darkGray);
+
+        // Front paws
+        drawPixelRect(ctx, x + 14, y + 2, 6, 6, white);
+        drawPixelRect(ctx, x + 26, y + 2, 6, 6, white);
+
+        // Paw pads
+        drawPixelRect(ctx, x + 16, y + 4, 2, 2, pink);
+        drawPixelRect(ctx, x + 28, y + 4, 2, 2, pink);
+
+        // Tail - fluffy and curved
+        drawPixelRect(ctx, x + 32, y - 6, 6, 4, white);
+        drawPixelRect(ctx, x + 36, y - 10, 4, 6, white);
+        drawPixelRect(ctx, x + 38, y - 14, 4, 6, white);
+        drawPixelRect(ctx, x + 36, y - 16, 4, 4, white);
     }
 }
 

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { VirtualJoystick } from './VirtualJoystick';
 import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
@@ -9,6 +9,7 @@ export const GameCanvas: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const isLoadingRef = useRef(true);
   const pendingDialogRef = useRef<{characterName: string, text: string[], imageSrc: string, imageTitle: string} | null>(null);
+  const currentSpeakerRef = useRef<string | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -24,6 +25,12 @@ export const GameCanvas: React.FC = () => {
   const [nearTree, setNearTree] = useState(false);
   const [nearKiddyPool, setNearKiddyPool] = useState(false);
   const [nearBeerPyramid, setNearBeerPyramid] = useState(false);
+  const [nearMrTibbles, setNearMrTibbles] = useState(false);
+  const [mrTibblesJoined, setMrTibblesJoined] = useState(false);
+  const [nearCompost, setNearCompost] = useState(false);
+  const [hasCompost, setHasCompost] = useState(false);
+  const [nearPossum, setNearPossum] = useState(false);
+  const [possumFed, setPossumFed] = useState(false);
   const [atTopEdge, setAtTopEdge] = useState(false);
   const [atRightEdge, setAtRightEdge] = useState(false);
   const [atLeftEdge, setAtLeftEdge] = useState(false);
@@ -84,7 +91,8 @@ export const GameCanvas: React.FC = () => {
     };
 
     const initGame = async () => {
-      const MINIMUM_LOADING_TIME = 10000; // 10 seconds minimum display time
+      const isDev = import.meta.env.DEV;
+      const MINIMUM_LOADING_TIME = isDev ? 1000 : 10000; // 1 second in dev, 10 seconds in production
       const loadingStartTime = Date.now();
       let gameReady = false;
       
@@ -110,13 +118,16 @@ export const GameCanvas: React.FC = () => {
               imageSrc: imageSrc || '',
               imageTitle: imageTitle || ''
             };
-            
+
+            // Track who's speaking for post-dialog actions
+            currentSpeakerRef.current = characterName;
+
             // Queue dialogs during loading, show immediately after
             if (isLoadingRef.current) {
               pendingDialogRef.current = dialogData;
               return;
             }
-            
+
             setDialogState({
               isVisible: true,
               ...dialogData,
@@ -268,6 +279,9 @@ export const GameCanvas: React.FC = () => {
       let touchingTree = false;
       let touchingKiddyPool = false;
       let touchingBeerPyramid = false;
+      let touchingMrTibbles = false;
+      let touchingCompost = false;
+      let touchingPossum = false;
       
       // Check all furniture for proximity
       room.furniture.forEach((furniture: any) => {
@@ -294,17 +308,26 @@ export const GameCanvas: React.FC = () => {
                 touchingKiddyPool = true;
               } else if (furniture.type === 'beer_pyramid') {
                 touchingBeerPyramid = true;
+              } else if (furniture.type === 'mr_tibbles') {
+                touchingMrTibbles = true;
+              } else if (furniture.type === 'compost') {
+                touchingCompost = true;
+              } else if (furniture.type === 'tent' || furniture.type === 'possum') {
+                touchingPossum = true;
               }
             }
           }
         }
       });
-      
+
       setNearBeerBottle(touchingBeerBottle);
       setNearBoxingGloves(touchingBoxingGloves);
       setNearTree(touchingTree);
       setNearKiddyPool(touchingKiddyPool);
       setNearBeerPyramid(touchingBeerPyramid);
+      setNearMrTibbles(touchingMrTibbles);
+      setNearCompost(touchingCompost);
+      setNearPossum(touchingPossum);
     };
 
     const interval = setInterval(checkObjectProximity, 100);
@@ -395,31 +418,8 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
-  // Handle dialog dismissal with keyboard
-  useEffect(() => {
-    // Handle dialog dismissal with keyboard
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (dialogState.isVisible) {
-        e.preventDefault();
-        if (e.key === 'Escape') {
-          setDialogState(prev => ({ 
-            ...prev, 
-            isVisible: false,
-            currentTextIndex: 0,
-            imageSrc: '',
-            imageTitle: ''
-          }));
-        } else {
-          handleDialogContinue();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-    return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [dialogState.isVisible, dialogState.currentTextIndex, dialogState.text.length]);
-
-  const handleDialogContinue = () => {
+  // Handle dialog continue - defined before the useEffect that uses it
+  const handleDialogContinue = useCallback(() => {
     if (dialogState.currentTextIndex < dialogState.text.length - 1) {
       // More text to show, go to next
       setDialogState(prev => ({
@@ -428,15 +428,54 @@ export const GameCanvas: React.FC = () => {
       }));
     } else {
       // End of dialog, close
-      setDialogState(prev => ({ 
-        ...prev, 
+      setDialogState(prev => ({
+        ...prev,
         isVisible: false,
         currentTextIndex: 0,
         imageSrc: '',
         imageTitle: ''
       }));
+
+      // Check if Mr Tibbles just finished talking - add him as companion
+      if (currentSpeakerRef.current === 'Mr Tibbles' && !mrTibblesJoined) {
+        setMrTibblesJoined(true);
+        if (gameRef.current && gameRef.current.addCompanion) {
+          gameRef.current.addCompanion('mr_tibbles');
+        }
+      }
+
+      // Check if Possum just finished talking after being fed - add as companion
+      if (currentSpeakerRef.current === 'Possum' && possumFed) {
+        if (gameRef.current && gameRef.current.addCompanion) {
+          gameRef.current.addCompanion('tent');
+        }
+      }
+      currentSpeakerRef.current = null;
     }
-  };
+  }, [dialogState.currentTextIndex, dialogState.text.length, mrTibblesJoined, possumFed]);
+
+  // Handle dialog dismissal with keyboard
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (dialogState.isVisible) {
+        e.preventDefault();
+        if (e.key === 'Escape') {
+          // Skip to end of dialog but still trigger companion logic
+          setDialogState(prev => ({
+            ...prev,
+            currentTextIndex: prev.text.length - 1
+          }));
+          // Use setTimeout to let state update, then close properly
+          setTimeout(() => handleDialogContinue(), 0);
+        } else {
+          handleDialogContinue();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [dialogState.isVisible, dialogState.currentTextIndex, dialogState.text.length, handleDialogContinue]);
 
   useEffect(() => {
     if (gameRef.current && joystickDirection) {
@@ -515,6 +554,77 @@ export const GameCanvas: React.FC = () => {
         "Look at how perfectly balanced those bottles are...",
         "I bet whoever built this knows how to party!"
       ]);
+    }
+  };
+
+  const handleExamineMrTibbles = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Mr Tibbles", [
+        "Oh! You're awake!",
+        "Wow you're lucky to be alive. That bush turkey has been coming back everyday to eat you guys.",
+        "I guess that was a tactless way to break such sad news. Sorry.",
+        "Today is inspection day, Adele is here, we have to tell the subletters to hide!",
+        "Come on, follow me!"
+      ]);
+    }
+  };
+
+  const handleExamineCompost = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      if (hasCompost) {
+        gameRef.current.showDialog("Scrump", [
+          "I've already got a handful of this stinky stuff.",
+          "I don't need any more compost right now."
+        ]);
+      } else {
+        gameRef.current.showDialog("Scrump", [
+          "Ooh, a compost bin!",
+          "It's full of decomposing organic matter. Smells... earthy.",
+          "Banana peels, coffee grounds, eggshells...",
+          "I bet some creature would love this stuff.",
+          "*You grab a handful of compost*"
+        ]);
+        setHasCompost(true);
+      }
+    }
+  };
+
+  const handleTalkToPossum = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      if (possumFed) {
+        gameRef.current.showDialog("Possum", [
+          "*munch munch*",
+          "Still no idea where those subletters are mate.",
+          "But I'm here for moral support!"
+        ]);
+      } else if (hasCompost) {
+        // Give compost to possum
+        gameRef.current.showDialog("Possum", [
+          "*sniff sniff*",
+          "Is that... COMPOST?!",
+          "*You hand over the compost*",
+          "*MUNCH MUNCH MUNCH*",
+          "Oh mate, that's the good stuff. Banana peels. Beautiful.",
+          "You wanted to know where the subletters are hiding?",
+          "...",
+          "Yeah I have absolutely no idea.",
+          "But I appreciate the compost so much I'll help you look!",
+          "Let's go!"
+        ]);
+        setHasCompost(false);
+        setPossumFed(true);
+        // Possum will join as companion after dialog
+        currentSpeakerRef.current = 'Possum';
+      } else {
+        gameRef.current.showDialog("Possum", [
+          "*hisssss*",
+          "What do you want, crispy boy?",
+          "I'm not talking to anyone unless they bring me food.",
+          "Something from the compost would be nice...",
+          "Banana peels, coffee grounds, the good stuff.",
+          "Come back when you have something tasty."
+        ]);
+      }
     }
   };
 
@@ -660,7 +770,7 @@ export const GameCanvas: React.FC = () => {
       )}
       
       {/* Examine Beer Pyramid Button */}
-      {!isLoading && !dialogState.isVisible && nearBeerPyramid && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && (
+      {!isLoading && !dialogState.isVisible && nearBeerPyramid && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearMrTibbles && (
         <button
           onClick={handleExamineBeerPyramid}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -668,9 +778,39 @@ export const GameCanvas: React.FC = () => {
           EXAMINE BEER PYRAMID
         </button>
       )}
-      
+
+      {/* Talk to Mr Tibbles Button - only show if he hasn't joined yet */}
+      {!isLoading && !dialogState.isVisible && nearMrTibbles && !mrTibblesJoined && gameRef.current?.currentScene === 'mainRoom' && (
+        <button
+          onClick={handleExamineMrTibbles}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          TALK TO MR TIBBLES
+        </button>
+      )}
+
+      {/* Examine Compost Button - on the balcony */}
+      {!isLoading && !dialogState.isVisible && nearCompost && gameRef.current?.currentScene === 'upstairs' && (
+        <button
+          onClick={handleExamineCompost}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          {hasCompost ? 'EXAMINE COMPOST' : 'COLLECT COMPOST'}
+        </button>
+      )}
+
+      {/* Talk to Possum Button - in the downstairs room */}
+      {!isLoading && !dialogState.isVisible && nearPossum && gameRef.current?.currentScene === 'downstairs' && (
+        <button
+          onClick={handleTalkToPossum}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          {possumFed ? 'TALK TO POSSUM' : (hasCompost ? 'GIVE COMPOST TO POSSUM' : 'INVESTIGATE TENT')}
+        </button>
+      )}
+
       {/* Go Downstairs Button - appears when at bottom edge */}
-      {!isLoading && !dialogState.isVisible && atBottomEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && (
+      {!isLoading && !dialogState.isVisible && atBottomEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && !nearMrTibbles && (
         <button
           onClick={handleGoDownstairs}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -718,17 +858,8 @@ export const GameCanvas: React.FC = () => {
         imageSrc={dialogState.imageSrc}
         imageTitle={dialogState.imageTitle}
         currentTextIndex={dialogState.currentTextIndex}
-        onClose={() => setDialogState(prev => ({ 
-          ...prev, 
-          isVisible: false,
-          currentTextIndex: 0,
-          imageSrc: '',
-          imageTitle: ''
-        }))}
-        onNextText={() => setDialogState(prev => ({
-          ...prev,
-          currentTextIndex: prev.currentTextIndex + 1
-        }))}
+        onClose={handleDialogContinue}
+        onNextText={handleDialogContinue}
       />
     </div>
   );

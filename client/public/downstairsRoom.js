@@ -28,6 +28,9 @@ class DownstairsRoom {
         
         // Epic beer pyramid in the corner
         this.addFurniture({ x: 10, y: 8, width: 3, height: 3, type: 'beer_pyramid' });
+
+        // Tent with possum living inside
+        this.addFurniture({ x: 14, y: 5, width: 3, height: 2, type: 'tent' });
     }
 
     addFurniture(furniture) {
@@ -244,6 +247,9 @@ class DownstairsRoom {
                     break;
                 case 'beer_pyramid':
                     this.drawBeerPyramid(ctx, drawX, drawY, furniture.width, furniture.height);
+                    break;
+                case 'tent':
+                    this.drawTent(ctx, drawX, drawY, furniture.width, furniture.height);
                     break;
             }
         });
@@ -874,6 +880,101 @@ class DownstairsRoom {
             // Add shadow underneath
             drawPixelRect(ctx, drawX + 10, y + 25, imageWidth - 20, 6, 'rgba(0,0,0,0.4)');
         }
+    }
+
+    drawTent(ctx, x, y, width, height) {
+        const tentColor = '#2E8B57';  // Sea green
+        const tentDark = '#1E6B47';
+        const tentLight = '#3EA567';
+        const poleColor = '#8B4513';
+        const groundsheet = '#4a4a4a';
+
+        // Ground sheet
+        drawPixelRect(ctx, x - 10, y + 10, 90, 20, groundsheet);
+        drawPixelRect(ctx, x + 74, y + 14, 6, 16, '#3a3a3a');
+
+        // Tent back
+        drawPixelRect(ctx, x, y - 30, 70, 50, tentDark);
+
+        // Tent main body - triangular shape approximated with rectangles
+        drawPixelRect(ctx, x + 5, y - 40, 60, 10, tentColor);
+        drawPixelRect(ctx, x + 10, y - 50, 50, 12, tentColor);
+        drawPixelRect(ctx, x + 15, y - 58, 40, 10, tentColor);
+        drawPixelRect(ctx, x + 20, y - 64, 30, 8, tentColor);
+        drawPixelRect(ctx, x + 25, y - 68, 20, 6, tentLight);
+
+        // Tent front flap (slightly open)
+        drawPixelRect(ctx, x + 20, y - 25, 30, 35, tentLight);
+        drawPixelRect(ctx, x + 46, y - 21, 4, 31, tentDark);
+
+        // Dark entrance
+        drawPixelRect(ctx, x + 24, y - 20, 22, 28, '#1a1a1a');
+
+        // Tent poles
+        drawPixelRect(ctx, x + 2, y - 40, 4, 50, poleColor);
+        drawPixelRect(ctx, x + 64, y - 40, 4, 50, poleColor);
+        drawPixelRect(ctx, x + 32, y - 70, 4, 80, poleColor);
+
+        // Guy ropes
+        ctx.strokeStyle = '#8B8B83';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 34, y - 68);
+        ctx.lineTo(x - 10, y + 10);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x + 34, y - 68);
+        ctx.lineTo(x + 80, y + 10);
+        ctx.stroke();
+
+        // Possum peeking out!
+        this.drawPossum(ctx, x + 26, y - 16);
+
+        // Shadow
+        drawPixelRect(ctx, x - 12, y + 28, 94, 6, 'rgba(0,0,0,0.3)');
+    }
+
+    drawPossum(ctx, x, y) {
+        const furColor = '#808080';
+        const furDark = '#606060';
+        const furLight = '#a0a0a0';
+        const earPink = '#ffb6c1';
+        const noseColor = '#ff69b4';
+        const eyeColor = '#000000';
+
+        // Body (partially visible in tent entrance)
+        drawPixelRect(ctx, x, y + 8, 16, 12, furColor);
+        drawPixelRect(ctx, x + 2, y + 10, 12, 8, furLight);
+
+        // Head
+        drawPixelRect(ctx, x + 2, y - 4, 12, 14, furColor);
+        drawPixelRect(ctx, x, y, 16, 10, furColor);
+        drawPixelRect(ctx, x + 4, y - 2, 8, 4, furLight);
+
+        // Snout
+        drawPixelRect(ctx, x + 4, y + 4, 8, 6, furLight);
+        drawPixelRect(ctx, x + 6, y + 8, 4, 3, furLight);
+
+        // Ears - big and rounded
+        drawPixelRect(ctx, x - 2, y - 8, 6, 8, furColor);
+        drawPixelRect(ctx, x + 12, y - 8, 6, 8, furColor);
+        drawPixelRect(ctx, x, y - 6, 4, 6, earPink);
+        drawPixelRect(ctx, x + 12, y - 6, 4, 6, earPink);
+
+        // Eyes - beady
+        drawPixelRect(ctx, x + 4, y, 3, 3, eyeColor);
+        drawPixelRect(ctx, x + 10, y, 3, 3, eyeColor);
+        drawPixelRect(ctx, x + 5, y + 1, 1, 1, '#ffffff');
+        drawPixelRect(ctx, x + 11, y + 1, 1, 1, '#ffffff');
+
+        // Pink nose
+        drawPixelRect(ctx, x + 6, y + 5, 4, 3, noseColor);
+
+        // Little paws resting on tent edge
+        drawPixelRect(ctx, x - 2, y + 16, 6, 4, furColor);
+        drawPixelRect(ctx, x + 12, y + 16, 6, 4, furColor);
+        drawPixelRect(ctx, x, y + 18, 3, 2, earPink);
+        drawPixelRect(ctx, x + 13, y + 18, 3, 2, earPink);
     }
 }
 

@@ -29,6 +29,10 @@ if (typeof Game === "undefined") {
             // Dialog system
             this.dialog = null; // Will be handled by React component
 
+            // Companions system - characters that follow the player
+            this.companions = [];
+            this.companionHistory = []; // Trail of player positions for companions to follow
+
             // Start dialog after a brief delay to ensure game is visible
             setTimeout(() => {
                 if (this.showDialog) {
@@ -97,8 +101,93 @@ if (typeof Game === "undefined") {
             this.controls.update();
             this.player.update();
             this.updateCamera();
+            this.updateCompanions();
 
             // Dialog is now handled by React component
+        }
+
+        updateCompanions() {
+            // Record player position history for companions to follow
+            const currentPos = { x: this.player.x, y: this.player.y };
+
+            // Only add to history if player has moved significantly
+            if (this.companionHistory.length === 0 ||
+                Math.abs(this.companionHistory[this.companionHistory.length - 1].x - currentPos.x) > 0.1 ||
+                Math.abs(this.companionHistory[this.companionHistory.length - 1].y - currentPos.y) > 0.1) {
+                this.companionHistory.push(currentPos);
+
+                // Keep history limited
+                if (this.companionHistory.length > 100) {
+                    this.companionHistory.shift();
+                }
+            }
+
+            // Update each companion to follow the trail
+            this.companions.forEach((companion, index) => {
+                // Each companion follows a point further back in the trail
+                const followDelay = 15 + (index * 10); // Stagger companions
+                const historyIndex = Math.max(0, this.companionHistory.length - followDelay);
+
+                if (this.companionHistory[historyIndex]) {
+                    const target = this.companionHistory[historyIndex];
+
+                    // Smooth movement towards target
+                    const dx = target.x - companion.x;
+                    const dy = target.y - companion.y;
+
+                    companion.x += dx * 0.15;
+                    companion.y += dy * 0.15;
+
+                    // Update grid position
+                    companion.gridX = Math.floor(companion.x);
+                    companion.gridY = Math.floor(companion.y);
+
+                    // Update direction based on movement
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        companion.direction = dx > 0 ? 'right' : 'left';
+                    } else if (Math.abs(dy) > 0.05) {
+                        companion.direction = dy > 0 ? 'down' : 'up';
+                    }
+                }
+            });
+        }
+
+        addCompanion(type) {
+            // Remove from furniture if exists
+            if (this.room && this.room.furniture) {
+                const furnitureIndex = this.room.furniture.findIndex(f => f.type === type);
+                if (furnitureIndex !== -1) {
+                    const furniture = this.room.furniture[furnitureIndex];
+                    // Clear collision map for this furniture
+                    for (let y = furniture.y; y < furniture.y + furniture.height; y++) {
+                        for (let x = furniture.x; x < furniture.x + furniture.width; x++) {
+                            if (x >= 0 && x < this.room.width && y >= 0 && y < this.room.height) {
+                                this.room.collisionMap[y][x] = false;
+                            }
+                        }
+                    }
+                    this.room.furniture.splice(furnitureIndex, 1);
+                }
+            }
+
+            // Create companion object
+            const companion = {
+                type: type,
+                x: this.player.x,
+                y: this.player.y + 1, // Start slightly behind player
+                gridX: this.player.gridX,
+                gridY: this.player.gridY + 1,
+                direction: 'down'
+            };
+
+            this.companions.push(companion);
+
+            // Initialize history with current player position
+            if (this.companionHistory.length === 0) {
+                for (let i = 0; i < 20; i++) {
+                    this.companionHistory.push({ x: this.player.x, y: this.player.y });
+                }
+            }
         }
 
         drawClouds() {
@@ -294,6 +383,9 @@ if (typeof Game === "undefined") {
             // Draw room
             this.room.draw(this.ctx, zoomedCameraX, zoomedCameraY);
 
+            // Draw companions (behind player)
+            this.drawCompanions(this.ctx, zoomedCameraX, zoomedCameraY);
+
             // Draw player
             this.player.draw(this.ctx, zoomedCameraX, zoomedCameraY);
 
@@ -301,6 +393,192 @@ if (typeof Game === "undefined") {
             this.ctx.restore();
 
             // Dialog is now handled by React component
+        }
+
+        drawCompanions(ctx, offsetX, offsetY) {
+            this.companions.forEach(companion => {
+                if (companion.type === 'mr_tibbles') {
+                    this.drawMrTibblesCompanion(ctx, companion, offsetX, offsetY);
+                } else if (companion.type === 'tent') {
+                    this.drawPossumCompanion(ctx, companion, offsetX, offsetY);
+                }
+            });
+        }
+
+        drawMrTibblesCompanion(ctx, companion, offsetX, offsetY) {
+            const screenPos = isometricToScreen(companion.x, companion.y);
+            const x = screenPos.x + offsetX - 18;
+            const y = screenPos.y + offsetY - 32;
+
+            // Mr Tibbles - a cute white fluffy cat (smaller version for following)
+            const white = '#ffffff';
+            const lightGray = '#e8e8e8';
+            const gray = '#c0c0c0';
+            const darkGray = '#808080';
+            const pink = '#ffb6c1';
+            const black = '#000000';
+
+            // Shadow
+            drawPixelRect(ctx, x + 8, y + 28, 20, 4, 'rgba(0,0,0,0.3)');
+
+            // Body - fluffy oval shape
+            drawPixelRect(ctx, x + 10, y + 12, 16, 14, white);
+            drawPixelRect(ctx, x + 8, y + 14, 20, 10, white);
+            drawPixelRect(ctx, x + 12, y + 10, 12, 4, white);
+
+            // Fluffy chest
+            drawPixelRect(ctx, x + 14, y + 16, 8, 8, lightGray);
+
+            // Body shading
+            drawPixelRect(ctx, x + 24, y + 16, 4, 6, gray);
+
+            // Head - round and fluffy
+            drawPixelRect(ctx, x + 6, y - 2, 14, 14, white);
+            drawPixelRect(ctx, x + 4, y, 18, 10, white);
+            drawPixelRect(ctx, x + 8, y - 4, 10, 4, white);
+
+            // Fluffy cheeks
+            drawPixelRect(ctx, x + 2, y + 2, 6, 6, white);
+            drawPixelRect(ctx, x + 18, y + 2, 6, 6, white);
+
+            // Ears
+            drawPixelRect(ctx, x + 6, y - 8, 4, 6, white);
+            drawPixelRect(ctx, x + 8, y - 10, 2, 4, white);
+            drawPixelRect(ctx, x + 16, y - 8, 4, 6, white);
+            drawPixelRect(ctx, x + 16, y - 10, 2, 4, white);
+
+            // Inner ears - pink
+            drawPixelRect(ctx, x + 8, y - 6, 2, 4, pink);
+            drawPixelRect(ctx, x + 16, y - 6, 2, 4, pink);
+
+            // Eyes - direction aware
+            if (companion.direction === 'left') {
+                drawPixelRect(ctx, x + 6, y + 2, 3, 3, black);
+                drawPixelRect(ctx, x + 12, y + 2, 3, 3, black);
+                drawPixelRect(ctx, x + 7, y + 3, 1, 1, white);
+                drawPixelRect(ctx, x + 13, y + 3, 1, 1, white);
+            } else if (companion.direction === 'right') {
+                drawPixelRect(ctx, x + 10, y + 2, 3, 3, black);
+                drawPixelRect(ctx, x + 16, y + 2, 3, 3, black);
+                drawPixelRect(ctx, x + 11, y + 3, 1, 1, white);
+                drawPixelRect(ctx, x + 17, y + 3, 1, 1, white);
+            } else {
+                drawPixelRect(ctx, x + 8, y + 2, 3, 3, black);
+                drawPixelRect(ctx, x + 14, y + 2, 3, 3, black);
+                drawPixelRect(ctx, x + 9, y + 3, 1, 1, white);
+                drawPixelRect(ctx, x + 15, y + 3, 1, 1, white);
+            }
+
+            // Nose
+            drawPixelRect(ctx, x + 12, y + 6, 2, 2, pink);
+
+            // Mouth
+            drawPixelRect(ctx, x + 11, y + 9, 2, 1, darkGray);
+            drawPixelRect(ctx, x + 14, y + 9, 2, 1, darkGray);
+
+            // Whiskers
+            drawPixelRect(ctx, x, y + 4, 4, 1, darkGray);
+            drawPixelRect(ctx, x, y + 6, 4, 1, darkGray);
+            drawPixelRect(ctx, x + 22, y + 4, 4, 1, darkGray);
+            drawPixelRect(ctx, x + 22, y + 6, 4, 1, darkGray);
+
+            // Front paws
+            drawPixelRect(ctx, x + 10, y + 24, 4, 4, white);
+            drawPixelRect(ctx, x + 20, y + 24, 4, 4, white);
+
+            // Paw pads
+            drawPixelRect(ctx, x + 11, y + 25, 2, 2, pink);
+            drawPixelRect(ctx, x + 21, y + 25, 2, 2, pink);
+
+            // Tail - fluffy and curved based on direction
+            if (companion.direction === 'left') {
+                drawPixelRect(ctx, x + 24, y + 14, 4, 4, white);
+                drawPixelRect(ctx, x + 26, y + 10, 4, 6, white);
+                drawPixelRect(ctx, x + 28, y + 6, 4, 6, white);
+            } else if (companion.direction === 'right') {
+                drawPixelRect(ctx, x, y + 14, 4, 4, white);
+                drawPixelRect(ctx, x - 2, y + 10, 4, 6, white);
+                drawPixelRect(ctx, x - 4, y + 6, 4, 6, white);
+            } else {
+                drawPixelRect(ctx, x + 26, y + 14, 4, 4, white);
+                drawPixelRect(ctx, x + 28, y + 10, 4, 6, white);
+                drawPixelRect(ctx, x + 30, y + 6, 4, 6, white);
+            }
+        }
+
+        drawPossumCompanion(ctx, companion, offsetX, offsetY) {
+            const screenPos = isometricToScreen(companion.x, companion.y);
+            const x = screenPos.x + offsetX - 12;
+            const y = screenPos.y + offsetY - 24;
+
+            const furColor = '#808080';
+            const furDark = '#606060';
+            const furLight = '#a0a0a0';
+            const earPink = '#ffb6c1';
+            const noseColor = '#ff69b4';
+            const eyeColor = '#000000';
+
+            // Shadow
+            drawPixelRect(ctx, x + 2, y + 22, 20, 4, 'rgba(0,0,0,0.3)');
+
+            // Body
+            drawPixelRect(ctx, x + 4, y + 8, 16, 14, furColor);
+            drawPixelRect(ctx, x + 6, y + 10, 12, 10, furLight);
+
+            // Tail - long and curled based on direction
+            if (companion.direction === 'left') {
+                drawPixelRect(ctx, x + 18, y + 12, 4, 3, furColor);
+                drawPixelRect(ctx, x + 20, y + 10, 4, 4, furColor);
+                drawPixelRect(ctx, x + 22, y + 6, 3, 6, furColor);
+                drawPixelRect(ctx, x + 20, y + 4, 4, 4, furDark);
+            } else if (companion.direction === 'right') {
+                drawPixelRect(ctx, x + 2, y + 12, 4, 3, furColor);
+                drawPixelRect(ctx, x, y + 10, 4, 4, furColor);
+                drawPixelRect(ctx, x - 2, y + 6, 3, 6, furColor);
+                drawPixelRect(ctx, x - 2, y + 4, 4, 4, furDark);
+            } else {
+                drawPixelRect(ctx, x + 18, y + 14, 6, 3, furColor);
+                drawPixelRect(ctx, x + 22, y + 10, 4, 6, furColor);
+                drawPixelRect(ctx, x + 24, y + 6, 3, 6, furDark);
+            }
+
+            // Head
+            drawPixelRect(ctx, x + 6, y - 2, 12, 12, furColor);
+            drawPixelRect(ctx, x + 4, y + 2, 16, 8, furColor);
+            drawPixelRect(ctx, x + 8, y, 8, 4, furLight);
+
+            // Snout
+            drawPixelRect(ctx, x + 8, y + 4, 8, 5, furLight);
+
+            // Ears
+            drawPixelRect(ctx, x + 2, y - 6, 6, 8, furColor);
+            drawPixelRect(ctx, x + 16, y - 6, 6, 8, furColor);
+            drawPixelRect(ctx, x + 4, y - 4, 4, 6, earPink);
+            drawPixelRect(ctx, x + 16, y - 4, 4, 6, earPink);
+
+            // Eyes - direction aware
+            if (companion.direction === 'left') {
+                drawPixelRect(ctx, x + 6, y + 2, 3, 3, eyeColor);
+                drawPixelRect(ctx, x + 12, y + 2, 3, 3, eyeColor);
+            } else if (companion.direction === 'right') {
+                drawPixelRect(ctx, x + 8, y + 2, 3, 3, eyeColor);
+                drawPixelRect(ctx, x + 14, y + 2, 3, 3, eyeColor);
+            } else {
+                drawPixelRect(ctx, x + 7, y + 2, 3, 3, eyeColor);
+                drawPixelRect(ctx, x + 13, y + 2, 3, 3, eyeColor);
+            }
+            // Eye shine
+            drawPixelRect(ctx, x + 8, y + 3, 1, 1, '#ffffff');
+            drawPixelRect(ctx, x + 14, y + 3, 1, 1, '#ffffff');
+
+            // Pink nose
+            drawPixelRect(ctx, x + 10, y + 6, 4, 3, noseColor);
+
+            // Front paws
+            drawPixelRect(ctx, x + 4, y + 18, 5, 4, furColor);
+            drawPixelRect(ctx, x + 14, y + 18, 5, 4, furColor);
+            drawPixelRect(ctx, x + 5, y + 20, 3, 2, earPink);
+            drawPixelRect(ctx, x + 15, y + 20, 3, 2, earPink);
         }
 
         drawSunshine() {
@@ -403,12 +681,43 @@ if (typeof Game === "undefined") {
                     return;
             }
 
+            // Remove any companion types from furniture (they follow the player now)
+            this.companions.forEach(companion => {
+                const furnitureIndex = this.room.furniture.findIndex(f => f.type === companion.type);
+                if (furnitureIndex !== -1) {
+                    const furniture = this.room.furniture[furnitureIndex];
+                    // Clear collision map
+                    for (let y = furniture.y; y < furniture.y + furniture.height; y++) {
+                        for (let x = furniture.x; x < furniture.x + furniture.width; x++) {
+                            if (x >= 0 && x < this.room.width && y >= 0 && y < this.room.height) {
+                                this.room.collisionMap[y][x] = false;
+                            }
+                        }
+                    }
+                    this.room.furniture.splice(furnitureIndex, 1);
+                }
+            });
+
             // Reset player position
             this.player.x = this.player.gridX;
             this.player.y = this.player.gridY;
             this.player.targetX = this.player.gridX;
             this.player.targetY = this.player.gridY;
             this.player.isMoving = false;
+
+            // Reset companion positions to follow player
+            this.companions.forEach(companion => {
+                companion.x = this.player.x;
+                companion.y = this.player.y + 1;
+                companion.gridX = this.player.gridX;
+                companion.gridY = this.player.gridY + 1;
+            });
+
+            // Clear position history and re-initialize
+            this.companionHistory = [];
+            for (let i = 0; i < 20; i++) {
+                this.companionHistory.push({ x: this.player.x, y: this.player.y });
+            }
 
             // Update global room reference
             window.room = this.room;
