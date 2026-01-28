@@ -89,7 +89,7 @@ export const GameCanvas: React.FC = () => {
       let gameReady = false;
       
       try {
-        const scripts = ['/utils.js', '/player.js', '/room.js', '/greenRoom.js', '/upstairsRoom.js', '/controls.js', '/game.js'];
+        const scripts = ['/utils.js', '/player.js', '/room.js', '/downstairsRoom.js', '/balcony.js', '/controls.js', '/game.js'];
         
         // Load scripts one by one (actual loading happens fast)
         for (const script of scripts) {

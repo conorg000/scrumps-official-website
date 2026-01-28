@@ -16,8 +16,8 @@ client/
     - utils.js      # Utility functions and color palette
     - player.js     # Player character logic
     - room.js       # Room system
-    - greenRoom.js  # Green room environment
-    - upstairsRoom.js # Upstairs room environment
+    - downstairsRoom.js  # Downstairs room environment
+    - balcony.js      # Balcony environment
     - controls.js   # Input handling
     - game.js       # Main game engine
   src/
@@ -72,7 +72,7 @@ server/
 ## Migration Completed
 Date: August 10, 2025
 - Successfully migrated canvas-based game from Bolt to Replit environment
-- All game scripts (utils.js, player.js, room.js, greenRoom.js, upstairsRoom.js, controls.js, game.js) working
+- All game scripts (utils.js, player.js, room.js, downstairsRoom.js, balcony.js, controls.js, game.js) working
 - React wrapper components integrated and functioning
 - Vite development server properly configured
 - User confirmed application is working correctly

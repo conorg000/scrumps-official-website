@@ -1,5 +1,5 @@
-if (typeof UpstairsRoom === 'undefined') {
-class UpstairsRoom {
+if (typeof Balcony === 'undefined') {
+class Balcony {
     constructor() {
         this.width = 20;
         this.height = 15;
@@ -254,5 +254,5 @@ class UpstairsRoom {
     }
 }
 
-window.UpstairsRoom = UpstairsRoom;
+window.Balcony = Balcony;
 }
