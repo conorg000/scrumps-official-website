@@ -45,6 +45,15 @@ class Room {
 
         // Mr Tibbles - cute white fluffy cat
         this.addFurniture({ x: 8, y: 5, width: 1, height: 1, type: 'mr_tibbles' });
+
+        // Hollandia beer can near boxing ring (collectible)
+        this.addFurniture({ x: 13, y: 4, width: 1, height: 1, type: 'hollandia_can', noCollision: true });
+
+        // CD hidden by tree - House of Peterson (collectible)
+        this.addFurniture({ x: 2, y: 2, width: 1, height: 1, type: 'cd_item', songName: 'House of Peterson', noCollision: true });
+
+        // Ladder leaning against fence (collectible for roof access later)
+        this.addFurniture({ x: 18, y: 12, width: 1, height: 2, type: 'ladder' });
     }
 
     addFurniture(furniture) {
@@ -156,6 +165,15 @@ class Room {
                     break;
                 case 'mr_tibbles':
                     this.drawMrTibbles(ctx, drawX, drawY);
+                    break;
+                case 'hollandia_can':
+                    this.drawHollandiaCan(ctx, drawX, drawY);
+                    break;
+                case 'cd_item':
+                    this.drawCDItem(ctx, drawX, drawY);
+                    break;
+                case 'ladder':
+                    this.drawLadder(ctx, drawX, drawY);
                     break;
             }
         });
@@ -686,6 +704,80 @@ class Room {
         drawPixelRect(ctx, x + 36, y - 10, 4, 6, white);
         drawPixelRect(ctx, x + 38, y - 14, 4, 6, white);
         drawPixelRect(ctx, x + 36, y - 16, 4, 4, white);
+    }
+
+    drawHollandiaCan(ctx, x, y) {
+        // Beer can - green Hollandia style
+        const canY = y - 20;
+
+        // Can body
+        drawPixelRect(ctx, x + 18, canY, 12, 20, '#228B22');
+
+        // Can top
+        ctx.fillStyle = '#C0C0C0';
+        ctx.beginPath();
+        ctx.ellipse(x + 24, canY, 6, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label
+        drawPixelRect(ctx, x + 19, canY + 5, 10, 8, '#FFD700');
+
+        // "H" on label
+        drawPixelRect(ctx, x + 21, canY + 6, 2, 6, '#228B22');
+        drawPixelRect(ctx, x + 25, canY + 6, 2, 6, '#228B22');
+        drawPixelRect(ctx, x + 23, canY + 8, 2, 2, '#228B22');
+    }
+
+    drawCDItem(ctx, x, y) {
+        const cdY = y - 15;
+
+        // CD case
+        drawPixelRect(ctx, x + 14, cdY, 20, 18, '#333333');
+
+        // CD visible through case
+        ctx.fillStyle = '#C0C0C0';
+        ctx.beginPath();
+        ctx.arc(x + 24, cdY + 9, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // CD hole
+        ctx.fillStyle = '#333333';
+        ctx.beginPath();
+        ctx.arc(x + 24, cdY + 9, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rainbow sheen
+        ctx.strokeStyle = '#FF69B4';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x + 24, cdY + 9, 5, 0, Math.PI * 0.5);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#87CEEB';
+        ctx.beginPath();
+        ctx.arc(x + 24, cdY + 9, 4, Math.PI * 0.5, Math.PI);
+        ctx.stroke();
+    }
+
+    drawLadder(ctx, x, y) {
+        // Wooden ladder leaning against fence
+        const ladderColor = '#8B4513';
+        const ladderLight = '#A0522D';
+
+        // Left rail
+        drawPixelRect(ctx, x + 12, y - 60, 6, 70, ladderColor);
+        drawPixelRect(ctx, x + 14, y - 58, 2, 66, ladderLight);
+
+        // Right rail
+        drawPixelRect(ctx, x + 30, y - 60, 6, 70, ladderColor);
+        drawPixelRect(ctx, x + 32, y - 58, 2, 66, ladderLight);
+
+        // Rungs
+        for (let i = 0; i < 6; i++) {
+            const rungY = y - 50 + i * 10;
+            drawPixelRect(ctx, x + 18, rungY, 12, 4, ladderColor);
+            drawPixelRect(ctx, x + 19, rungY + 1, 10, 2, ladderLight);
+        }
     }
 }
 

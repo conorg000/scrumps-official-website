@@ -43,6 +43,86 @@ const MrTibblesPortrait: React.FC = () => (
   </svg>
 );
 
+// Humunculous Skeleton portrait - spooky skeleton missing a foot
+const HumunculousPortrait: React.FC = () => (
+  <svg viewBox="0 0 64 64" className="w-full h-full">
+    {/* Background */}
+    <rect width="64" height="64" fill="#1f2937" />
+
+    {/* Skull */}
+    <ellipse cx="32" cy="28" rx="16" ry="18" fill="#E8E8D0" />
+    <ellipse cx="32" cy="30" rx="14" ry="14" fill="#E8E8D0" />
+
+    {/* Eye sockets */}
+    <ellipse cx="25" cy="26" rx="5" ry="6" fill="#000000" />
+    <ellipse cx="39" cy="26" rx="5" ry="6" fill="#000000" />
+
+    {/* Glowing eyes */}
+    <circle cx="25" cy="26" r="2" fill="#FF4444" />
+    <circle cx="39" cy="26" r="2" fill="#FF4444" />
+
+    {/* Nose hole */}
+    <polygon points="32,32 28,38 36,38" fill="#2A2A2A" />
+
+    {/* Teeth */}
+    <rect x="24" y="40" width="16" height="6" fill="#FFFFF0" />
+    <line x1="26" y1="40" x2="26" y2="46" stroke="#C8C8B0" strokeWidth="1" />
+    <line x1="29" y1="40" x2="29" y2="46" stroke="#C8C8B0" strokeWidth="1" />
+    <line x1="32" y1="40" x2="32" y2="46" stroke="#C8C8B0" strokeWidth="1" />
+    <line x1="35" y1="40" x2="35" y2="46" stroke="#C8C8B0" strokeWidth="1" />
+    <line x1="38" y1="40" x2="38" y2="46" stroke="#C8C8B0" strokeWidth="1" />
+
+    {/* Jaw */}
+    <ellipse cx="32" cy="48" rx="10" ry="4" fill="#E8E8D0" />
+
+    {/* Neck vertebrae hint */}
+    <rect x="29" y="52" width="6" height="8" fill="#E8E8D0" />
+    <line x1="29" y1="54" x2="35" y2="54" stroke="#C8C8B0" strokeWidth="1" />
+    <line x1="29" y1="57" x2="35" y2="57" stroke="#C8C8B0" strokeWidth="1" />
+
+    {/* Cracks for character */}
+    <path d="M 38 18 L 42 22 L 40 26" stroke="#C8C8B0" strokeWidth="1" fill="none" />
+  </svg>
+);
+
+// Tiny Clown portrait - colorful little clown
+const TinyClownPortrait: React.FC = () => (
+  <svg viewBox="0 0 64 64" className="w-full h-full">
+    {/* Background */}
+    <rect width="64" height="64" fill="#1f2937" />
+
+    {/* Rainbow hair */}
+    <circle cx="16" cy="14" r="6" fill="#FF0000" />
+    <circle cx="24" cy="12" r="6" fill="#FF7F00" />
+    <circle cx="32" cy="10" r="6" fill="#FFFF00" />
+    <circle cx="40" cy="12" r="6" fill="#00FF00" />
+    <circle cx="48" cy="14" r="6" fill="#0000FF" />
+
+    {/* Hat */}
+    <polygon points="32,2 40,18 24,18" fill="#800080" />
+
+    {/* Face */}
+    <ellipse cx="32" cy="34" rx="18" ry="16" fill="#FFE4C4" />
+
+    {/* Eyes */}
+    <ellipse cx="24" cy="30" rx="4" ry="5" fill="#000000" />
+    <ellipse cx="40" cy="30" rx="4" ry="5" fill="#000000" />
+    {/* Eye shine */}
+    <circle cx="25" cy="29" r="1.5" fill="#ffffff" />
+    <circle cx="41" cy="29" r="1.5" fill="#ffffff" />
+
+    {/* Big red nose */}
+    <circle cx="32" cy="38" r="7" fill="#FF0000" />
+    <circle cx="30" cy="36" r="2" fill="#FF6666" />
+
+    {/* Smile */}
+    <path d="M 22 46 Q 32 56 42 46" stroke="#FF0000" strokeWidth="3" fill="none" />
+
+    {/* Bow tie */}
+    <polygon points="24,54 32,58 40,54 32,62" fill="#4ECDC4" />
+  </svg>
+);
+
 // Possum portrait - scruffy grey possum with pointy face
 const PossumPortrait: React.FC = () => (
   <svg viewBox="0 0 64 64" className="w-full h-full">
@@ -160,6 +240,10 @@ export const DialogModal: React.FC<DialogModalProps> = ({
                   <MrTibblesPortrait />
                 ) : characterName === 'Possum' ? (
                   <PossumPortrait />
+                ) : characterName === 'Tiny Clown' ? (
+                  <TinyClownPortrait />
+                ) : characterName === 'Humunculous' ? (
+                  <HumunculousPortrait />
                 ) : (
                   <img
                     src="/scrumps-character.png"

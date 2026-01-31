@@ -10,13 +10,16 @@ class Balcony {
     }
 
     setupFurniture() {
-        // Railings along the edges (right and bottom edges for balcony feel)
+        // Railings along the back edge
         for (let i = 0; i < this.width; i++) {
             this.addFurniture({ x: i, y: 0, width: 1, height: 1, type: 'railing' });
         }
-        for (let i = 1; i < this.height; i++) {
+        // Railings along left edge - but leave gap at bottom for living room access
+        for (let i = 1; i < 8; i++) {
             this.addFurniture({ x: 0, y: i, width: 1, height: 1, type: 'railing' });
         }
+        // Door frame to living room (decorative, no collision)
+        this.addFurniture({ x: 0, y: 9, width: 1, height: 3, type: 'door_frame', noCollision: true });
 
         // BBQ in the corner
         this.addFurniture({ x: 16, y: 2, width: 2, height: 2, type: 'bbq' });
@@ -42,6 +45,9 @@ class Balcony {
 
         // String lights decoration (no collision)
         this.addFurniture({ x: 4, y: 1, width: 1, height: 1, type: 'string_lights', noCollision: true });
+
+        // Hollandia can by the BBQ (collectible)
+        this.addFurniture({ x: 17, y: 4, width: 1, height: 1, type: 'hollandia_can', noCollision: true });
     }
 
     addFurniture(furniture) {
@@ -327,6 +333,12 @@ class Balcony {
                     break;
                 case 'string_lights':
                     this.drawStringLights(ctx, drawX, drawY);
+                    break;
+                case 'hollandia_can':
+                    this.drawHollandiaCan(ctx, drawX, drawY);
+                    break;
+                case 'door_frame':
+                    this.drawDoorFrame(ctx, drawX, drawY);
                     break;
             }
         });
@@ -615,6 +627,47 @@ class Balcony {
             ctx.fillRect(lx, ly, 4, 4);
             ctx.globalAlpha = 1;
         }
+    }
+
+    drawHollandiaCan(ctx, x, y) {
+        // Beer can - green Hollandia style
+        const canY = y - 20;
+
+        // Can body
+        drawPixelRect(ctx, x + 18, canY, 12, 20, '#228B22');
+
+        // Can top
+        ctx.fillStyle = '#C0C0C0';
+        ctx.beginPath();
+        ctx.ellipse(x + 24, canY, 6, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label
+        drawPixelRect(ctx, x + 19, canY + 5, 10, 8, '#FFD700');
+
+        // "H" on label
+        drawPixelRect(ctx, x + 21, canY + 6, 2, 6, '#228B22');
+        drawPixelRect(ctx, x + 25, canY + 6, 2, 6, '#228B22');
+        drawPixelRect(ctx, x + 23, canY + 8, 2, 2, '#228B22');
+    }
+
+    drawDoorFrame(ctx, x, y) {
+        // Door frame leading to living room
+        const frameColor = '#4A3728';
+        const doorColor = '#654321';
+
+        // Frame
+        drawPixelRect(ctx, x - 5, y - 60, 10, 65, frameColor);
+        drawPixelRect(ctx, x + 30, y - 60, 10, 65, frameColor);
+        drawPixelRect(ctx, x - 5, y - 65, 45, 8, frameColor);
+
+        // Door opening (darker to suggest interior)
+        drawPixelRect(ctx, x + 5, y - 57, 25, 55, '#2A2A2A');
+
+        // "LIVING ROOM" hint
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '6px Arial';
+        ctx.fillText('→', x + 12, y - 30);
     }
 }
 

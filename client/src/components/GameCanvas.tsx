@@ -34,6 +34,29 @@ export const GameCanvas: React.FC = () => {
   const [atTopEdge, setAtTopEdge] = useState(false);
   const [atRightEdge, setAtRightEdge] = useState(false);
   const [atLeftEdge, setAtLeftEdge] = useState(false);
+  const [atBalconyBottomLeft, setAtBalconyBottomLeft] = useState(false);
+  const [atBalconyBottomRight, setAtBalconyBottomRight] = useState(false);
+  const [atLivingRoomTopRight, setAtLivingRoomTopRight] = useState(false);
+  const [nearTinyClown, setNearTinyClown] = useState(false);
+  const [nearHollandiaCan, setNearHollandiaCan] = useState(false);
+  const [nearCD, setNearCD] = useState(false);
+  const [hollandiaCount, setHollandiaCount] = useState(0);
+  const [collectedCDs, setCollectedCDs] = useState<string[]>([]);
+  const [tinyClownJoined, setTinyClownJoined] = useState(false);
+  const [hasLadder, setHasLadder] = useState(false);
+  const [nearLadder, setNearLadder] = useState(false);
+  const [hasXray, setHasXray] = useState(false);
+  const [nearXray, setNearXray] = useState(false);
+  const [atLivingRoomRight, setAtLivingRoomRight] = useState(false);
+  const [atBedroomLeft, setAtBedroomLeft] = useState(false);
+  const [nearHumunculous, setNearHumunculous] = useState(false);
+  const [humunculousJoined, setHumunculousJoined] = useState(false);
+  const [isChaseActive, setIsChaseActive] = useState(false);
+  const [atLivingRoomLeft, setAtLivingRoomLeft] = useState(false);
+  const [atFrontPorchRight, setAtFrontPorchRight] = useState(false);
+  const [nearLadderSpot, setNearLadderSpot] = useState(false);
+  const [ladderPlaced, setLadderPlaced] = useState(false);
+  const [atRooftopLadder, setAtRooftopLadder] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -97,7 +120,7 @@ export const GameCanvas: React.FC = () => {
       let gameReady = false;
       
       try {
-        const scripts = ['/utils.js', '/player.js', '/room.js', '/downstairsRoom.js', '/balcony.js', '/controls.js', '/game.js'];
+        const scripts = ['/utils.js', '/player.js', '/room.js', '/downstairsRoom.js', '/balcony.js', '/livingRoom.js', '/bedroom.js', '/frontPorch.js', '/rooftop.js', '/controls.js', '/game.js'];
         
         // Load scripts one by one (actual loading happens fast)
         for (const script of scripts) {
@@ -397,7 +420,7 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
-  // Check if player is at left edge of upstairs room
+  // Check if player is at left edge of upstairs room (top half - to go back to backyard)
   useEffect(() => {
     if (!gameRef.current || isLoading) return;
 
@@ -409,12 +432,278 @@ export const GameCanvas: React.FC = () => {
       }
 
       const playerX = Math.floor(player.gridX);
-      
-      // Check if player is at the left edge (x = 0)
-      setAtLeftEdge(playerX === 0);
+      const playerY = Math.floor(player.gridY);
+
+      // Left edge, top half (x <= 1 and y <= 7) - goes to backyard
+      setAtLeftEdge(playerX <= 1 && playerY <= 7);
     };
 
     const interval = setInterval(checkLeftEdge, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at bottom-left of balcony (to go to living room)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkBalconyBottomLeft = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'upstairs') {
+        setAtBalconyBottomLeft(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Bottom-left area of balcony (y >= 8 and x <= 4) - goes to living room
+      setAtBalconyBottomLeft(playerY >= 8 && playerX <= 4);
+    };
+
+    const interval = setInterval(checkBalconyBottomLeft, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at bottom-right of balcony (to go back to backyard)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkBalconyBottomRight = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'upstairs') {
+        setAtBalconyBottomRight(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Bottom-right area of balcony (y >= 12 and x >= 16) - goes to backyard
+      setAtBalconyBottomRight(playerY >= 12 && playerX >= 16);
+    };
+
+    const interval = setInterval(checkBalconyBottomRight, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at top-right of living room (to go back to balcony)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkLivingRoomTopRight = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'livingRoom') {
+        setAtLivingRoomTopRight(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Top-right area of living room (y <= 3 and x >= 16)
+      setAtLivingRoomTopRight(playerY <= 3 && playerX >= 16);
+    };
+
+    const interval = setInterval(checkLivingRoomTopRight, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at right edge of living room (to go to bedroom)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkLivingRoomRight = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'livingRoom') {
+        setAtLivingRoomRight(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Right edge of living room (x >= 18 and y > 6)
+      setAtLivingRoomRight(playerX >= 18 && playerY > 6);
+    };
+
+    const interval = setInterval(checkLivingRoomRight, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at left edge of bedroom (to go back to living room)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkBedroomLeft = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'bedroom') {
+        setAtBedroomLeft(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Left edge of bedroom (x <= 1 and y > 8)
+      setAtBedroomLeft(playerX <= 1 && playerY > 8);
+    };
+
+    const interval = setInterval(checkBedroomLeft, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at left edge of living room (to go to front porch)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkLivingRoomLeft = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'livingRoom') {
+        setAtLivingRoomLeft(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Left edge of living room (x <= 1 and y > 10)
+      setAtLivingRoomLeft(playerX <= 1 && playerY > 10);
+    };
+
+    const interval = setInterval(checkLivingRoomLeft, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at right edge of front porch (to go back to living room)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkFrontPorchRight = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'frontPorch') {
+        setAtFrontPorchRight(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+
+      // Right edge of front porch
+      setAtFrontPorchRight(playerX >= 18);
+    };
+
+    const interval = setInterval(checkFrontPorchRight, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is near ladder spot on front porch
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkLadderSpot = () => {
+      const player = gameRef.current.player;
+      const room = gameRef.current.room;
+      if (!player || !room || gameRef.current.currentScene !== 'frontPorch') {
+        setNearLadderSpot(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Ladder spot is at (18, 2)
+      const near = Math.abs(playerX - 18) <= 2 && Math.abs(playerY - 2) <= 2;
+      setNearLadderSpot(near);
+    };
+
+    const interval = setInterval(checkLadderSpot, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check if player is at rooftop ladder (to go back down)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkRooftopLadder = () => {
+      const player = gameRef.current.player;
+      if (!player || gameRef.current.currentScene !== 'rooftop') {
+        setAtRooftopLadder(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      // Ladder access at (22, 12)
+      setAtRooftopLadder(playerX >= 21 && playerY >= 11);
+    };
+
+    const interval = setInterval(checkRooftopLadder, 100);
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  // Check proximity to collectibles and special items (all rooms)
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkCollectibleProximity = () => {
+      const player = gameRef.current.player;
+      const room = gameRef.current.room;
+      if (!player || !room) {
+        setNearTinyClown(false);
+        setNearHollandiaCan(false);
+        setNearCD(false);
+        return;
+      }
+
+      const playerX = Math.floor(player.gridX);
+      const playerY = Math.floor(player.gridY);
+
+      let touchingTinyClown = false;
+      let touchingHollandiaCan = false;
+      let touchingCD = false;
+      let touchingLadder = false;
+      let touchingXray = false;
+      let touchingHumunculous = false;
+
+      // Check all furniture for proximity
+      room.furniture?.forEach((furniture: any) => {
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            if (dx === 0 && dy === 0) continue;
+
+            const adjacentX = playerX + dx;
+            const adjacentY = playerY + dy;
+
+            if (adjacentX >= furniture.x && adjacentX < furniture.x + furniture.width &&
+                adjacentY >= furniture.y && adjacentY < furniture.y + furniture.height) {
+
+              if (furniture.type === 'tiny_clown') {
+                touchingTinyClown = true;
+              } else if (furniture.type === 'hollandia_can') {
+                touchingHollandiaCan = true;
+              } else if (furniture.type === 'cd_item') {
+                touchingCD = true;
+              } else if (furniture.type === 'ladder') {
+                touchingLadder = true;
+              } else if (furniture.type === 'xray') {
+                touchingXray = true;
+              } else if (furniture.type === 'humunculous') {
+                touchingHumunculous = true;
+              }
+            }
+          }
+        }
+      });
+
+      setNearTinyClown(touchingTinyClown);
+      setNearHollandiaCan(touchingHollandiaCan);
+      setNearCD(touchingCD);
+      setNearLadder(touchingLadder);
+      setNearXray(touchingXray);
+      setNearHumunculous(touchingHumunculous);
+    };
+
+    const interval = setInterval(checkCollectibleProximity, 100);
     return () => clearInterval(interval);
   }, [isLoading]);
 
@@ -450,9 +739,23 @@ export const GameCanvas: React.FC = () => {
           gameRef.current.addCompanion('tent');
         }
       }
+
+      // Check if Tiny Clown just finished talking after getting cans - add as companion
+      if (currentSpeakerRef.current === 'Tiny Clown' && tinyClownJoined) {
+        if (gameRef.current && gameRef.current.addCompanion) {
+          gameRef.current.addCompanion('tiny_clown');
+        }
+      }
+
+      // Check if Humunculous just finished talking after getting x-ray - add as companion
+      if (currentSpeakerRef.current === 'Humunculous' && humunculousJoined) {
+        if (gameRef.current && gameRef.current.addCompanion) {
+          gameRef.current.addCompanion('humunculous');
+        }
+      }
       currentSpeakerRef.current = null;
     }
-  }, [dialogState.currentTextIndex, dialogState.text.length, mrTibblesJoined, possumFed]);
+  }, [dialogState.currentTextIndex, dialogState.text.length, mrTibblesJoined, possumFed, tinyClownJoined, humunculousJoined]);
 
   // Handle dialog dismissal with keyboard
   useEffect(() => {
@@ -628,6 +931,127 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleTalkToTinyClown = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      if (tinyClownJoined) {
+        gameRef.current.showDialog("Tiny Clown", [
+          "*honk honk*",
+          "My pyramid is complete!",
+          "We're best friends now, crispy buddy!"
+        ]);
+      } else if (hollandiaCount >= 5) {
+        gameRef.current.showDialog("Tiny Clown", [
+          "*eyes widen*",
+          "IS THAT... FIVE HOLLANDIA CANS?!",
+          "*You hand over the cans*",
+          "MY PYRAMID! IT'S COMPLETE!",
+          "*happy clown noises*",
+          "You've made a tiny clown very happy today.",
+          "As a reward, I shall join your quest!",
+          "HONK HONK LET'S GO!"
+        ]);
+        setTinyClownJoined(true);
+        setHollandiaCount(0);
+        // Update game state for pyramid
+        if (gameRef.current) {
+          gameRef.current.tinyClownCans = 5;
+        }
+        currentSpeakerRef.current = 'Tiny Clown';
+      } else {
+        gameRef.current.showDialog("Tiny Clown", [
+          "*honk*",
+          "Hello there, little crisp friend!",
+          "I'm building a MAGNIFICENT beer pyramid!",
+          `But I need ${5 - hollandiaCount} more Hollandia cans...`,
+          "Find me 5 total and I'll reward you handsomely!",
+          "*does a tiny cartwheel*"
+        ]);
+      }
+    }
+  };
+
+  const handlePickUpHollandia = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      const newCount = hollandiaCount + 1;
+      setHollandiaCount(newCount);
+
+      // Remove the can from furniture
+      const room = gameRef.current.room;
+      if (room && room.furniture) {
+        const canIndex = room.furniture.findIndex((f: any) => f.type === 'hollandia_can');
+        if (canIndex !== -1) {
+          room.furniture.splice(canIndex, 1);
+        }
+      }
+
+      gameRef.current.showDialog("Scrump", [
+        "*picks up Hollandia can*",
+        `Got it! That's ${newCount} of 5 for the clown's pyramid.`,
+        newCount >= 5 ? "That should be enough!" : "Need to find more..."
+      ]);
+    }
+  };
+
+  const handlePickUpCD = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      const room = gameRef.current.room;
+      if (room && room.furniture) {
+        const cdIndex = room.furniture.findIndex((f: any) => f.type === 'cd_item');
+        if (cdIndex !== -1) {
+          const cd = room.furniture[cdIndex];
+          const songName = cd.songName || 'Unknown Track';
+
+          if (!collectedCDs.includes(songName)) {
+            setCollectedCDs(prev => [...prev, songName]);
+            room.furniture.splice(cdIndex, 1);
+
+            gameRef.current.showDialog("Scrump", [
+              "*picks up CD*",
+              `Oh sick, it's "${songName}" by The Scrumps!`,
+              `That's ${collectedCDs.length + 1} of 4 CDs collected.`,
+              "These tunes are gonna slap."
+            ]);
+          }
+        }
+      }
+    }
+  };
+
+  const handlePickUpLadder = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      if (hasLadder) {
+        gameRef.current.showDialog("Scrump", [
+          "I've already got the ladder.",
+          "This thing is surprisingly light for a crisp to carry."
+        ]);
+      } else {
+        const room = gameRef.current.room;
+        if (room && room.furniture) {
+          const ladderIndex = room.furniture.findIndex((f: any) => f.type === 'ladder');
+          if (ladderIndex !== -1) {
+            room.furniture.splice(ladderIndex, 1);
+            // Clear collision
+            const ladder = { x: 18, y: 12, width: 1, height: 2 };
+            for (let y = ladder.y; y < ladder.y + ladder.height; y++) {
+              for (let x = ladder.x; x < ladder.x + ladder.width; x++) {
+                if (room.collisionMap && room.collisionMap[y]) {
+                  room.collisionMap[y][x] = false;
+                }
+              }
+            }
+          }
+        }
+        setHasLadder(true);
+        gameRef.current.showDialog("Scrump", [
+          "*picks up ladder*",
+          "A sturdy wooden ladder!",
+          "This could help me reach high places.",
+          "Like... a roof perhaps?"
+        ]);
+      }
+    }
+  };
+
   const handleSceneChange = () => {
     if (gameRef.current && gameRef.current.loadScene) {
       const newScene = gameRef.current.currentScene === 'mainRoom' ? 'downstairs' : 'mainRoom';
@@ -656,6 +1080,151 @@ export const GameCanvas: React.FC = () => {
   const handleGoToBackyardFromUpstairs = () => {
     if (gameRef.current && gameRef.current.loadScene) {
       gameRef.current.loadScene('mainRoom');
+    }
+  };
+
+  const handleGoToLivingRoom = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('livingRoom');
+    }
+  };
+
+  const handleGoToBalconyFromLivingRoom = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('upstairs');
+    }
+  };
+
+  const handleGoToBedroom = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('bedroom');
+    }
+  };
+
+  const handleGoToLivingRoomFromBedroom = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('livingRoom');
+    }
+  };
+
+  const handleGoToFrontPorch = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('frontPorch');
+    }
+  };
+
+  const handleGoToLivingRoomFromPorch = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('livingRoom');
+    }
+  };
+
+  const handlePlaceLadder = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      if (!hasLadder) {
+        gameRef.current.showDialog("Scrump", [
+          "I need a ladder to reach the roof.",
+          "Maybe there's one somewhere in the backyard..."
+        ]);
+      } else {
+        setLadderPlaced(true);
+        setHasLadder(false);
+        gameRef.current.showDialog("Scrump", [
+          "*places ladder against wall*",
+          "Perfect! Now I can climb up to the roof!",
+          "The subletters should be hiding up there."
+        ]);
+      }
+    }
+  };
+
+  const handleClimbToRoof = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('rooftop');
+    }
+  };
+
+  const handleClimbDownFromRoof = () => {
+    if (gameRef.current && gameRef.current.loadScene) {
+      gameRef.current.loadScene('frontPorch');
+    }
+  };
+
+  const handlePickUpXray = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      if (hasXray) {
+        gameRef.current.showDialog("Scrump", [
+          "I already have the x-ray.",
+          "Those bones are spooky..."
+        ]);
+      } else {
+        const room = gameRef.current.room;
+        if (room && room.furniture) {
+          const xrayIndex = room.furniture.findIndex((f: any) => f.type === 'xray');
+          if (xrayIndex !== -1) {
+            room.furniture.splice(xrayIndex, 1);
+          }
+        }
+        setHasXray(true);
+        gameRef.current.showDialog("Scrump", [
+          "*picks up x-ray*",
+          "Whoa, this is an x-ray of a foot!",
+          "Someone's missing a foot around here...",
+          "I bet whoever lost this would want it back."
+        ]);
+      }
+    }
+  };
+
+  const handleTalkToHumunculous = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      if (humunculousJoined) {
+        gameRef.current.showDialog("Humunculous", [
+          "*rattles bones*",
+          "My foot! It's so good to have it back!",
+          "Well, at least know where it is now.",
+          "Let's find those subletters!"
+        ]);
+      } else if (hasXray) {
+        // Give x-ray to Humunculous - triggers chase if 4 CDs collected!
+        gameRef.current.showDialog("Humunculous", [
+          "*gasp* MY FOOT!",
+          "You found it! It was inside me all along!",
+          "How did I not notice that...",
+          "You've done me a great service, crispy friend.",
+          "I shall join your quest!",
+          collectedCDs.length >= 4 ? "Wait... I hear music... THE SCRUMPS!" : "Lead the way!"
+        ]);
+        setHasXray(false);
+        setHumunculousJoined(true);
+        currentSpeakerRef.current = 'Humunculous';
+
+        // Check if chase should trigger (4 CDs + Humunculous joining)
+        if (collectedCDs.length >= 4) {
+          // Chase will trigger after dialog!
+          setTimeout(() => {
+            if (gameRef.current && gameRef.current.showDialog) {
+              gameRef.current.showDialog("Mr Tibbles", [
+                "What's that noise?!",
+                "Oh no... the music is too loud!",
+                "ADELE CAN HEAR US!",
+                "TO THE ROOF! EVERYONE TO THE ROOF!",
+                "We need the ladder to get up there!"
+              ]);
+              setIsChaseActive(true);
+            }
+          }, 1000);
+        }
+      } else {
+        gameRef.current.showDialog("Humunculous", [
+          "*rattle rattle*",
+          "Oooooh... my foot... where is my foot?",
+          "I've been hobbling around for AGES.",
+          "There's an x-ray somewhere that shows where it went...",
+          "Find it for me, and I'll help you find the subletters!",
+          "*sad bone noises*"
+        ]);
+      }
     }
   };
 
@@ -809,6 +1378,16 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
 
+      {/* Talk to Humunculous Button - in downstairs room */}
+      {!isLoading && !dialogState.isVisible && nearHumunculous && gameRef.current?.currentScene === 'downstairs' && !humunculousJoined && (
+        <button
+          onClick={handleTalkToHumunculous}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          {hasXray ? 'GIVE X-RAY TO SKELETON' : 'TALK TO SKELETON'}
+        </button>
+      )}
+
       {/* Go Downstairs Button - appears when at bottom edge */}
       {!isLoading && !dialogState.isVisible && atBottomEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && !nearMrTibbles && (
         <button
@@ -839,8 +1418,8 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
       
-      {/* Go to Backyard Button - appears when at left edge of upstairs room */}
-      {!isLoading && !dialogState.isVisible && atLeftEdge && gameRef.current?.currentScene === 'upstairs' && (
+      {/* Go to Backyard Button - appears when at bottom-right of balcony */}
+      {!isLoading && !dialogState.isVisible && atBalconyBottomRight && gameRef.current?.currentScene === 'upstairs' && (
         <button
           onClick={handleGoToBackyardFromUpstairs}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -848,7 +1427,137 @@ export const GameCanvas: React.FC = () => {
           GO TO BACKYARD
         </button>
       )}
-      
+
+      {/* Go to Living Room Button - appears when at bottom-left of balcony */}
+      {!isLoading && !dialogState.isVisible && atBalconyBottomLeft && gameRef.current?.currentScene === 'upstairs' && (
+        <button
+          onClick={handleGoToLivingRoom}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO LIVING ROOM
+        </button>
+      )}
+
+      {/* Go to Balcony Button - appears when at top-right of living room */}
+      {!isLoading && !dialogState.isVisible && atLivingRoomTopRight && gameRef.current?.currentScene === 'livingRoom' && (
+        <button
+          onClick={handleGoToBalconyFromLivingRoom}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO BALCONY
+        </button>
+      )}
+
+      {/* Talk to Tiny Clown Button - in living room */}
+      {!isLoading && !dialogState.isVisible && nearTinyClown && gameRef.current?.currentScene === 'livingRoom' && (
+        <button
+          onClick={handleTalkToTinyClown}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          {tinyClownJoined ? 'TALK TO TINY CLOWN' : (hollandiaCount >= 5 ? 'GIVE CANS TO CLOWN' : 'TALK TO TINY CLOWN')}
+        </button>
+      )}
+
+      {/* Pick up Hollandia Can Button - in any room */}
+      {!isLoading && !dialogState.isVisible && nearHollandiaCan && !nearTinyClown && (
+        <button
+          onClick={handlePickUpHollandia}
+          className="fixed top-4 right-4 bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-green-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          PICK UP HOLLANDIA CAN
+        </button>
+      )}
+
+      {/* Pick up CD Button - in any room */}
+      {!isLoading && !dialogState.isVisible && nearCD && !nearTinyClown && !nearHollandiaCan && (
+        <button
+          onClick={handlePickUpCD}
+          className="fixed top-4 right-4 bg-purple-500 hover:bg-purple-400 text-white px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-purple-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          PICK UP CD
+        </button>
+      )}
+
+      {/* Pick up Ladder Button - in backyard */}
+      {!isLoading && !dialogState.isVisible && nearLadder && gameRef.current?.currentScene === 'mainRoom' && !hasLadder && (
+        <button
+          onClick={handlePickUpLadder}
+          className="fixed top-4 right-4 bg-orange-500 hover:bg-orange-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-orange-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          PICK UP LADDER
+        </button>
+      )}
+
+      {/* Pick up X-ray Button - in bedroom */}
+      {!isLoading && !dialogState.isVisible && nearXray && gameRef.current?.currentScene === 'bedroom' && !hasXray && (
+        <button
+          onClick={handlePickUpXray}
+          className="fixed top-4 right-4 bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-cyan-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          PICK UP X-RAY
+        </button>
+      )}
+
+      {/* Go to Bedroom Button - from living room right edge */}
+      {!isLoading && !dialogState.isVisible && atLivingRoomRight && gameRef.current?.currentScene === 'livingRoom' && !atLivingRoomTopRight && (
+        <button
+          onClick={handleGoToBedroom}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO BEDROOM
+        </button>
+      )}
+
+      {/* Go to Living Room Button - from bedroom left edge */}
+      {!isLoading && !dialogState.isVisible && atBedroomLeft && gameRef.current?.currentScene === 'bedroom' && (
+        <button
+          onClick={handleGoToLivingRoomFromBedroom}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO LIVING ROOM
+        </button>
+      )}
+
+      {/* Go to Front Porch Button - from living room left edge */}
+      {!isLoading && !dialogState.isVisible && atLivingRoomLeft && gameRef.current?.currentScene === 'livingRoom' && (
+        <button
+          onClick={handleGoToFrontPorch}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO FRONT PORCH
+        </button>
+      )}
+
+      {/* Go to Living Room Button - from front porch right edge */}
+      {!isLoading && !dialogState.isVisible && atFrontPorchRight && gameRef.current?.currentScene === 'frontPorch' && !nearLadderSpot && (
+        <button
+          onClick={handleGoToLivingRoomFromPorch}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          GO TO LIVING ROOM
+        </button>
+      )}
+
+      {/* Place/Climb Ladder Button - on front porch */}
+      {!isLoading && !dialogState.isVisible && nearLadderSpot && gameRef.current?.currentScene === 'frontPorch' && (
+        <button
+          onClick={ladderPlaced ? handleClimbToRoof : handlePlaceLadder}
+          className="fixed top-4 right-4 bg-orange-500 hover:bg-orange-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-orange-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          {ladderPlaced ? 'CLIMB TO ROOF' : (hasLadder ? 'PLACE LADDER' : 'NEED LADDER')}
+        </button>
+      )}
+
+      {/* Climb Down Button - on rooftop */}
+      {!isLoading && !dialogState.isVisible && atRooftopLadder && gameRef.current?.currentScene === 'rooftop' && (
+        <button
+          onClick={handleClimbDownFromRoof}
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+        >
+          CLIMB DOWN
+        </button>
+      )}
+
       {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
       
       <DialogModal

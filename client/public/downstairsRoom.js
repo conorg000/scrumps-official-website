@@ -31,6 +31,15 @@ class DownstairsRoom {
 
         // Tent with possum living inside
         this.addFurniture({ x: 14, y: 5, width: 3, height: 2, type: 'tent' });
+
+        // Hollandia can near band equipment (collectible)
+        this.addFurniture({ x: 14, y: 12, width: 1, height: 1, type: 'hollandia_can', noCollision: true });
+
+        // CD near instruments - HOT SHOT (collectible)
+        this.addFurniture({ x: 16, y: 10, width: 1, height: 1, type: 'cd_item', songName: 'HOT SHOT', noCollision: true });
+
+        // Humunculous Skeleton - hobbling around missing a foot
+        this.addFurniture({ x: 4, y: 8, width: 1, height: 1, type: 'humunculous' });
     }
 
     addFurniture(furniture) {
@@ -250,6 +259,15 @@ class DownstairsRoom {
                     break;
                 case 'tent':
                     this.drawTent(ctx, drawX, drawY, furniture.width, furniture.height);
+                    break;
+                case 'hollandia_can':
+                    this.drawHollandiaCan(ctx, drawX, drawY);
+                    break;
+                case 'cd_item':
+                    this.drawCDItem(ctx, drawX, drawY);
+                    break;
+                case 'humunculous':
+                    this.drawHumunculous(ctx, drawX, drawY);
                     break;
             }
         });
@@ -975,6 +993,129 @@ class DownstairsRoom {
         drawPixelRect(ctx, x + 12, y + 16, 6, 4, furColor);
         drawPixelRect(ctx, x, y + 18, 3, 2, earPink);
         drawPixelRect(ctx, x + 13, y + 18, 3, 2, earPink);
+    }
+
+    drawHollandiaCan(ctx, x, y) {
+        // Beer can - green Hollandia style
+        const canY = y - 20;
+
+        // Can body
+        drawPixelRect(ctx, x + 18, canY, 12, 20, '#228B22');
+
+        // Can top
+        ctx.fillStyle = '#C0C0C0';
+        ctx.beginPath();
+        ctx.ellipse(x + 24, canY, 6, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label
+        drawPixelRect(ctx, x + 19, canY + 5, 10, 8, '#FFD700');
+
+        // "H" on label
+        drawPixelRect(ctx, x + 21, canY + 6, 2, 6, '#228B22');
+        drawPixelRect(ctx, x + 25, canY + 6, 2, 6, '#228B22');
+        drawPixelRect(ctx, x + 23, canY + 8, 2, 2, '#228B22');
+    }
+
+    drawCDItem(ctx, x, y) {
+        const cdY = y - 15;
+
+        // CD case
+        drawPixelRect(ctx, x + 14, cdY, 20, 18, '#333333');
+
+        // CD visible through case
+        ctx.fillStyle = '#C0C0C0';
+        ctx.beginPath();
+        ctx.arc(x + 24, cdY + 9, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // CD hole
+        ctx.fillStyle = '#333333';
+        ctx.beginPath();
+        ctx.arc(x + 24, cdY + 9, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rainbow sheen
+        ctx.strokeStyle = '#FF69B4';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x + 24, cdY + 9, 5, 0, Math.PI * 0.5);
+        ctx.stroke();
+    }
+
+    drawHumunculous(ctx, x, y) {
+        const boneColor = '#E8E8D0';
+        const boneDark = '#C8C8B0';
+        const boneLight = '#FFFFF0';
+
+        // Animate bobbing (missing foot makes him wobble)
+        const time = Date.now() * 0.003;
+        const wobble = Math.sin(time) * 2;
+
+        // Shadow
+        drawPixelRect(ctx, x + 5, y + 10, 25, 6, 'rgba(0,0,0,0.3)');
+
+        // Legs - one complete, one missing foot!
+        // Left leg (complete)
+        drawPixelRect(ctx, x + 8, y - 10 + wobble, 4, 20, boneColor);
+        drawPixelRect(ctx, x + 6, y + 8 + wobble, 8, 4, boneColor); // foot
+
+        // Right leg (missing foot!)
+        drawPixelRect(ctx, x + 22, y - 10 - wobble, 4, 16, boneColor);
+        // No foot! Just a stump
+
+        // Pelvis
+        drawPixelRect(ctx, x + 6, y - 14, 22, 6, boneColor);
+
+        // Spine
+        drawPixelRect(ctx, x + 15, y - 40, 4, 28, boneColor);
+        // Vertebrae detail
+        for (let i = 0; i < 5; i++) {
+            drawPixelRect(ctx, x + 13, y - 38 + i * 5, 8, 2, boneDark);
+        }
+
+        // Ribcage
+        for (let i = 0; i < 4; i++) {
+            drawPixelRect(ctx, x + 8, y - 38 + i * 4, 18, 2, boneColor);
+            drawPixelRect(ctx, x + 6, y - 36 + i * 4, 4, 2, boneDark);
+            drawPixelRect(ctx, x + 24, y - 36 + i * 4, 4, 2, boneDark);
+        }
+
+        // Arms
+        drawPixelRect(ctx, x + 2, y - 38, 4, 16, boneColor);
+        drawPixelRect(ctx, x + 28, y - 38, 4, 16, boneColor);
+        // Hands
+        drawPixelRect(ctx, x, y - 24, 6, 4, boneColor);
+        drawPixelRect(ctx, x + 28, y - 24, 6, 4, boneColor);
+
+        // Skull
+        drawPixelRect(ctx, x + 10, y - 58, 14, 18, boneColor);
+        drawPixelRect(ctx, x + 8, y - 54, 18, 12, boneColor);
+
+        // Eye sockets
+        drawPixelRect(ctx, x + 12, y - 52, 4, 4, '#000000');
+        drawPixelRect(ctx, x + 18, y - 52, 4, 4, '#000000');
+
+        // Eye glow (spooky!)
+        drawPixelRect(ctx, x + 13, y - 51, 2, 2, '#FF4444');
+        drawPixelRect(ctx, x + 19, y - 51, 2, 2, '#FF4444');
+
+        // Nose hole
+        drawPixelRect(ctx, x + 15, y - 47, 4, 3, '#2A2A2A');
+
+        // Teeth
+        drawPixelRect(ctx, x + 12, y - 43, 10, 3, boneLight);
+        ctx.strokeStyle = boneDark;
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + 14 + i * 2, y - 43);
+            ctx.lineTo(x + 14 + i * 2, y - 40);
+            ctx.stroke();
+        }
+
+        // Jaw
+        drawPixelRect(ctx, x + 11, y - 40, 12, 4, boneColor);
     }
 }
 

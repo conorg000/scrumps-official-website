@@ -401,6 +401,10 @@ if (typeof Game === "undefined") {
                     this.drawMrTibblesCompanion(ctx, companion, offsetX, offsetY);
                 } else if (companion.type === 'tent') {
                     this.drawPossumCompanion(ctx, companion, offsetX, offsetY);
+                } else if (companion.type === 'tiny_clown') {
+                    this.drawTinyClownCompanion(ctx, companion, offsetX, offsetY);
+                } else if (companion.type === 'humunculous') {
+                    this.drawHumunculousCompanion(ctx, companion, offsetX, offsetY);
                 }
             });
         }
@@ -581,6 +585,108 @@ if (typeof Game === "undefined") {
             drawPixelRect(ctx, x + 15, y + 20, 3, 2, earPink);
         }
 
+        drawTinyClownCompanion(ctx, companion, offsetX, offsetY) {
+            const screenPos = isometricToScreen(companion.x, companion.y);
+            const x = screenPos.x + offsetX - 10;
+            const y = screenPos.y + offsetY - 20;
+
+            // Shadow
+            drawPixelRect(ctx, x + 2, y + 18, 16, 4, 'rgba(0,0,0,0.3)');
+
+            // Big clown shoes
+            drawPixelRect(ctx, x - 2, y + 14, 8, 4, '#FF0000');
+            drawPixelRect(ctx, x + 14, y + 14, 8, 4, '#FF0000');
+
+            // Body - colorful outfit
+            drawPixelRect(ctx, x + 4, y + 2, 12, 14, '#FF6B6B');
+
+            // Polka dots
+            drawPixelRect(ctx, x + 6, y + 6, 3, 3, '#4ECDC4');
+            drawPixelRect(ctx, x + 11, y + 10, 3, 3, '#4ECDC4');
+
+            // Head
+            drawPixelRect(ctx, x + 5, y - 8, 10, 10, '#FFE4C4');
+
+            // Red nose (big!)
+            drawPixelRect(ctx, x + 8, y - 4, 4, 4, '#FF0000');
+
+            // Eyes - direction aware
+            if (companion.direction === 'left') {
+                drawPixelRect(ctx, x + 5, y - 6, 2, 2, '#000000');
+                drawPixelRect(ctx, x + 10, y - 6, 2, 2, '#000000');
+            } else if (companion.direction === 'right') {
+                drawPixelRect(ctx, x + 8, y - 6, 2, 2, '#000000');
+                drawPixelRect(ctx, x + 13, y - 6, 2, 2, '#000000');
+            } else {
+                drawPixelRect(ctx, x + 6, y - 6, 2, 2, '#000000');
+                drawPixelRect(ctx, x + 12, y - 6, 2, 2, '#000000');
+            }
+
+            // Smile
+            drawPixelRect(ctx, x + 7, y - 1, 6, 1, '#FF0000');
+
+            // Rainbow hair puffs
+            const hairColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF'];
+            for (let i = 0; i < 5; i++) {
+                drawPixelRect(ctx, x + 3 + i * 3, y - 12, 3, 4, hairColors[i]);
+            }
+
+            // Tiny hat
+            drawPixelRect(ctx, x + 7, y - 16, 6, 4, '#800080');
+            drawPixelRect(ctx, x + 8, y - 18, 4, 2, '#800080');
+        }
+
+        drawHumunculousCompanion(ctx, companion, offsetX, offsetY) {
+            const screenPos = isometricToScreen(companion.x, companion.y);
+            const x = screenPos.x + offsetX - 12;
+            const y = screenPos.y + offsetY - 30;
+
+            const boneColor = '#E8E8D0';
+            const boneDark = '#C8C8B0';
+
+            // Wobble animation (still missing foot even as companion!)
+            const time = Date.now() * 0.004;
+            const wobble = Math.sin(time) * 1;
+
+            // Shadow
+            drawPixelRect(ctx, x + 4, y + 28, 16, 4, 'rgba(0,0,0,0.3)');
+
+            // Legs
+            drawPixelRect(ctx, x + 6, y + 14 + wobble, 3, 14, boneColor);
+            drawPixelRect(ctx, x + 4, y + 26 + wobble, 6, 3, boneColor); // foot
+            drawPixelRect(ctx, x + 14, y + 14 - wobble, 3, 12, boneColor); // no foot!
+
+            // Pelvis
+            drawPixelRect(ctx, x + 4, y + 12, 16, 4, boneColor);
+
+            // Spine
+            drawPixelRect(ctx, x + 10, y - 8, 3, 22, boneColor);
+
+            // Ribs
+            for (let i = 0; i < 3; i++) {
+                drawPixelRect(ctx, x + 5, y - 4 + i * 4, 14, 2, boneColor);
+            }
+
+            // Arms
+            drawPixelRect(ctx, x + 2, y - 4, 3, 12, boneColor);
+            drawPixelRect(ctx, x + 18, y - 4, 3, 12, boneColor);
+
+            // Skull
+            drawPixelRect(ctx, x + 6, y - 18, 12, 12, boneColor);
+            drawPixelRect(ctx, x + 5, y - 14, 14, 8, boneColor);
+
+            // Eye sockets
+            drawPixelRect(ctx, x + 8, y - 14, 3, 3, '#000000');
+            drawPixelRect(ctx, x + 13, y - 14, 3, 3, '#000000');
+
+            // Glowing eyes
+            drawPixelRect(ctx, x + 9, y - 13, 1, 1, '#FF4444');
+            drawPixelRect(ctx, x + 14, y - 13, 1, 1, '#FF4444');
+
+            // Teeth
+            drawPixelRect(ctx, x + 8, y - 8, 8, 2, '#FFFFF0');
+        }
+
         drawSunshine() {
             const time = Date.now() * 0.001;
             const sunX = this.canvas.width - 100;
@@ -675,6 +781,30 @@ if (typeof Game === "undefined") {
                     this.room = new Balcony();
                     this.player.gridX = 10;
                     this.player.gridY = 7;
+                    break;
+                case "livingRoom":
+                    this.room = new LivingRoom(this);
+                    const livingStartPos = this.room.getPlayerStartPosition();
+                    this.player.gridX = livingStartPos.x;
+                    this.player.gridY = livingStartPos.y;
+                    break;
+                case "bedroom":
+                    this.room = new Bedroom(this);
+                    const bedroomStartPos = this.room.getPlayerStartPosition();
+                    this.player.gridX = bedroomStartPos.x;
+                    this.player.gridY = bedroomStartPos.y;
+                    break;
+                case "frontPorch":
+                    this.room = new FrontPorch(this);
+                    const porchStartPos = this.room.getPlayerStartPosition();
+                    this.player.gridX = porchStartPos.x;
+                    this.player.gridY = porchStartPos.y;
+                    break;
+                case "rooftop":
+                    this.room = new Rooftop(this);
+                    const roofStartPos = this.room.getPlayerStartPosition();
+                    this.player.gridX = roofStartPos.x;
+                    this.player.gridY = roofStartPos.y;
                     break;
                 default:
                     console.warn(`Unknown scene: ${sceneName}`);

@@ -67,3 +67,13 @@ if (typeof screenToIsometric === 'undefined') {
     }
     window.screenToIsometric = screenToIsometric;
 }
+
+// Extended isometric conversion with custom tile dimensions and offset
+if (typeof isoToScreen === 'undefined') {
+    function isoToScreen(isoX, isoY, tileWidth, tileHeight, offsetX, offsetY) {
+        const screenX = (isoX - isoY) * (tileWidth / 2) + offsetX;
+        const screenY = (isoX + isoY) * (tileHeight / 2) + offsetY;
+        return { x: screenX, y: screenY };
+    }
+    window.isoToScreen = isoToScreen;
+}
