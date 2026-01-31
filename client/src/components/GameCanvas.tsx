@@ -57,6 +57,13 @@ export const GameCanvas: React.FC = () => {
   const [nearLadderSpot, setNearLadderSpot] = useState(false);
   const [ladderPlaced, setLadderPlaced] = useState(false);
   const [atRooftopLadder, setAtRooftopLadder] = useState(false);
+  const [hasJumpedToPool, setHasJumpedToPool] = useState(false);
+  const [bushTurkeyDefeated, setBushTurkeyDefeated] = useState(false);
+  const [boxingGameActive, setBoxingGameActive] = useState(false);
+  const [boxingHealth, setBoxingHealth] = useState(100);
+  const [turkeyHealth, setTurkeyHealth] = useState(100);
+  const [boxingMessage, setBoxingMessage] = useState('');
+  const [gameEnded, setGameEnded] = useState(false);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -641,6 +648,33 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
+  // Rooftop arrival dialog during chase
+  const rooftopChaseDialogShown = useRef(false);
+  useEffect(() => {
+    if (!gameRef.current || isLoading) return;
+
+    const checkRooftopChase = () => {
+      if (gameRef.current?.currentScene === 'rooftop' && isChaseActive && !hasJumpedToPool && !rooftopChaseDialogShown.current) {
+        rooftopChaseDialogShown.current = true;
+        setTimeout(() => {
+          if (gameRef.current && gameRef.current.showDialog) {
+            gameRef.current.showDialog("Subletters", [
+              "Oh thank god, you made it!",
+              "All 10 of us have been hiding up here!",
+              "But wait... I can hear Adele climbing the ladder!",
+              "She's almost here!",
+              "We have to JUMP! The kiddy pool is right below!",
+              "Everyone ready?!"
+            ]);
+          }
+        }, 500);
+      }
+    };
+
+    const interval = setInterval(checkRooftopChase, 200);
+    return () => clearInterval(interval);
+  }, [isLoading, isChaseActive, hasJumpedToPool]);
+
   // Check proximity to collectibles and special items (all rooms)
   useEffect(() => {
     if (!gameRef.current || isLoading) return;
@@ -1150,6 +1184,147 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const handleJumpToPool = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Tiny Clown", [
+        "EVERYONE! TO THE KIDDY POOL!",
+        "JUMP! JUMP! JUMP!",
+        "*SPLASH*",
+        "We made it! Everyone okay?",
+        "Wait... the ladder fell! Adele is stuck on the roof!",
+        "We're safe... or are we?"
+      ]);
+      setHasJumpedToPool(true);
+      setIsChaseActive(false);
+
+      // After dialog, transition to backyard
+      setTimeout(() => {
+        if (gameRef.current && gameRef.current.loadScene) {
+          gameRef.current.loadScene('mainRoom');
+          // Trigger Bush Turkey appearance after a delay
+          setTimeout(() => {
+            if (gameRef.current && gameRef.current.showDialog) {
+              gameRef.current.showDialog("Mr Tibbles", [
+                "Oh no...",
+                "I hear something...",
+                "*gobble gobble*",
+                "IT'S THE BUSH TURKEY!",
+                "It's coming for Scrump!",
+                "Quick! Get to the boxing ring! Fight back!"
+              ]);
+            }
+          }, 2000);
+        }
+      }, 8000);
+    }
+  };
+
+  const handleStartBoxingFight = () => {
+    setBoxingGameActive(true);
+    setBoxingHealth(100);
+    setTurkeyHealth(100);
+    setBoxingMessage("ROUND 1 - FIGHT!");
+  };
+
+  const handlePunch = () => {
+    if (!boxingGameActive || turkeyHealth <= 0) return;
+
+    // Random damage to turkey
+    const damage = Math.floor(Math.random() * 20) + 10;
+    const newTurkeyHealth = Math.max(0, turkeyHealth - damage);
+    setTurkeyHealth(newTurkeyHealth);
+    setBoxingMessage(`POW! ${damage} damage!`);
+
+    // Turkey counter-attacks
+    setTimeout(() => {
+      if (newTurkeyHealth > 0) {
+        const counterDamage = Math.floor(Math.random() * 15) + 5;
+        const newPlayerHealth = Math.max(0, boxingHealth - counterDamage);
+        setBoxingHealth(newPlayerHealth);
+        setBoxingMessage(`Turkey pecks back! ${counterDamage} damage!`);
+
+        if (newPlayerHealth <= 0) {
+          setBoxingMessage("You got knocked out! Try again!");
+          setTimeout(() => {
+            setBoxingHealth(100);
+            setTurkeyHealth(100);
+            setBoxingMessage("ROUND 2 - FIGHT!");
+          }, 2000);
+        }
+      }
+    }, 500);
+
+    // Check for victory
+    if (newTurkeyHealth <= 0) {
+      setBoxingMessage("K.O.! YOU WIN!");
+      setBushTurkeyDefeated(true);
+      setBoxingGameActive(false);
+
+      // Trigger ending sequence
+      setTimeout(() => {
+        if (gameRef.current && gameRef.current.showDialog) {
+          gameRef.current.showDialog("Bush Turkey", [
+            "*defeated gobble*",
+            "You... you actually beat me...",
+            "I respect that, crispy one.",
+            "I'll leave you chips alone from now on.",
+            "*waddles away in shame*"
+          ]);
+
+          // After turkey dialog, trigger ending
+          setTimeout(() => {
+            triggerEnding();
+          }, 5000);
+        }
+      }, 2000);
+    }
+  };
+
+  const handleDodge = () => {
+    if (!boxingGameActive || turkeyHealth <= 0) return;
+
+    // 70% chance to dodge
+    if (Math.random() < 0.7) {
+      setBoxingMessage("Dodged! Quick, counter-attack!");
+    } else {
+      const damage = Math.floor(Math.random() * 10) + 5;
+      setBoxingHealth(prev => Math.max(0, prev - damage));
+      setBoxingMessage(`Dodge failed! ${damage} damage!`);
+    }
+  };
+
+  const triggerEnding = () => {
+    if (gameRef.current && gameRef.current.showDialog) {
+      gameRef.current.showDialog("Adele", [
+        "*climbing down from roof, dishevelled*",
+        "What... what is going on here?!",
+        "Subletters everywhere! A possum! A tiny clown!",
+        "Is that... a boxing ring?!",
+        "MR FENG! Get over here!"
+      ]);
+
+      setTimeout(() => {
+        if (gameRef.current && gameRef.current.showDialog) {
+          gameRef.current.showDialog("Mr Feng", [
+            "*walks in casually*",
+            "...",
+            "*looks around at the chaos*",
+            "...",
+            "I watched your Twitch stream guys.",
+            "That was SICK.",
+            "Let's get f***d up!",
+            "*chaos and partying and boxing ensues*"
+          ]);
+
+          // Game ending
+          setTimeout(() => {
+            setGameEnded(true);
+          }, 8000);
+        }
+      }, 6000);
+    }
+  };
+
   const handlePickUpXray = () => {
     if (gameRef.current && gameRef.current.showDialog) {
       if (hasXray) {
@@ -1288,8 +1463,8 @@ export const GameCanvas: React.FC = () => {
         }}
       />
       
-      {/* Examine Boxing Ring Button */}
-      {!isLoading && !dialogState.isVisible && nearBoxingRing && gameRef.current?.currentScene === 'mainRoom' && (
+      {/* Examine Boxing Ring Button (only when not in fight mode) */}
+      {!isLoading && !dialogState.isVisible && nearBoxingRing && gameRef.current?.currentScene === 'mainRoom' && !hasJumpedToPool && (
         <button
           onClick={handleExamineBoxingRing}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -1548,14 +1723,133 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
 
-      {/* Climb Down Button - on rooftop */}
-      {!isLoading && !dialogState.isVisible && atRooftopLadder && gameRef.current?.currentScene === 'rooftop' && (
+      {/* Climb Down Button - on rooftop (only when chase not active) */}
+      {!isLoading && !dialogState.isVisible && atRooftopLadder && gameRef.current?.currentScene === 'rooftop' && !isChaseActive && (
         <button
           onClick={handleClimbDownFromRoof}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           CLIMB DOWN
         </button>
+      )}
+
+      {/* Jump to Kiddy Pool Button - on rooftop during chase */}
+      {!isLoading && !dialogState.isVisible && gameRef.current?.currentScene === 'rooftop' && isChaseActive && !hasJumpedToPool && (
+        <button
+          onClick={handleJumpToPool}
+          className="fixed top-4 right-4 bg-red-500 hover:bg-red-400 text-white px-6 py-3 rounded-lg font-mono text-lg font-bold shadow-lg border-2 border-red-600 transition-all duration-200 hover:scale-105 z-50 animate-pulse"
+        >
+          🏊 JUMP TO KIDDY POOL! 🏊
+        </button>
+      )}
+
+      {/* Chase Warning Indicator */}
+      {!isLoading && isChaseActive && !hasJumpedToPool && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full font-mono text-sm font-bold animate-pulse z-50 border-2 border-red-400"
+          style={{ animation: 'pulse 0.5s ease-in-out infinite' }}
+        >
+          ⚠️ ADELE IS COMING! GET TO THE ROOF! ⚠️
+        </div>
+      )}
+
+      {/* Start Boxing Fight Button - in backyard after jump, near boxing ring */}
+      {!isLoading && !dialogState.isVisible && nearBoxingRing && gameRef.current?.currentScene === 'mainRoom' && hasJumpedToPool && !bushTurkeyDefeated && !boxingGameActive && (
+        <button
+          onClick={handleStartBoxingFight}
+          className="fixed top-4 right-4 bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg font-mono text-lg font-bold shadow-lg border-2 border-red-700 transition-all duration-200 hover:scale-105 z-50 animate-bounce"
+        >
+          🥊 FIGHT BUSH TURKEY! 🥊
+        </button>
+      )}
+
+      {/* Boxing Mini-Game UI */}
+      {boxingGameActive && (
+        <div className="fixed inset-0 bg-black/80 z-[200] flex flex-col items-center justify-center">
+          <div className="bg-gradient-to-b from-gray-800 to-gray-900 p-8 rounded-2xl border-4 border-yellow-500 shadow-2xl max-w-md w-full mx-4">
+            <h2 className="text-center text-3xl font-bold text-yellow-400 font-mono mb-6">
+              🥊 BOXING MATCH 🥊
+            </h2>
+
+            {/* Health Bars */}
+            <div className="space-y-4 mb-6">
+              <div>
+                <div className="flex justify-between text-white font-mono text-sm mb-1">
+                  <span>SCRUMP</span>
+                  <span>{boxingHealth}%</span>
+                </div>
+                <div className="w-full h-6 bg-gray-700 rounded-full overflow-hidden border-2 border-green-400">
+                  <div
+                    className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-300"
+                    style={{ width: `${boxingHealth}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-white font-mono text-sm mb-1">
+                  <span>BUSH TURKEY</span>
+                  <span>{turkeyHealth}%</span>
+                </div>
+                <div className="w-full h-6 bg-gray-700 rounded-full overflow-hidden border-2 border-red-400">
+                  <div
+                    className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-300"
+                    style={{ width: `${turkeyHealth}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Message */}
+            <div className="text-center text-2xl font-bold text-white font-mono mb-6 min-h-[2rem]">
+              {boxingMessage}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={handlePunch}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white py-4 rounded-lg font-mono text-xl font-bold shadow-lg border-2 border-red-700 transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                👊 PUNCH!
+              </button>
+              <button
+                onClick={handleDodge}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-lg font-mono text-xl font-bold shadow-lg border-2 border-blue-700 transition-all duration-200 hover:scale-105 active:scale-95"
+              >
+                🏃 DODGE!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Ending Screen */}
+      {gameEnded && (
+        <div className="fixed inset-0 bg-black z-[300] flex flex-col items-center justify-center">
+          <div className="text-center px-8">
+            <h1 className="text-6xl font-bold text-yellow-400 font-mono mb-8 animate-pulse">
+              🎉 THE END 🎉
+            </h1>
+            <p className="text-2xl text-white font-mono mb-4">
+              You did it, Scrump!
+            </p>
+            <p className="text-lg text-gray-300 font-mono mb-8">
+              The subletters are safe, the turkey is defeated,<br />
+              and Mr Feng is ready to party.
+            </p>
+            <p className="text-xl text-green-400 font-mono mb-8">
+              Thank you for playing!
+            </p>
+            <div className="text-lg text-gray-400 font-mono">
+              🎵 Check out The Scrumps music! 🎵
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-8 bg-yellow-500 hover:bg-yellow-400 text-black px-8 py-3 rounded-lg font-mono text-lg font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105"
+            >
+              PLAY AGAIN
+            </button>
+          </div>
+        </div>
       )}
 
       {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
