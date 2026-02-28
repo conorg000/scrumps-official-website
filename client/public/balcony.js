@@ -18,9 +18,6 @@ class Balcony {
         for (let i = 1; i < 8; i++) {
             this.addFurniture({ x: 0, y: i, width: 1, height: 1, type: 'railing' });
         }
-        // Door frame to living room (decorative, no collision)
-        this.addFurniture({ x: 0, y: 9, width: 1, height: 3, type: 'door_frame', noCollision: true });
-
         // BBQ in the corner
         this.addFurniture({ x: 16, y: 2, width: 2, height: 2, type: 'bbq' });
 
@@ -336,9 +333,6 @@ class Balcony {
                     break;
                 case 'hollandia_can':
                     this.drawHollandiaCan(ctx, drawX, drawY);
-                    break;
-                case 'door_frame':
-                    this.drawDoorFrame(ctx, drawX, drawY);
                     break;
             }
         });

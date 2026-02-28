@@ -33,6 +33,61 @@ if (typeof Game === "undefined") {
             this.companions = [];
             this.companionHistory = []; // Trail of player positions for companions to follow
 
+            // Track removed items so they don't reappear when revisiting rooms
+            this.removedItems = {};
+
+            // Adele NPC - property manager who patrols and chases
+            this.adele = {
+                currentRoom: 'livingRoom',
+                x: 10,
+                y: 8,
+                direction: 'down',
+                isChasing: false,
+                roomTimer: 0,
+                speed: 0.07,
+                patrolRooms: ['downstairs', 'upstairs', 'livingRoom', 'bedroom', 'frontPorch', 'rooftop'],
+                visible: false,
+                wanderTarget: { x: 10, y: 8 },
+                wanderTimer: 0,
+                catchCooldown: 0
+            };
+
+            // Exit markers for each scene
+            this.exitMarkers = {
+                mainRoom: [
+                    { x: 10, y: 14, label: 'Downstairs', direction: 'down' },
+                    { x: 19, y: 7, label: 'Upstairs', direction: 'right' }
+                ],
+                downstairs: [
+                    { x: 10, y: 0, label: 'Backyard', direction: 'up' }
+                ],
+                upstairs: [
+                    { x: 0, y: 11, label: 'Living Room', direction: 'left' },
+                    { x: 19, y: 14, label: 'Backyard', direction: 'down-right' }
+                ],
+                livingRoom: [
+                    { x: 19, y: 0, label: 'Balcony', direction: 'up-right' },
+                    { x: 19, y: 10, label: 'Bedroom', direction: 'right' },
+                    { x: 0, y: 13, label: 'Front Porch', direction: 'left' }
+                ],
+                bedroom: [
+                    { x: 0, y: 12, label: 'Living Room', direction: 'left' }
+                ],
+                frontPorch: [
+                    { x: 19, y: 10, label: 'Living Room', direction: 'right' },
+                    { x: 18, y: 0, label: 'Roof', direction: 'up' }
+                ],
+                rooftop: [
+                    { x: 23, y: 15, label: 'Climb Down', direction: 'down-right' }
+                ]
+            };
+
+            // Visual NPC visibility flags
+            this.bushTurkeyVisible = false;
+            this.mrFengVisible = false;
+            this.onAdeleCaught = null;
+            this.frozen = false;
+
             // Start dialog after a brief delay to ensure game is visible
             setTimeout(() => {
                 if (this.showDialog) {
@@ -98,10 +153,13 @@ if (typeof Game === "undefined") {
         }
 
         update(deltaTime) {
-            this.controls.update();
-            this.player.update();
+            if (!this.frozen) {
+                this.controls.update();
+                this.player.update();
+            }
             this.updateCamera();
             this.updateCompanions();
+            this.updateAdele(deltaTime);
 
             // Dialog is now handled by React component
         }
@@ -150,6 +208,111 @@ if (typeof Game === "undefined") {
                     }
                 }
             });
+        }
+
+        updateAdele(deltaTime) {
+            if (!this.adele) return;
+            if (this.frozen) return;
+
+            const dt = Math.min(deltaTime, 100); // Cap delta
+
+            // Decrement catch cooldown
+            if (this.adele.catchCooldown > 0) {
+                this.adele.catchCooldown -= dt;
+            }
+
+            if (!this.adele.isChasing) {
+                // Patrol mode: wander within current room, switch rooms periodically
+                this.adele.roomTimer += dt;
+
+                // Switch rooms every ~18 seconds
+                if (this.adele.roomTimer > 18000) {
+                    this.adele.roomTimer = 0;
+                    const rooms = this.adele.patrolRooms;
+                    const currentIdx = rooms.indexOf(this.adele.currentRoom);
+                    const nextIdx = (currentIdx + 1) % rooms.length;
+                    this.adele.currentRoom = rooms[nextIdx];
+                    // Reset position for new room
+                    this.adele.x = 10;
+                    this.adele.y = 8;
+                    this.adele.wanderTarget = { x: 8 + Math.random() * 6, y: 6 + Math.random() * 6 };
+                }
+
+                // Gentle wandering within room
+                this.adele.wanderTimer += dt;
+                if (this.adele.wanderTimer > 3000) {
+                    this.adele.wanderTimer = 0;
+                    this.adele.wanderTarget = {
+                        x: 5 + Math.random() * 10,
+                        y: 4 + Math.random() * 8
+                    };
+                }
+
+                // Move toward wander target
+                const wdx = this.adele.wanderTarget.x - this.adele.x;
+                const wdy = this.adele.wanderTarget.y - this.adele.y;
+                const wanderSpeed = 0.03;
+                this.adele.x += wdx * wanderSpeed;
+                this.adele.y += wdy * wanderSpeed;
+
+                // Update direction
+                if (Math.abs(wdx) > Math.abs(wdy)) {
+                    this.adele.direction = wdx > 0 ? 'right' : 'left';
+                } else if (Math.abs(wdy) > 0.1) {
+                    this.adele.direction = wdy > 0 ? 'down' : 'up';
+                }
+
+                // Patrol-mode catch: if player enters same room as Adele
+                if (this.adele.currentRoom === this.currentScene && this.currentScene !== 'mainRoom') {
+                    const pdx = this.player.x - this.adele.x;
+                    const pdy = this.player.y - this.adele.y;
+                    const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+                    if (pdist < 2.5 && this.onAdeleCaught && this.adele.catchCooldown <= 0) {
+                        this.adele.catchCooldown = 3000;
+                        this.onAdeleCaught();
+                    }
+                }
+            } else {
+                // Chase mode
+                if (this.adele.currentRoom !== this.currentScene) {
+                    // Travel to player's room
+                    this.adele.roomTimer += dt;
+                    if (this.adele.roomTimer > 5000) {
+                        this.adele.roomTimer = 0;
+                        this.adele.currentRoom = this.currentScene;
+                        this.adele.x = 10;
+                        this.adele.y = 2;
+                    }
+                } else {
+                    // Same room as player - chase!
+                    const dx = this.player.x - this.adele.x;
+                    const dy = this.player.y - this.adele.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist > 0.5) {
+                        // Move at 70% player speed
+                        const chaseSpeed = this.adele.speed;
+                        this.adele.x += (dx / dist) * chaseSpeed * (dt / 16);
+                        this.adele.y += (dy / dist) * chaseSpeed * (dt / 16);
+
+                        // Update direction
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            this.adele.direction = dx > 0 ? 'right' : 'left';
+                        } else {
+                            this.adele.direction = dy > 0 ? 'down' : 'up';
+                        }
+                    }
+
+                    // Caught detection: less than 2 tiles, with cooldown
+                    if (dist < 2 && this.onAdeleCaught && this.adele.catchCooldown <= 0) {
+                        this.adele.catchCooldown = 3000;
+                        this.onAdeleCaught();
+                    }
+                }
+            }
+
+            // Update visibility
+            this.adele.visible = this.adele.currentRoom === this.currentScene;
         }
 
         addCompanion(type) {
@@ -356,6 +519,101 @@ if (typeof Game === "undefined") {
                 baseSize * 0.25,
             );
         }
+        drawExitMarkers(ctx, offsetX, offsetY) {
+            const markers = this.exitMarkers[this.currentScene];
+            if (!markers) return;
+
+            const time = Date.now() * 0.003;
+            const pulse = (Math.sin(time) + 1) / 2; // 0 to 1
+
+            markers.forEach(marker => {
+                const screenPos = isometricToScreen(marker.x, marker.y);
+                const sx = screenPos.x + offsetX;
+                const sy = screenPos.y + offsetY;
+
+                // Check proximity to player for glow/highlight
+                const pdx = this.player.x - marker.x;
+                const pdy = this.player.y - marker.y;
+                const dist = Math.sqrt(pdx * pdx + pdy * pdy);
+                const nearPlayer = dist < 3;
+
+                const cx = sx + 24; // tile center x
+                const cy = sy + 12; // tile center y
+
+                // Floor glow when near
+                if (nearPlayer) {
+                    const glowAlpha = 0.15 + pulse * 0.15;
+                    ctx.fillStyle = `rgba(255, 220, 100, ${glowAlpha})`;
+                    ctx.beginPath();
+                    ctx.ellipse(cx, cy, 20, 10, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const bright = nearPlayer ? 1.0 : 0.7;
+
+                // Choose between door, stairs, or ladder based on label
+                if (marker.label === 'Climb Down' || marker.label === 'Roof') {
+                    // Ladder sprite (matches rooftop.js drawLadderAccess size ~16x50)
+                    const ladderColor = `rgba(139, 69, 19, ${bright})`;
+                    const rungColor = `rgba(190, 150, 70, ${bright})`;
+                    // Side rails
+                    drawPixelRect(ctx, cx - 8, cy - 40, 4, 50, ladderColor);
+                    drawPixelRect(ctx, cx + 4, cy - 40, 4, 50, ladderColor);
+                    // Rungs
+                    for (let i = 0; i < 5; i++) {
+                        drawPixelRect(ctx, cx - 8, cy - 35 + i * 10, 16, 3, rungColor);
+                    }
+                } else if (marker.direction === 'down' || marker.direction === 'up') {
+                    // Stairs sprite (vertical transitions ~36x44)
+                    const stoneMain = `rgba(140, 130, 120, ${bright})`;
+                    const stoneDark = `rgba(100, 95, 88, ${bright})`;
+                    const stoneLight = `rgba(170, 160, 150, ${bright})`;
+                    // Draw 4 stair steps
+                    for (let i = 0; i < 4; i++) {
+                        const stepY = cy - 6 - i * 10;
+                        const stepW = 36 - i * 4;
+                        const stepX = cx - stepW / 2;
+                        drawPixelRect(ctx, stepX, stepY, stepW, 8, stoneMain);
+                        drawPixelRect(ctx, stepX, stepY, stepW, 3, stoneLight);
+                        drawPixelRect(ctx, stepX, stepY + 5, stepW, 3, stoneDark);
+                    }
+                    // Railing posts
+                    drawPixelRect(ctx, cx - 20, cy - 42, 3, 38, stoneDark);
+                    drawPixelRect(ctx, cx + 17, cy - 42, 3, 38, stoneDark);
+                } else {
+                    // Door frame sprite (matches balcony.js drawDoorFrame size ~45x65)
+                    const woodMain = `rgba(74, 55, 40, ${bright})`;
+                    const woodDark = `rgba(101, 67, 33, ${bright})`;
+                    const woodLight = `rgba(181, 121, 58, ${bright})`;
+                    const doorInside = `rgba(42, 42, 42, ${bright * 0.8})`;
+
+                    // Door frame posts
+                    drawPixelRect(ctx, cx - 20, cy - 60, 8, 65, woodMain);
+                    drawPixelRect(ctx, cx + 12, cy - 60, 8, 65, woodDark);
+                    // Top beam
+                    drawPixelRect(ctx, cx - 22, cy - 65, 44, 8, woodLight);
+                    // Interior (dark opening)
+                    drawPixelRect(ctx, cx - 12, cy - 57, 24, 55, doorInside);
+                    // Handle
+                    drawPixelRect(ctx, cx + 6, cy - 32, 3, 3, nearPlayer ? '#FFD700' : '#B8860B');
+                }
+
+                // Pulsing highlight outline when near
+                if (nearPlayer) {
+                    ctx.strokeStyle = `rgba(255, 220, 100, ${0.3 + pulse * 0.5})`;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(cx - 24, cy - 68, 48, 72);
+                }
+
+                // Label text
+                ctx.font = nearPlayer ? 'bold 9px monospace' : '8px monospace';
+                ctx.textAlign = 'center';
+                const labelAlpha = nearPlayer ? 0.9 : 0.5;
+                ctx.fillStyle = `rgba(255, 255, 220, ${labelAlpha})`;
+                ctx.fillText(marker.label, cx, cy + 14);
+            });
+        }
+
         draw() {
             // Only draw sky and clouds for main room
             if (this.currentScene === "mainRoom") {
@@ -383,8 +641,26 @@ if (typeof Game === "undefined") {
             // Draw room
             this.room.draw(this.ctx, zoomedCameraX, zoomedCameraY);
 
+            // Draw exit markers on the floor
+            this.drawExitMarkers(this.ctx, zoomedCameraX, zoomedCameraY);
+
             // Draw companions (behind player)
             this.drawCompanions(this.ctx, zoomedCameraX, zoomedCameraY);
+
+            // Draw Adele NPC
+            if (this.adele && this.adele.visible) {
+                this.drawAdele(this.ctx, zoomedCameraX, zoomedCameraY);
+            }
+
+            // Draw Bush Turkey
+            if (this.bushTurkeyVisible && this.currentScene === 'mainRoom') {
+                this.drawBushTurkey(this.ctx, zoomedCameraX, zoomedCameraY);
+            }
+
+            // Draw Mr Feng
+            if (this.mrFengVisible && this.currentScene === 'mainRoom') {
+                this.drawMrFeng(this.ctx, zoomedCameraX, zoomedCameraY);
+            }
 
             // Draw player
             this.player.draw(this.ctx, zoomedCameraX, zoomedCameraY);
@@ -687,6 +963,259 @@ if (typeof Game === "undefined") {
             drawPixelRect(ctx, x + 8, y - 8, 8, 2, '#FFFFF0');
         }
 
+        drawAdele(ctx, offsetX, offsetY) {
+            const screenPos = isometricToScreen(this.adele.x, this.adele.y);
+            const x = screenPos.x + offsetX - 14;
+            const y = screenPos.y + offsetY - 40;
+
+            const hairColor = '#5C3317';
+            const hairDark = '#3B1F0B';
+            const suitColor = '#1a1a2e';
+            const suitDark = '#0f0f1a';
+            const blouseColor = '#f0f0f0';
+            const skinColor = '#F5CBA7';
+            const skinDark = '#E8B894';
+            const clipboardColor = '#C4A35A';
+            const clipboardDark = '#A08040';
+
+            // Shadow
+            drawPixelRect(ctx, x + 4, y + 38, 20, 4, 'rgba(0,0,0,0.3)');
+
+            // Legs - dark suit pants
+            drawPixelRect(ctx, x + 8, y + 28, 4, 10, suitColor);
+            drawPixelRect(ctx, x + 16, y + 28, 4, 10, suitColor);
+
+            // Shoes
+            drawPixelRect(ctx, x + 6, y + 36, 6, 3, '#2c2c2c');
+            drawPixelRect(ctx, x + 16, y + 36, 6, 3, '#2c2c2c');
+
+            // Body - business suit jacket
+            drawPixelRect(ctx, x + 6, y + 14, 16, 16, suitColor);
+            drawPixelRect(ctx, x + 4, y + 16, 20, 12, suitColor);
+
+            // Suit dark side
+            drawPixelRect(ctx, x + 20, y + 16, 4, 10, suitDark);
+
+            // White blouse V-neck
+            drawPixelRect(ctx, x + 12, y + 14, 4, 8, blouseColor);
+            drawPixelRect(ctx, x + 11, y + 14, 6, 3, blouseColor);
+
+            // Suit lapels
+            drawPixelRect(ctx, x + 10, y + 14, 2, 6, suitDark);
+            drawPixelRect(ctx, x + 16, y + 14, 2, 6, suitDark);
+
+            // Arms
+            drawPixelRect(ctx, x + 2, y + 16, 4, 12, suitColor);
+            drawPixelRect(ctx, x + 22, y + 16, 4, 12, suitColor);
+
+            // Clipboard in hand
+            drawPixelRect(ctx, x + 22, y + 24, 6, 8, clipboardColor);
+            drawPixelRect(ctx, x + 23, y + 25, 4, 6, '#ffffff');
+            drawPixelRect(ctx, x + 23, y + 23, 4, 2, clipboardDark);
+            // Lines on clipboard
+            drawPixelRect(ctx, x + 24, y + 26, 2, 1, '#666');
+            drawPixelRect(ctx, x + 24, y + 28, 2, 1, '#666');
+
+            // Head
+            drawPixelRect(ctx, x + 7, y - 2, 14, 16, skinColor);
+            drawPixelRect(ctx, x + 5, y + 2, 18, 10, skinColor);
+
+            // Cheek shading
+            drawPixelRect(ctx, x + 19, y + 6, 4, 4, skinDark);
+
+            // Hair - brown business bob
+            drawPixelRect(ctx, x + 5, y - 6, 18, 8, hairColor);
+            drawPixelRect(ctx, x + 3, y - 4, 22, 6, hairColor);
+            drawPixelRect(ctx, x + 3, y, 4, 10, hairColor);
+            drawPixelRect(ctx, x + 21, y, 4, 10, hairColor);
+
+            // Hair top highlight
+            drawPixelRect(ctx, x + 9, y - 6, 6, 2, hairDark);
+
+            // Eyes - stern/narrowed, direction aware
+            if (this.adele.direction === 'left') {
+                drawPixelRect(ctx, x + 7, y + 4, 4, 2, '#000000');
+                drawPixelRect(ctx, x + 14, y + 4, 4, 2, '#000000');
+                // Angry eyebrows
+                drawPixelRect(ctx, x + 7, y + 2, 5, 1, hairColor);
+                drawPixelRect(ctx, x + 14, y + 2, 5, 1, hairColor);
+            } else if (this.adele.direction === 'right') {
+                drawPixelRect(ctx, x + 10, y + 4, 4, 2, '#000000');
+                drawPixelRect(ctx, x + 17, y + 4, 4, 2, '#000000');
+                drawPixelRect(ctx, x + 9, y + 2, 5, 1, hairColor);
+                drawPixelRect(ctx, x + 16, y + 2, 5, 1, hairColor);
+            } else {
+                drawPixelRect(ctx, x + 9, y + 4, 3, 2, '#000000');
+                drawPixelRect(ctx, x + 16, y + 4, 3, 2, '#000000');
+                drawPixelRect(ctx, x + 8, y + 2, 5, 1, hairColor);
+                drawPixelRect(ctx, x + 15, y + 2, 5, 1, hairColor);
+            }
+
+            // Stern mouth - thin line
+            drawPixelRect(ctx, x + 11, y + 10, 6, 1, '#CC6666');
+
+            // Chase mode red glow
+            if (this.adele.isChasing) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+                ctx.fillRect(x - 2, y - 8, 32, 50);
+            }
+        }
+
+        drawBushTurkey(ctx, offsetX, offsetY) {
+            const screenPos = isometricToScreen(12, 3);
+            const x = screenPos.x + offsetX - 16;
+            const y = screenPos.y + offsetY - 36;
+
+            const bodyColor = '#6B3A2A';
+            const bodyDark = '#4A2818';
+            const wattleRed = '#CC2222';
+            const wattleDark = '#991111';
+            const beakColor = '#DAA520';
+            const tailColor = '#8B4513';
+            const tailDark = '#5C2D0E';
+            const legColor = '#CC9900';
+
+            // Shadow
+            drawPixelRect(ctx, x + 4, y + 34, 24, 4, 'rgba(0,0,0,0.3)');
+
+            // Tail feathers - fanned out
+            drawPixelRect(ctx, x, y - 2, 6, 16, tailColor);
+            drawPixelRect(ctx, x - 2, y, 4, 12, tailDark);
+            drawPixelRect(ctx, x + 2, y - 4, 4, 8, tailColor);
+            drawPixelRect(ctx, x - 4, y + 2, 4, 8, tailColor);
+            drawPixelRect(ctx, x + 4, y - 6, 4, 6, tailDark);
+
+            // Legs
+            drawPixelRect(ctx, x + 10, y + 28, 3, 8, legColor);
+            drawPixelRect(ctx, x + 20, y + 28, 3, 8, legColor);
+            // Feet/claws
+            drawPixelRect(ctx, x + 8, y + 34, 7, 2, legColor);
+            drawPixelRect(ctx, x + 18, y + 34, 7, 2, legColor);
+
+            // Body - large round shape
+            drawPixelRect(ctx, x + 6, y + 8, 20, 20, bodyColor);
+            drawPixelRect(ctx, x + 4, y + 12, 24, 14, bodyColor);
+            drawPixelRect(ctx, x + 8, y + 6, 16, 4, bodyColor);
+
+            // Body dark shading
+            drawPixelRect(ctx, x + 22, y + 14, 6, 10, bodyDark);
+
+            // Breast feathers lighter
+            drawPixelRect(ctx, x + 10, y + 16, 10, 10, '#7D4A38');
+
+            // Neck
+            drawPixelRect(ctx, x + 14, y, 6, 10, bodyColor);
+            drawPixelRect(ctx, x + 12, y + 2, 10, 6, bodyColor);
+
+            // Head
+            drawPixelRect(ctx, x + 12, y - 8, 10, 10, bodyColor);
+            drawPixelRect(ctx, x + 10, y - 6, 14, 8, bodyColor);
+
+            // Wattle - red hanging bit
+            drawPixelRect(ctx, x + 22, y - 6, 4, 8, wattleRed);
+            drawPixelRect(ctx, x + 24, y - 4, 3, 6, wattleDark);
+            drawPixelRect(ctx, x + 22, y + 0, 6, 4, wattleRed);
+
+            // Beak
+            drawPixelRect(ctx, x + 22, y - 4, 6, 3, beakColor);
+            drawPixelRect(ctx, x + 26, y - 3, 3, 2, beakColor);
+
+            // Eye - angry
+            drawPixelRect(ctx, x + 18, y - 4, 3, 3, '#FFFF00');
+            drawPixelRect(ctx, x + 19, y - 3, 1, 1, '#000000');
+
+            // Angry eyebrow
+            drawPixelRect(ctx, x + 17, y - 6, 5, 1, '#000000');
+
+            // Wing detail
+            drawPixelRect(ctx, x + 4, y + 12, 4, 10, bodyDark);
+            drawPixelRect(ctx, x + 6, y + 14, 2, 6, tailColor);
+        }
+
+        drawMrFeng(ctx, offsetX, offsetY) {
+            const screenPos = isometricToScreen(8, 10);
+            const x = screenPos.x + offsetX - 14;
+            const y = screenPos.y + offsetY - 38;
+
+            const poloColor = '#2E5984';
+            const poloDark = '#1E3A5F';
+            const jeansColor = '#4169E1';
+            const jeansDark = '#2850B0';
+            const skinColor = '#F5CBA7';
+            const skinDark = '#E8B894';
+            const hairColor = '#1a1a1a';
+            const sunglassesColor = '#111111';
+
+            // Shadow
+            drawPixelRect(ctx, x + 4, y + 38, 20, 4, 'rgba(0,0,0,0.3)');
+
+            // Legs - jeans
+            drawPixelRect(ctx, x + 8, y + 26, 4, 12, jeansColor);
+            drawPixelRect(ctx, x + 16, y + 26, 4, 12, jeansColor);
+            drawPixelRect(ctx, x + 12, y + 26, 4, 2, jeansDark);
+
+            // Shoes - casual
+            drawPixelRect(ctx, x + 6, y + 36, 6, 3, '#ffffff');
+            drawPixelRect(ctx, x + 16, y + 36, 6, 3, '#ffffff');
+            // Shoe detail
+            drawPixelRect(ctx, x + 7, y + 37, 4, 1, '#cccccc');
+            drawPixelRect(ctx, x + 17, y + 37, 4, 1, '#cccccc');
+
+            // Body - polo shirt
+            drawPixelRect(ctx, x + 6, y + 12, 16, 16, poloColor);
+            drawPixelRect(ctx, x + 4, y + 14, 20, 12, poloColor);
+
+            // Polo collar
+            drawPixelRect(ctx, x + 10, y + 12, 8, 3, poloDark);
+            drawPixelRect(ctx, x + 12, y + 12, 4, 4, skinColor);
+
+            // Polo buttons
+            drawPixelRect(ctx, x + 13, y + 16, 2, 1, '#ffffff');
+            drawPixelRect(ctx, x + 13, y + 18, 2, 1, '#ffffff');
+
+            // Side shading
+            drawPixelRect(ctx, x + 20, y + 14, 4, 10, poloDark);
+
+            // Arms
+            drawPixelRect(ctx, x + 2, y + 14, 4, 10, poloColor);
+            drawPixelRect(ctx, x + 22, y + 14, 4, 10, poloColor);
+
+            // Hands
+            drawPixelRect(ctx, x + 2, y + 22, 4, 4, skinColor);
+            drawPixelRect(ctx, x + 22, y + 22, 4, 4, skinColor);
+
+            // Head
+            drawPixelRect(ctx, x + 7, y - 4, 14, 16, skinColor);
+            drawPixelRect(ctx, x + 5, y, 18, 10, skinColor);
+
+            // Cheek shading
+            drawPixelRect(ctx, x + 19, y + 4, 4, 4, skinDark);
+
+            // Hair - dark, neat
+            drawPixelRect(ctx, x + 5, y - 8, 18, 6, hairColor);
+            drawPixelRect(ctx, x + 3, y - 6, 22, 4, hairColor);
+            drawPixelRect(ctx, x + 5, y - 4, 18, 2, hairColor);
+
+            // Sunnies
+            drawPixelRect(ctx, x + 7, y + 2, 6, 4, sunglassesColor);
+            drawPixelRect(ctx, x + 15, y + 2, 6, 4, sunglassesColor);
+            drawPixelRect(ctx, x + 13, y + 3, 2, 1, sunglassesColor);
+            // Lens shine
+            drawPixelRect(ctx, x + 8, y + 3, 2, 1, '#333333');
+            drawPixelRect(ctx, x + 16, y + 3, 2, 1, '#333333');
+
+            // Smile
+            drawPixelRect(ctx, x + 11, y + 9, 6, 1, '#CC8866');
+            drawPixelRect(ctx, x + 12, y + 10, 4, 1, '#CC8866');
+        }
+
+        removeItem(sceneName, furnitureType, furnitureX, furnitureY) {
+            if (!this.removedItems[sceneName]) {
+                this.removedItems[sceneName] = [];
+            }
+            this.removedItems[sceneName].push({ type: furnitureType, x: furnitureX, y: furnitureY });
+        }
+
         drawSunshine() {
             const time = Date.now() * 0.001;
             const sunX = this.canvas.width - 100;
@@ -809,6 +1338,27 @@ if (typeof Game === "undefined") {
                 default:
                     console.warn(`Unknown scene: ${sceneName}`);
                     return;
+            }
+
+            // Remove previously collected items
+            if (this.removedItems[sceneName]) {
+                this.removedItems[sceneName].forEach(item => {
+                    const idx = this.room.furniture.findIndex(f =>
+                        f.type === item.type && f.x === item.x && f.y === item.y
+                    );
+                    if (idx !== -1) {
+                        const furniture = this.room.furniture[idx];
+                        // Clear collision map
+                        for (let y = furniture.y; y < furniture.y + furniture.height; y++) {
+                            for (let x = furniture.x; x < furniture.x + furniture.width; x++) {
+                                if (x >= 0 && x < this.room.width && y >= 0 && y < this.room.height) {
+                                    this.room.collisionMap[y][x] = false;
+                                }
+                            }
+                        }
+                        this.room.furniture.splice(idx, 1);
+                    }
+                });
             }
 
             // Remove any companion types from furniture (they follow the player now)

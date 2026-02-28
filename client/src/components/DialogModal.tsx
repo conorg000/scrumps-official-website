@@ -123,6 +123,56 @@ const TinyClownPortrait: React.FC = () => (
   </svg>
 );
 
+// Adele portrait - stern property manager with brown bob and business suit
+const AdelePortrait: React.FC = () => (
+  <svg viewBox="0 0 64 64" className="w-full h-full">
+    {/* Background */}
+    <rect width="64" height="64" fill="#1f2937" />
+
+    {/* Hair - brown business bob */}
+    <ellipse cx="32" cy="20" rx="22" ry="16" fill="#5C3317" />
+    <rect x="10" y="18" width="44" height="14" fill="#5C3317" />
+    <rect x="10" y="18" width="8" height="22" fill="#5C3317" />
+    <rect x="46" y="18" width="8" height="22" fill="#5C3317" />
+    {/* Hair highlight */}
+    <ellipse cx="28" cy="12" rx="8" ry="3" fill="#3B1F0B" />
+
+    {/* Face */}
+    <ellipse cx="32" cy="34" rx="16" ry="18" fill="#F5CBA7" />
+    <ellipse cx="32" cy="36" rx="14" ry="14" fill="#F5CBA7" />
+
+    {/* Cheek shading */}
+    <ellipse cx="18" cy="38" rx="4" ry="3" fill="#E8B894" />
+    <ellipse cx="46" cy="38" rx="4" ry="3" fill="#E8B894" />
+
+    {/* Eyes - stern and narrowed */}
+    <ellipse cx="24" cy="32" rx="4" ry="2.5" fill="#000000" />
+    <ellipse cx="40" cy="32" rx="4" ry="2.5" fill="#000000" />
+    {/* Eye shine */}
+    <circle cx="25" cy="31" r="1" fill="#ffffff" />
+    <circle cx="41" cy="31" r="1" fill="#ffffff" />
+
+    {/* Angry eyebrows */}
+    <line x1="18" y1="28" x2="28" y2="26" stroke="#5C3317" strokeWidth="2.5" />
+    <line x1="36" y1="26" x2="46" y2="28" stroke="#5C3317" strokeWidth="2.5" />
+
+    {/* Nose */}
+    <path d="M 32 36 L 29 42 L 35 42 Z" fill="#E8B894" />
+
+    {/* Stern thin mouth */}
+    <line x1="26" y1="48" x2="38" y2="48" stroke="#CC6666" strokeWidth="2" />
+
+    {/* Suit collar / neck */}
+    <rect x="26" y="52" width="12" height="6" fill="#F5CBA7" />
+    <polygon points="20,56 32,64 44,56 44,64 20,64" fill="#1a1a2e" />
+    {/* Blouse V-neck */}
+    <polygon points="28,56 32,62 36,56" fill="#f0f0f0" />
+    {/* Lapels */}
+    <line x1="28" y1="56" x2="26" y2="64" stroke="#0f0f1a" strokeWidth="2" />
+    <line x1="36" y1="56" x2="38" y2="64" stroke="#0f0f1a" strokeWidth="2" />
+  </svg>
+);
+
 // Possum portrait - scruffy grey possum with pointy face
 const PossumPortrait: React.FC = () => (
   <svg viewBox="0 0 64 64" className="w-full h-full">
@@ -244,6 +294,8 @@ export const DialogModal: React.FC<DialogModalProps> = ({
                   <TinyClownPortrait />
                 ) : characterName === 'Humunculous' ? (
                   <HumunculousPortrait />
+                ) : characterName === 'Adele' ? (
+                  <AdelePortrait />
                 ) : (
                   <img
                     src="/scrumps-character.png"

@@ -40,11 +40,11 @@ class FrontPorch {
     // Steps at the front
     this.addFurniture({ x: 6, y: 12, width: 8, height: 2, type: 'porch_steps' });
 
-    // Ladder placement spot (where player puts ladder to access roof)
-    this.addFurniture({ x: 18, y: 2, width: 1, height: 2, type: 'ladder_spot', noCollision: true });
-
     // Last Hollandia can!
     this.addFurniture({ x: 10, y: 7, width: 1, height: 1, type: 'hollandia_can', noCollision: true });
+
+    // Humunculous Skeleton - hobbling around missing a foot
+    this.addFurniture({ x: 16, y: 10, width: 1, height: 1, type: 'humunculous' });
   }
 
   addFurniture(item) {
@@ -175,8 +175,8 @@ class FrontPorch {
         case 'potplant': this.drawPotplant(ctx, drawX, drawY); break;
         case 'welcome_mat': this.drawWelcomeMat(ctx, drawX, drawY); break;
         case 'porch_steps': this.drawPorchSteps(ctx, drawX, drawY, item); break;
-        case 'ladder_spot': this.drawLadderSpot(ctx, drawX, drawY); break;
         case 'hollandia_can': this.drawHollandiaCan(ctx, drawX, drawY); break;
+        case 'humunculous': this.drawHumunculous(ctx, drawX, drawY); break;
       }
     }
   }
@@ -362,6 +362,76 @@ class FrontPorch {
     ctx.fillStyle = '#228B22';
     ctx.font = '5px Arial';
     ctx.fillText('H', x + 22, canY + 9);
+  }
+
+  drawHumunculous(ctx, x, y) {
+    const boneColor = '#E8E8D0';
+    const boneDark = '#C8C8B0';
+    const boneLight = '#FFFFF0';
+
+    // Animate bobbing (missing foot makes him wobble)
+    const time = Date.now() * 0.003;
+    const wobble = Math.sin(time) * 2;
+
+    // Shadow
+    drawPixelRect(ctx, x + 5, y + 10, 25, 6, 'rgba(0,0,0,0.3)');
+
+    // Legs - one complete, one missing foot!
+    drawPixelRect(ctx, x + 8, y - 10 + wobble, 4, 20, boneColor);
+    drawPixelRect(ctx, x + 6, y + 8 + wobble, 8, 4, boneColor); // foot
+    // Right leg (missing foot!)
+    drawPixelRect(ctx, x + 22, y - 10 - wobble, 4, 16, boneColor);
+
+    // Pelvis
+    drawPixelRect(ctx, x + 6, y - 14, 22, 6, boneColor);
+
+    // Spine
+    drawPixelRect(ctx, x + 15, y - 40, 4, 28, boneColor);
+    for (let i = 0; i < 5; i++) {
+      drawPixelRect(ctx, x + 13, y - 38 + i * 5, 8, 2, boneDark);
+    }
+
+    // Ribcage
+    for (let i = 0; i < 4; i++) {
+      drawPixelRect(ctx, x + 8, y - 38 + i * 4, 18, 2, boneColor);
+      drawPixelRect(ctx, x + 6, y - 36 + i * 4, 4, 2, boneDark);
+      drawPixelRect(ctx, x + 24, y - 36 + i * 4, 4, 2, boneDark);
+    }
+
+    // Arms
+    drawPixelRect(ctx, x + 2, y - 38, 4, 16, boneColor);
+    drawPixelRect(ctx, x + 28, y - 38, 4, 16, boneColor);
+    drawPixelRect(ctx, x, y - 24, 6, 4, boneColor);
+    drawPixelRect(ctx, x + 28, y - 24, 6, 4, boneColor);
+
+    // Skull
+    drawPixelRect(ctx, x + 10, y - 58, 14, 18, boneColor);
+    drawPixelRect(ctx, x + 8, y - 54, 18, 12, boneColor);
+
+    // Eye sockets
+    drawPixelRect(ctx, x + 12, y - 52, 4, 4, '#000000');
+    drawPixelRect(ctx, x + 18, y - 52, 4, 4, '#000000');
+
+    // Eye glow
+    drawPixelRect(ctx, x + 13, y - 51, 2, 2, '#FF4444');
+    drawPixelRect(ctx, x + 19, y - 51, 2, 2, '#FF4444');
+
+    // Nose hole
+    drawPixelRect(ctx, x + 15, y - 47, 4, 3, '#2A2A2A');
+
+    // Teeth
+    drawPixelRect(ctx, x + 12, y - 43, 10, 3, boneLight);
+    ctx.strokeStyle = boneDark;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x + 14 + i * 2, y - 43);
+      ctx.lineTo(x + 14 + i * 2, y - 40);
+      ctx.stroke();
+    }
+
+    // Jaw
+    drawPixelRect(ctx, x + 11, y - 40, 12, 4, boneColor);
   }
 
   getPlayerStartPosition() {

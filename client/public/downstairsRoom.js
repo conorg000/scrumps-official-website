@@ -26,9 +26,6 @@ class DownstairsRoom {
         this.addFurniture({ x: 2, y: 12, width: 1, height: 1, type: 'plant' });
         this.addFurniture({ x: 12, y: 3, width: 1, height: 1, type: 'amp' });
         
-        // Epic beer pyramid in the corner
-        this.addFurniture({ x: 10, y: 8, width: 3, height: 3, type: 'beer_pyramid' });
-
         // Tent with possum living inside
         this.addFurniture({ x: 14, y: 5, width: 3, height: 2, type: 'tent' });
 
@@ -38,8 +35,6 @@ class DownstairsRoom {
         // CD near instruments - HOT SHOT (collectible)
         this.addFurniture({ x: 16, y: 10, width: 1, height: 1, type: 'cd_item', songName: 'HOT SHOT', noCollision: true });
 
-        // Humunculous Skeleton - hobbling around missing a foot
-        this.addFurniture({ x: 4, y: 8, width: 1, height: 1, type: 'humunculous' });
     }
 
     addFurniture(furniture) {
@@ -254,9 +249,6 @@ class DownstairsRoom {
                 case 'amp':
                     this.drawAmp(ctx, drawX, drawY);
                     break;
-                case 'beer_pyramid':
-                    this.drawBeerPyramid(ctx, drawX, drawY, furniture.width, furniture.height);
-                    break;
                 case 'tent':
                     this.drawTent(ctx, drawX, drawY, furniture.width, furniture.height);
                     break;
@@ -265,9 +257,6 @@ class DownstairsRoom {
                     break;
                 case 'cd_item':
                     this.drawCDItem(ctx, drawX, drawY);
-                    break;
-                case 'humunculous':
-                    this.drawHumunculous(ctx, drawX, drawY);
                     break;
             }
         });
@@ -874,32 +863,6 @@ class DownstairsRoom {
         drawPixelRect(ctx, x + 6, y + 10, 36, 4, 'rgba(0,0,0,0.4)');
     }
 
-    drawBeerPyramid(ctx, x, y, width, height) {
-        // Load and cache the beer pyramid image
-        if (!this.beerPyramidImage) {
-            this.beerPyramidImage = new Image();
-            this.beerPyramidImage.src = '/beer-pyramid.png';
-        }
-        
-        // Only draw if the image has loaded
-        if (this.beerPyramidImage.complete && this.beerPyramidImage.naturalHeight !== 0) {
-            // Calculate drawing position and size - maintain aspect ratio for new image
-            const imageWidth = 90; // Adjusted for taller pyramid image
-            const imageHeight = 120; // Maintains roughly 3:4 aspect ratio
-            
-            // Center the image in the furniture space
-            const drawX = x - (imageWidth / 2) + (width * 24);
-            const drawY = y - imageHeight + 20;
-            
-            // Draw the image with pixelated rendering
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(this.beerPyramidImage, drawX, drawY, imageWidth, imageHeight);
-            
-            // Add shadow underneath
-            drawPixelRect(ctx, drawX + 10, y + 25, imageWidth - 20, 6, 'rgba(0,0,0,0.4)');
-        }
-    }
-
     drawTent(ctx, x, y, width, height) {
         const tentColor = '#2E8B57';  // Sea green
         const tentDark = '#1E6B47';
@@ -1043,80 +1006,6 @@ class DownstairsRoom {
         ctx.stroke();
     }
 
-    drawHumunculous(ctx, x, y) {
-        const boneColor = '#E8E8D0';
-        const boneDark = '#C8C8B0';
-        const boneLight = '#FFFFF0';
-
-        // Animate bobbing (missing foot makes him wobble)
-        const time = Date.now() * 0.003;
-        const wobble = Math.sin(time) * 2;
-
-        // Shadow
-        drawPixelRect(ctx, x + 5, y + 10, 25, 6, 'rgba(0,0,0,0.3)');
-
-        // Legs - one complete, one missing foot!
-        // Left leg (complete)
-        drawPixelRect(ctx, x + 8, y - 10 + wobble, 4, 20, boneColor);
-        drawPixelRect(ctx, x + 6, y + 8 + wobble, 8, 4, boneColor); // foot
-
-        // Right leg (missing foot!)
-        drawPixelRect(ctx, x + 22, y - 10 - wobble, 4, 16, boneColor);
-        // No foot! Just a stump
-
-        // Pelvis
-        drawPixelRect(ctx, x + 6, y - 14, 22, 6, boneColor);
-
-        // Spine
-        drawPixelRect(ctx, x + 15, y - 40, 4, 28, boneColor);
-        // Vertebrae detail
-        for (let i = 0; i < 5; i++) {
-            drawPixelRect(ctx, x + 13, y - 38 + i * 5, 8, 2, boneDark);
-        }
-
-        // Ribcage
-        for (let i = 0; i < 4; i++) {
-            drawPixelRect(ctx, x + 8, y - 38 + i * 4, 18, 2, boneColor);
-            drawPixelRect(ctx, x + 6, y - 36 + i * 4, 4, 2, boneDark);
-            drawPixelRect(ctx, x + 24, y - 36 + i * 4, 4, 2, boneDark);
-        }
-
-        // Arms
-        drawPixelRect(ctx, x + 2, y - 38, 4, 16, boneColor);
-        drawPixelRect(ctx, x + 28, y - 38, 4, 16, boneColor);
-        // Hands
-        drawPixelRect(ctx, x, y - 24, 6, 4, boneColor);
-        drawPixelRect(ctx, x + 28, y - 24, 6, 4, boneColor);
-
-        // Skull
-        drawPixelRect(ctx, x + 10, y - 58, 14, 18, boneColor);
-        drawPixelRect(ctx, x + 8, y - 54, 18, 12, boneColor);
-
-        // Eye sockets
-        drawPixelRect(ctx, x + 12, y - 52, 4, 4, '#000000');
-        drawPixelRect(ctx, x + 18, y - 52, 4, 4, '#000000');
-
-        // Eye glow (spooky!)
-        drawPixelRect(ctx, x + 13, y - 51, 2, 2, '#FF4444');
-        drawPixelRect(ctx, x + 19, y - 51, 2, 2, '#FF4444');
-
-        // Nose hole
-        drawPixelRect(ctx, x + 15, y - 47, 4, 3, '#2A2A2A');
-
-        // Teeth
-        drawPixelRect(ctx, x + 12, y - 43, 10, 3, boneLight);
-        ctx.strokeStyle = boneDark;
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 4; i++) {
-            ctx.beginPath();
-            ctx.moveTo(x + 14 + i * 2, y - 43);
-            ctx.lineTo(x + 14 + i * 2, y - 40);
-            ctx.stroke();
-        }
-
-        // Jaw
-        drawPixelRect(ctx, x + 11, y - 40, 12, 4, boneColor);
-    }
 }
 
 window.DownstairsRoom = DownstairsRoom;

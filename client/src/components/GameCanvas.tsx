@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { VirtualJoystick } from './VirtualJoystick';
 import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
+import { InventoryUI } from './InventoryUI';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,7 +34,6 @@ export const GameCanvas: React.FC = () => {
   const [possumFed, setPossumFed] = useState(false);
   const [atTopEdge, setAtTopEdge] = useState(false);
   const [atRightEdge, setAtRightEdge] = useState(false);
-  const [atLeftEdge, setAtLeftEdge] = useState(false);
   const [atBalconyBottomLeft, setAtBalconyBottomLeft] = useState(false);
   const [atBalconyBottomRight, setAtBalconyBottomRight] = useState(false);
   const [atLivingRoomTopRight, setAtLivingRoomTopRight] = useState(false);
@@ -64,6 +64,11 @@ export const GameCanvas: React.FC = () => {
   const [turkeyHealth, setTurkeyHealth] = useState(100);
   const [boxingMessage, setBoxingMessage] = useState('');
   const [gameEnded, setGameEnded] = useState(false);
+  const [lives, setLives] = useState(3);
+  const [gameOver, setGameOver] = useState(false);
+  const [lifeLostFlash, setLifeLostFlash] = useState(false);
+  const [poolJumpActive, setPoolJumpActive] = useState(false);
+  const [boxingAnimation, setBoxingAnimation] = useState<string | null>(null);
   const [dialogState, setDialogState] = useState({
     isVisible: false,
     characterName: '',
@@ -175,6 +180,37 @@ export const GameCanvas: React.FC = () => {
             }));
           };
           
+          // Wire up Adele caught handler
+          gameRef.current.onAdeleCaught = () => {
+            // Freeze the player in place
+            if (gameRef.current) {
+              gameRef.current.frozen = true;
+            }
+
+            setLives(prev => {
+              const newLives = prev - 1;
+              const dialogs = [
+                ["*Adele grabs you by the collar*", "EXCUSE ME! Where is Mr Feng?!", "And why are there so many people here?!", "That's STRIKE ONE, potato boy!", "*You wriggle free and run to the backyard*"],
+                ["*Adele corners you against the wall*", "I KNOW there are subletters here!", "This is a LEASE VIOLATION!", "STRIKE TWO! One more and you're OUT!", "*You duck under her clipboard and escape*"],
+                ["*Adele is FURIOUS*", "THAT'S IT!", "THREE STRIKES!", "YOU'RE EVICTED!", "Pack your bags, crispy boy!"]
+              ];
+              const dialogIndex = Math.min(3 - newLives - 1, dialogs.length - 1);
+
+              if (gameRef.current && gameRef.current.showDialog) {
+                gameRef.current.showDialog("Adele", dialogs[dialogIndex]);
+              }
+
+              // Set AFTER showDialog (which sets it to 'Adele') so our marker sticks
+              currentSpeakerRef.current = 'Adele_caught';
+
+              // Flash the lives HUD
+              setLifeLostFlash(true);
+              setTimeout(() => setLifeLostFlash(false), 600);
+
+              return newLives;
+            });
+          };
+
           // Override the canvas element
           gameRef.current.canvas = canvas;
           gameRef.current.ctx = canvas.getContext('2d');
@@ -364,287 +400,59 @@ export const GameCanvas: React.FC = () => {
     return () => clearInterval(interval);
   }, [isLoading]);
 
-  // Check if player is at bottom edge of main room
+  // Consolidated door proximity detection for all room transitions
   useEffect(() => {
     if (!gameRef.current || isLoading) return;
 
-    const checkBottomEdge = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'mainRoom') {
-        setAtBottomEdge(false);
-        return;
-      }
+    const checkDoorProximity = () => {
+      const player = gameRef.current?.player;
+      const scene = gameRef.current?.currentScene;
+      const exitMarkers = gameRef.current?.exitMarkers;
+      if (!player || !scene || !exitMarkers) return;
 
-      const playerY = Math.floor(player.gridY);
-      
-      // Check if player is at the bottom edge (y = 14, since room height is 15)
-      setAtBottomEdge(playerY === 14);
+      const px = player.x;
+      const py = player.y;
+      const markers = exitMarkers[scene] || [];
+
+      // Helper: check if player is within range of a door by label
+      const nearDoor = (label: string) => {
+        const marker = markers.find((m: any) => m.label === label);
+        if (!marker) return false;
+        const dx = px - marker.x;
+        const dy = py - marker.y;
+        return Math.sqrt(dx * dx + dy * dy) < 3;
+      };
+
+      // Backyard exits
+      setAtBottomEdge(scene === 'mainRoom' && nearDoor('Downstairs'));
+      setAtRightEdge(scene === 'mainRoom' && nearDoor('Upstairs'));
+
+      // Downstairs exits
+      setAtTopEdge(scene === 'downstairs' && nearDoor('Backyard'));
+
+      // Balcony exits
+      setAtBalconyBottomLeft(scene === 'upstairs' && nearDoor('Living Room'));
+      setAtBalconyBottomRight(scene === 'upstairs' && nearDoor('Backyard'));
+
+      // Living Room exits (3 directions)
+      setAtLivingRoomTopRight(scene === 'livingRoom' && nearDoor('Balcony'));
+      setAtLivingRoomRight(scene === 'livingRoom' && nearDoor('Bedroom'));
+      setAtLivingRoomLeft(scene === 'livingRoom' && nearDoor('Front Porch'));
+
+      // Bedroom exit
+      setAtBedroomLeft(scene === 'bedroom' && nearDoor('Living Room'));
+
+      // Front Porch exits
+      setAtFrontPorchRight(scene === 'frontPorch' && nearDoor('Living Room'));
+
+      // Ladder spot on front porch
+      setNearLadderSpot(scene === 'frontPorch' && nearDoor('Roof'));
+
+      // Rooftop exit
+      setAtRooftopLadder(scene === 'rooftop' && nearDoor('Climb Down'));
     };
 
-    const interval = setInterval(checkBottomEdge, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at top edge of downstairs room
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkTopEdge = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'downstairs') {
-        setAtTopEdge(false);
-        return;
-      }
-
-      const playerY = Math.floor(player.gridY);
-      
-      // Check if player is at the top edge (y = 0)
-      setAtTopEdge(playerY === 0);
-    };
-
-    const interval = setInterval(checkTopEdge, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at right edge of main room
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkRightEdge = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'mainRoom') {
-        setAtRightEdge(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      
-      // Check if player is at the right edge (x = 19, since room width is 20)
-      setAtRightEdge(playerX === 19);
-    };
-
-    const interval = setInterval(checkRightEdge, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at left edge of upstairs room (top half - to go back to backyard)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkLeftEdge = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'upstairs') {
-        setAtLeftEdge(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Left edge, top half (x <= 1 and y <= 7) - goes to backyard
-      setAtLeftEdge(playerX <= 1 && playerY <= 7);
-    };
-
-    const interval = setInterval(checkLeftEdge, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at bottom-left of balcony (to go to living room)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkBalconyBottomLeft = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'upstairs') {
-        setAtBalconyBottomLeft(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Bottom-left area of balcony (y >= 8 and x <= 4) - goes to living room
-      setAtBalconyBottomLeft(playerY >= 8 && playerX <= 4);
-    };
-
-    const interval = setInterval(checkBalconyBottomLeft, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at bottom-right of balcony (to go back to backyard)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkBalconyBottomRight = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'upstairs') {
-        setAtBalconyBottomRight(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Bottom-right area of balcony (y >= 12 and x >= 16) - goes to backyard
-      setAtBalconyBottomRight(playerY >= 12 && playerX >= 16);
-    };
-
-    const interval = setInterval(checkBalconyBottomRight, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at top-right of living room (to go back to balcony)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkLivingRoomTopRight = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'livingRoom') {
-        setAtLivingRoomTopRight(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Top-right area of living room (y <= 3 and x >= 16)
-      setAtLivingRoomTopRight(playerY <= 3 && playerX >= 16);
-    };
-
-    const interval = setInterval(checkLivingRoomTopRight, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at right edge of living room (to go to bedroom)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkLivingRoomRight = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'livingRoom') {
-        setAtLivingRoomRight(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Right edge of living room (x >= 18 and y > 6)
-      setAtLivingRoomRight(playerX >= 18 && playerY > 6);
-    };
-
-    const interval = setInterval(checkLivingRoomRight, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at left edge of bedroom (to go back to living room)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkBedroomLeft = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'bedroom') {
-        setAtBedroomLeft(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Left edge of bedroom (x <= 1 and y > 8)
-      setAtBedroomLeft(playerX <= 1 && playerY > 8);
-    };
-
-    const interval = setInterval(checkBedroomLeft, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at left edge of living room (to go to front porch)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkLivingRoomLeft = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'livingRoom') {
-        setAtLivingRoomLeft(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Left edge of living room (x <= 1 and y > 10)
-      setAtLivingRoomLeft(playerX <= 1 && playerY > 10);
-    };
-
-    const interval = setInterval(checkLivingRoomLeft, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at right edge of front porch (to go back to living room)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkFrontPorchRight = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'frontPorch') {
-        setAtFrontPorchRight(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-
-      // Right edge of front porch
-      setAtFrontPorchRight(playerX >= 18);
-    };
-
-    const interval = setInterval(checkFrontPorchRight, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is near ladder spot on front porch
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkLadderSpot = () => {
-      const player = gameRef.current.player;
-      const room = gameRef.current.room;
-      if (!player || !room || gameRef.current.currentScene !== 'frontPorch') {
-        setNearLadderSpot(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Ladder spot is at (18, 2)
-      const near = Math.abs(playerX - 18) <= 2 && Math.abs(playerY - 2) <= 2;
-      setNearLadderSpot(near);
-    };
-
-    const interval = setInterval(checkLadderSpot, 100);
-    return () => clearInterval(interval);
-  }, [isLoading]);
-
-  // Check if player is at rooftop ladder (to go back down)
-  useEffect(() => {
-    if (!gameRef.current || isLoading) return;
-
-    const checkRooftopLadder = () => {
-      const player = gameRef.current.player;
-      if (!player || gameRef.current.currentScene !== 'rooftop') {
-        setAtRooftopLadder(false);
-        return;
-      }
-
-      const playerX = Math.floor(player.gridX);
-      const playerY = Math.floor(player.gridY);
-
-      // Ladder access at (22, 12)
-      setAtRooftopLadder(playerX >= 21 && playerY >= 11);
-    };
-
-    const interval = setInterval(checkRooftopLadder, 100);
+    const interval = setInterval(checkDoorProximity, 100);
     return () => clearInterval(interval);
   }, [isLoading]);
 
@@ -787,9 +595,64 @@ export const GameCanvas: React.FC = () => {
           gameRef.current.addCompanion('humunculous');
         }
       }
+
+      // Adele caught: dialog finished -> unfreeze and teleport to backyard or game over
+      if (currentSpeakerRef.current === 'Adele_caught') {
+        if (gameRef.current) {
+          gameRef.current.frozen = false;
+
+          if (lives <= 0) {
+            setGameOver(true);
+          } else {
+            gameRef.current.loadScene('mainRoom');
+
+            // Move Adele to a random patrol room (not backyard)
+            const patrolRooms = gameRef.current.adele.patrolRooms;
+            const randomRoom = patrolRooms[Math.floor(Math.random() * patrolRooms.length)];
+            gameRef.current.adele.currentRoom = randomRoom;
+            gameRef.current.adele.x = 10;
+            gameRef.current.adele.y = 8;
+            gameRef.current.adele.catchCooldown = 3000;
+          }
+        }
+        currentSpeakerRef.current = null;
+        return;
+      }
+
+      // Ending sequence: Adele dialog finished -> show Mr Feng
+      if (currentSpeakerRef.current === 'Adele_ending') {
+        setTimeout(() => {
+          if (gameRef.current && gameRef.current.showDialog) {
+            gameRef.current.showDialog("Mr Feng", [
+              "*walks in casually*",
+              "...",
+              "*looks around at the chaos*",
+              "...",
+              "I watched your Twitch stream guys.",
+              "That was SICK.",
+              "Let's get f***d up!",
+              "*chaos and partying and boxing ensues*"
+            ]);
+            currentSpeakerRef.current = 'Mr_Feng_ending';
+          }
+        }, 500);
+        return;
+      }
+
+      // Ending sequence: Mr Feng dialog finished -> show end screen
+      if (currentSpeakerRef.current === 'Mr_Feng_ending') {
+        // Make Mr Feng visible in the backyard
+        if (gameRef.current) {
+          gameRef.current.mrFengVisible = true;
+        }
+        setGameEnded(true);
+        currentSpeakerRef.current = null;
+        return;
+      }
+
       currentSpeakerRef.current = null;
     }
-  }, [dialogState.currentTextIndex, dialogState.text.length, mrTibblesJoined, possumFed, tinyClownJoined, humunculousJoined]);
+  }, [dialogState.currentTextIndex, dialogState.text.length, mrTibblesJoined, possumFed, tinyClownJoined, humunculousJoined, lives]);
 
   // Handle dialog dismissal with keyboard
   useEffect(() => {
@@ -1009,11 +872,13 @@ export const GameCanvas: React.FC = () => {
       const newCount = hollandiaCount + 1;
       setHollandiaCount(newCount);
 
-      // Remove the can from furniture
+      // Remove the can from furniture and persist removal
       const room = gameRef.current.room;
       if (room && room.furniture) {
         const canIndex = room.furniture.findIndex((f: any) => f.type === 'hollandia_can');
         if (canIndex !== -1) {
+          const can = room.furniture[canIndex];
+          gameRef.current.removeItem(gameRef.current.currentScene, can.type, can.x, can.y);
           room.furniture.splice(canIndex, 1);
         }
       }
@@ -1037,6 +902,7 @@ export const GameCanvas: React.FC = () => {
 
           if (!collectedCDs.includes(songName)) {
             setCollectedCDs(prev => [...prev, songName]);
+            gameRef.current.removeItem(gameRef.current.currentScene, cd.type, cd.x, cd.y);
             room.furniture.splice(cdIndex, 1);
 
             gameRef.current.showDialog("Scrump", [
@@ -1063,11 +929,12 @@ export const GameCanvas: React.FC = () => {
         if (room && room.furniture) {
           const ladderIndex = room.furniture.findIndex((f: any) => f.type === 'ladder');
           if (ladderIndex !== -1) {
+            const ladderItem = room.furniture[ladderIndex];
+            gameRef.current.removeItem(gameRef.current.currentScene, ladderItem.type, ladderItem.x, ladderItem.y);
             room.furniture.splice(ladderIndex, 1);
             // Clear collision
-            const ladder = { x: 18, y: 12, width: 1, height: 2 };
-            for (let y = ladder.y; y < ladder.y + ladder.height; y++) {
-              for (let x = ladder.x; x < ladder.x + ladder.width; x++) {
+            for (let y = ladderItem.y; y < ladderItem.y + ladderItem.height; y++) {
+              for (let x = ladderItem.x; x < ladderItem.x + ladderItem.width; x++) {
                 if (room.collisionMap && room.collisionMap[y]) {
                   room.collisionMap[y][x] = false;
                 }
@@ -1083,13 +950,6 @@ export const GameCanvas: React.FC = () => {
           "Like... a roof perhaps?"
         ]);
       }
-    }
-  };
-
-  const handleSceneChange = () => {
-    if (gameRef.current && gameRef.current.loadScene) {
-      const newScene = gameRef.current.currentScene === 'mainRoom' ? 'downstairs' : 'mainRoom';
-      gameRef.current.loadScene(newScene);
     }
   };
 
@@ -1186,36 +1046,51 @@ export const GameCanvas: React.FC = () => {
 
   const handleJumpToPool = () => {
     if (gameRef.current && gameRef.current.showDialog) {
-      gameRef.current.showDialog("Tiny Clown", [
-        "EVERYONE! TO THE KIDDY POOL!",
-        "JUMP! JUMP! JUMP!",
-        "*SPLASH*",
-        "We made it! Everyone okay?",
-        "Wait... the ladder fell! Adele is stuck on the roof!",
-        "We're safe... or are we?"
+      // Show brief dialog first
+      gameRef.current.showDialog("Everyone", [
+        "JUMP! JUMP! JUMP!"
       ]);
+
       setHasJumpedToPool(true);
       setIsChaseActive(false);
 
-      // After dialog, transition to backyard
+      // Deactivate Adele chase
+      if (gameRef.current.adele) {
+        gameRef.current.adele.isChasing = false;
+        gameRef.current.adele.visible = false;
+        gameRef.current.adele.currentRoom = 'rooftop'; // Stuck on roof
+      }
+
+      // Start pool jump animation after dialog
       setTimeout(() => {
-        if (gameRef.current && gameRef.current.loadScene) {
-          gameRef.current.loadScene('mainRoom');
-          // Trigger Bush Turkey appearance after a delay
-          setTimeout(() => {
-            if (gameRef.current && gameRef.current.showDialog) {
-              gameRef.current.showDialog("Mr Tibbles", [
-                "Oh no...",
-                "I hear something...",
-                "*gobble gobble*",
-                "IT'S THE BUSH TURKEY!",
-                "It's coming for Scrump!",
-                "Quick! Get to the boxing ring! Fight back!"
-              ]);
-            }
-          }, 2000);
-        }
-      }, 8000);
+        setPoolJumpActive(true);
+
+        // After animation, load backyard and show bush turkey
+        setTimeout(() => {
+          setPoolJumpActive(false);
+          if (gameRef.current && gameRef.current.loadScene) {
+            gameRef.current.loadScene('mainRoom');
+            gameRef.current.bushTurkeyVisible = true;
+
+            // Mr Tibbles splash dialog
+            setTimeout(() => {
+              if (gameRef.current && gameRef.current.showDialog) {
+                gameRef.current.showDialog("Mr Tibbles", [
+                  "*spluttering*",
+                  "We made it! Everyone okay?",
+                  "The ladder fell... Adele is stuck on the roof!",
+                  "Oh no...",
+                  "I hear something...",
+                  "*gobble gobble*",
+                  "IT'S THE BUSH TURKEY!",
+                  "It's coming for Scrump!",
+                  "Quick! Get to the boxing ring! Fight back!"
+                ]);
+              }
+            }, 1500);
+          }
+        }, 3000);
+      }, 2000);
     }
   };
 
@@ -1234,23 +1109,31 @@ export const GameCanvas: React.FC = () => {
     const newTurkeyHealth = Math.max(0, turkeyHealth - damage);
     setTurkeyHealth(newTurkeyHealth);
     setBoxingMessage(`POW! ${damage} damage!`);
+    setBoxingAnimation('punch');
+    setTimeout(() => setBoxingAnimation(null), 300);
 
     // Turkey counter-attacks
     setTimeout(() => {
       if (newTurkeyHealth > 0) {
         const counterDamage = Math.floor(Math.random() * 15) + 5;
-        const newPlayerHealth = Math.max(0, boxingHealth - counterDamage);
-        setBoxingHealth(newPlayerHealth);
-        setBoxingMessage(`Turkey pecks back! ${counterDamage} damage!`);
+        setBoxingAnimation('turkey_attack');
+        setTimeout(() => setBoxingAnimation(null), 300);
+        setBoxingHealth(prev => {
+          const newPlayerHealth = Math.max(0, prev - counterDamage);
+          setBoxingMessage(`Turkey pecks back! ${counterDamage} damage!`);
 
-        if (newPlayerHealth <= 0) {
-          setBoxingMessage("You got knocked out! Try again!");
-          setTimeout(() => {
-            setBoxingHealth(100);
-            setTurkeyHealth(100);
-            setBoxingMessage("ROUND 2 - FIGHT!");
-          }, 2000);
-        }
+          if (newPlayerHealth <= 0) {
+            setTimeout(() => {
+              setBoxingMessage("You got knocked out! Try again!");
+              setTimeout(() => {
+                setBoxingHealth(100);
+                setTurkeyHealth(100);
+                setBoxingMessage("ROUND 2 - FIGHT!");
+              }, 2000);
+            }, 0);
+          }
+          return newPlayerHealth;
+        });
       }
     }, 500);
 
@@ -1259,6 +1142,10 @@ export const GameCanvas: React.FC = () => {
       setBoxingMessage("K.O.! YOU WIN!");
       setBushTurkeyDefeated(true);
       setBoxingGameActive(false);
+      // Remove bush turkey from backyard
+      if (gameRef.current) {
+        gameRef.current.bushTurkeyVisible = false;
+      }
 
       // Trigger ending sequence
       setTimeout(() => {
@@ -1284,6 +1171,8 @@ export const GameCanvas: React.FC = () => {
     if (!boxingGameActive || turkeyHealth <= 0) return;
 
     // 70% chance to dodge
+    setBoxingAnimation('dodge');
+    setTimeout(() => setBoxingAnimation(null), 300);
     if (Math.random() < 0.7) {
       setBoxingMessage("Dodged! Quick, counter-attack!");
     } else {
@@ -1302,26 +1191,8 @@ export const GameCanvas: React.FC = () => {
         "Is that... a boxing ring?!",
         "MR FENG! Get over here!"
       ]);
-
-      setTimeout(() => {
-        if (gameRef.current && gameRef.current.showDialog) {
-          gameRef.current.showDialog("Mr Feng", [
-            "*walks in casually*",
-            "...",
-            "*looks around at the chaos*",
-            "...",
-            "I watched your Twitch stream guys.",
-            "That was SICK.",
-            "Let's get f***d up!",
-            "*chaos and partying and boxing ensues*"
-          ]);
-
-          // Game ending
-          setTimeout(() => {
-            setGameEnded(true);
-          }, 8000);
-        }
-      }, 6000);
+      // Mr Feng dialog will be triggered when Adele's dialog closes
+      currentSpeakerRef.current = 'Adele_ending';
     }
   };
 
@@ -1337,6 +1208,8 @@ export const GameCanvas: React.FC = () => {
         if (room && room.furniture) {
           const xrayIndex = room.furniture.findIndex((f: any) => f.type === 'xray');
           if (xrayIndex !== -1) {
+            const xrayItem = room.furniture[xrayIndex];
+            gameRef.current.removeItem(gameRef.current.currentScene, xrayItem.type, xrayItem.x, xrayItem.y);
             room.furniture.splice(xrayIndex, 1);
           }
         }
@@ -1387,6 +1260,10 @@ export const GameCanvas: React.FC = () => {
                 "We need the ladder to get up there!"
               ]);
               setIsChaseActive(true);
+              // Activate Adele chase in game engine
+              if (gameRef.current && gameRef.current.adele) {
+                gameRef.current.adele.isChasing = true;
+              }
             }
           }, 1000);
         }
@@ -1553,8 +1430,8 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
 
-      {/* Talk to Humunculous Button - in downstairs room */}
-      {!isLoading && !dialogState.isVisible && nearHumunculous && gameRef.current?.currentScene === 'downstairs' && !humunculousJoined && (
+      {/* Talk to Humunculous Button - on front porch */}
+      {!isLoading && !dialogState.isVisible && nearHumunculous && gameRef.current?.currentScene === 'frontPorch' && !humunculousJoined && (
         <button
           onClick={handleTalkToHumunculous}
           className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
@@ -1563,61 +1440,61 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
 
-      {/* Go Downstairs Button - appears when at bottom edge */}
+      {/* Go Downstairs Button */}
       {!isLoading && !dialogState.isVisible && atBottomEdge && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && !nearMrTibbles && (
         <button
           onClick={handleGoDownstairs}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO DOWNSTAIRS
         </button>
       )}
       
-      {/* Go to Backyard Button - appears when at top edge of downstairs room */}
+      {/* Go to Backyard Button (from downstairs) */}
       {!isLoading && !dialogState.isVisible && atTopEdge && gameRef.current?.currentScene === 'downstairs' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && (
         <button
           onClick={handleGoToBackyard}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO BACKYARD
         </button>
       )}
       
-      {/* Go Upstairs Button - appears when at right edge of main room */}
+      {/* Go Upstairs Button */}
       {!isLoading && !dialogState.isVisible && atRightEdge && gameRef.current?.currentScene === 'mainRoom' && !nearBoxingRing && !nearBeerBottle && !nearBoxingGloves && !nearTree && !nearKiddyPool && !nearBeerPyramid && !atBottomEdge && (
         <button
           onClick={handleGoUpstairs}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO UPSTAIRS
         </button>
       )}
       
-      {/* Go to Backyard Button - appears when at bottom-right of balcony */}
+      {/* Go to Backyard Button (from balcony) */}
       {!isLoading && !dialogState.isVisible && atBalconyBottomRight && gameRef.current?.currentScene === 'upstairs' && (
         <button
           onClick={handleGoToBackyardFromUpstairs}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO BACKYARD
         </button>
       )}
 
-      {/* Go to Living Room Button - appears when at bottom-left of balcony */}
+      {/* Go to Living Room Button (from balcony) */}
       {!isLoading && !dialogState.isVisible && atBalconyBottomLeft && gameRef.current?.currentScene === 'upstairs' && (
         <button
           onClick={handleGoToLivingRoom}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO LIVING ROOM
         </button>
       )}
 
-      {/* Go to Balcony Button - appears when at top-right of living room */}
+      {/* Go to Balcony Button (from living room) */}
       {!isLoading && !dialogState.isVisible && atLivingRoomTopRight && gameRef.current?.currentScene === 'livingRoom' && (
         <button
           onClick={handleGoToBalconyFromLivingRoom}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO BALCONY
         </button>
@@ -1673,61 +1550,61 @@ export const GameCanvas: React.FC = () => {
         </button>
       )}
 
-      {/* Go to Bedroom Button - from living room right edge */}
+      {/* Go to Bedroom Button (from living room) */}
       {!isLoading && !dialogState.isVisible && atLivingRoomRight && gameRef.current?.currentScene === 'livingRoom' && !atLivingRoomTopRight && (
         <button
           onClick={handleGoToBedroom}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO BEDROOM
         </button>
       )}
 
-      {/* Go to Living Room Button - from bedroom left edge */}
+      {/* Go to Living Room Button (from bedroom) */}
       {!isLoading && !dialogState.isVisible && atBedroomLeft && gameRef.current?.currentScene === 'bedroom' && (
         <button
           onClick={handleGoToLivingRoomFromBedroom}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO LIVING ROOM
         </button>
       )}
 
-      {/* Go to Front Porch Button - from living room left edge */}
+      {/* Go to Front Porch Button (from living room) */}
       {!isLoading && !dialogState.isVisible && atLivingRoomLeft && gameRef.current?.currentScene === 'livingRoom' && (
         <button
           onClick={handleGoToFrontPorch}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO FRONT PORCH
         </button>
       )}
 
-      {/* Go to Living Room Button - from front porch right edge */}
+      {/* Go to Living Room Button (from front porch) */}
       {!isLoading && !dialogState.isVisible && atFrontPorchRight && gameRef.current?.currentScene === 'frontPorch' && !nearLadderSpot && (
         <button
           onClick={handleGoToLivingRoomFromPorch}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           GO TO LIVING ROOM
         </button>
       )}
 
-      {/* Place/Climb Ladder Button - on front porch */}
+      {/* Place/Climb Ladder Button (on front porch) */}
       {!isLoading && !dialogState.isVisible && nearLadderSpot && gameRef.current?.currentScene === 'frontPorch' && (
         <button
           onClick={ladderPlaced ? handleClimbToRoof : handlePlaceLadder}
-          className="fixed top-4 right-4 bg-orange-500 hover:bg-orange-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-orange-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-orange-500 hover:bg-orange-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-orange-600 transition-all duration-200 hover:scale-105 z-50"
         >
           {ladderPlaced ? 'CLIMB TO ROOF' : (hasLadder ? 'PLACE LADDER' : 'NEED LADDER')}
         </button>
       )}
 
-      {/* Climb Down Button - on rooftop (only when chase not active) */}
+      {/* Climb Down Button (on rooftop, only when chase not active) */}
       {!isLoading && !dialogState.isVisible && atRooftopLadder && gameRef.current?.currentScene === 'rooftop' && !isChaseActive && (
         <button
           onClick={handleClimbDownFromRoof}
-          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-2 rounded-lg font-mono text-sm font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
+          className="fixed top-4 right-4 bg-yellow-500 hover:bg-yellow-400 text-black px-5 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105 z-50"
         >
           CLIMB DOWN
         </button>
@@ -1752,6 +1629,23 @@ export const GameCanvas: React.FC = () => {
         </div>
       )}
 
+      {/* Lives HUD */}
+      {!isLoading && !gameOver && !boxingGameActive && !gameEnded && (
+        <div
+          className={`fixed bottom-36 left-4 z-50 transition-all duration-300 ${lifeLostFlash ? 'scale-125' : 'scale-100'}`}
+        >
+          <div className={`bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full border ${lifeLostFlash ? 'border-red-400 bg-red-900/60' : 'border-gray-600'} transition-colors duration-300`}>
+            <span className="text-2xl tracking-widest" style={{ letterSpacing: '0.3em' }}>
+              {Array.from({ length: 3 }, (_, i) => (
+                <span key={i} className={`inline-block transition-all duration-300 ${i < lives ? '' : 'opacity-20 grayscale'}`}>
+                  {i < lives ? '🥔' : '💀'}
+                </span>
+              ))}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Start Boxing Fight Button - in backyard after jump, near boxing ring */}
       {!isLoading && !dialogState.isVisible && nearBoxingRing && gameRef.current?.currentScene === 'mainRoom' && hasJumpedToPool && !bushTurkeyDefeated && !boxingGameActive && (
         <button
@@ -1760,6 +1654,53 @@ export const GameCanvas: React.FC = () => {
         >
           🥊 FIGHT BUSH TURKEY! 🥊
         </button>
+      )}
+
+      {/* Pool Jump Animation */}
+      {poolJumpActive && (
+        <div className="fixed inset-0 z-[250] overflow-hidden" style={{ background: 'linear-gradient(to bottom, #87CEEB 0%, #87CEEB 70%, #4FA4DE 100%)' }}>
+          <style>{`
+            @keyframes fall-spin {
+              0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+              80% { opacity: 1; }
+              100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+            }
+            @keyframes splash-appear {
+              0% { transform: scale(0); opacity: 0; }
+              50% { transform: scale(1.3); opacity: 1; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
+          {/* Falling characters */}
+          {['🥔', '🐱', '🤡', '🦝', '💀', '🥔', '🐱', '🤡'].map((emoji, i) => (
+            <div
+              key={i}
+              className="absolute text-6xl"
+              style={{
+                left: `${10 + i * 11}%`,
+                top: '-80px',
+                animation: `fall-spin ${2 + Math.random() * 0.5}s ease-in forwards`,
+                animationDelay: `${i * 0.15}s`
+              }}
+            >
+              {emoji}
+            </div>
+          ))}
+          {/* SPLASH text */}
+          <div
+            className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-7xl font-bold font-mono text-white"
+            style={{
+              animation: 'splash-appear 0.5s ease-out forwards',
+              animationDelay: '2s',
+              opacity: 0,
+              textShadow: '4px 4px 0 #2E86AB, -2px -2px 0 #2E86AB, 2px -2px 0 #2E86AB, -2px 2px 0 #2E86AB'
+            }}
+          >
+            SPLASH!!!
+          </div>
+          {/* Water at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to bottom, rgba(78, 164, 222, 0.6), #2E86AB)' }} />
+        </div>
       )}
 
       {/* Boxing Mini-Game UI */}
@@ -1798,6 +1739,60 @@ export const GameCanvas: React.FC = () => {
               </div>
             </div>
 
+            {/* Fighters */}
+            <div className="flex items-center justify-between mb-6 px-4">
+              {/* Scrump Fighter */}
+              <div
+                className="relative transition-transform duration-200"
+                style={{
+                  transform: boxingAnimation === 'punch' ? 'translateX(30px)' :
+                             boxingAnimation === 'dodge' ? 'translateX(-20px) rotate(-10deg)' :
+                             boxingAnimation === 'turkey_attack' ? 'translateX(-5px)' : 'none'
+                }}
+              >
+                <div className="w-16 h-20 rounded-lg relative" style={{ background: 'linear-gradient(135deg, #DAA520, #B8860B)' }}>
+                  {/* Scrump face */}
+                  <div className="absolute top-2 left-3 w-2 h-2 rounded-full bg-black" />
+                  <div className="absolute top-2 right-3 w-2 h-2 rounded-full bg-black" />
+                  <div className="absolute top-5 left-1/2 -translate-x-1/2 w-4 h-1 bg-red-800 rounded" />
+                </div>
+                {/* Boxing gloves */}
+                <div className="absolute -right-3 top-8 w-6 h-6 rounded-full bg-red-600 border-2 border-red-800" />
+                <div className="absolute -left-2 top-12 w-5 h-5 rounded-full bg-red-600 border-2 border-red-800" />
+              </div>
+
+              {/* VS */}
+              <div className="text-3xl font-bold text-yellow-300 font-mono" style={{ textShadow: '2px 2px 0 #000' }}>
+                VS
+              </div>
+
+              {/* Bush Turkey Fighter */}
+              <div
+                className="relative transition-transform duration-200"
+                style={{
+                  transform: boxingAnimation === 'turkey_attack' ? 'translateX(-30px)' :
+                             boxingAnimation === 'punch' ? 'translateX(5px)' : 'none',
+                  ...(boxingAnimation === 'turkey_attack' ? { animation: 'none' } : {})
+                }}
+              >
+                <div className="w-16 h-18 relative">
+                  {/* Turkey body */}
+                  <div className="w-14 h-14 rounded-full mx-auto" style={{ background: 'linear-gradient(135deg, #6B3A2A, #4A2818)' }} />
+                  {/* Turkey head */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full" style={{ background: '#6B3A2A' }}>
+                    {/* Eye */}
+                    <div className="absolute top-2 right-1 w-2 h-2 rounded-full bg-yellow-400">
+                      <div className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-black" />
+                    </div>
+                  </div>
+                  {/* Wattle */}
+                  <div className="absolute -top-1 right-1 w-3 h-5 rounded-b-full bg-red-600" />
+                  {/* Beak */}
+                  <div className="absolute top-1 -right-1 w-4 h-2 bg-yellow-600 rounded-r" />
+                </div>
+              </div>
+            </div>
+
             {/* Message */}
             <div className="text-center text-2xl font-bold text-white font-mono mb-6 min-h-[2rem]">
               {boxingMessage}
@@ -1818,6 +1813,53 @@ export const GameCanvas: React.FC = () => {
                 🏃 DODGE!
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Over Screen - Evicted by Adele */}
+      {gameOver && (
+        <div className="fixed inset-0 bg-black z-[350] flex flex-col items-center justify-center">
+          <style>{`
+            @keyframes evicted-shake {
+              0%, 100% { transform: translateX(0) rotate(0); }
+              10% { transform: translateX(-8px) rotate(-2deg); }
+              20% { transform: translateX(8px) rotate(2deg); }
+              30% { transform: translateX(-6px) rotate(-1deg); }
+              40% { transform: translateX(6px) rotate(1deg); }
+              50% { transform: translateX(-4px) rotate(0); }
+              60% { transform: translateX(4px) rotate(0); }
+            }
+            @keyframes stamp-appear {
+              0% { transform: scale(3) rotate(-30deg); opacity: 0; }
+              60% { transform: scale(1.1) rotate(-15deg); opacity: 1; }
+              100% { transform: scale(1) rotate(-12deg); opacity: 1; }
+            }
+          `}</style>
+          <div className="text-center px-8" style={{ animation: 'evicted-shake 0.6s ease-in-out' }}>
+            <h1 className="text-7xl font-bold text-red-500 font-mono mb-4" style={{ textShadow: '4px 4px 0 #7f1d1d' }}>
+              EVICTED!
+            </h1>
+            <div className="text-6xl mb-6" style={{ animation: 'stamp-appear 0.5s ease-out forwards', animationDelay: '0.3s', opacity: 0 }}>
+              📋
+            </div>
+            <p className="text-2xl text-white font-mono mb-2">
+              Adele wins this round.
+            </p>
+            <p className="text-lg text-gray-400 font-mono mb-4">
+              Three strikes and you're out, potato boy.
+            </p>
+            <p className="text-md text-gray-500 font-mono mb-8 italic">
+              "Your security deposit has been forfeited for<br />
+              unauthorized subletting, property damage,<br />
+              and... is that a possum?!" — Adele
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-500 text-white px-10 py-4 rounded-lg font-mono text-xl font-bold shadow-lg border-2 border-red-700 transition-all duration-200 hover:scale-105"
+            >
+              TRY AGAIN
+            </button>
           </div>
         </div>
       )}
@@ -1850,6 +1892,21 @@ export const GameCanvas: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {!isLoading && (
+        <InventoryUI
+          hollandiaCount={hollandiaCount}
+          collectedCDs={collectedCDs}
+          hasCompost={hasCompost}
+          hasLadder={hasLadder}
+          hasXray={hasXray}
+          mrTibblesJoined={mrTibblesJoined}
+          possumFed={possumFed}
+          tinyClownJoined={tinyClownJoined}
+          humunculousJoined={humunculousJoined}
+          isChaseActive={isChaseActive}
+        />
       )}
 
       {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}

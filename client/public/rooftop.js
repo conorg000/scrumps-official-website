@@ -54,8 +54,6 @@ class Rooftop {
     this.addFurniture({ x: 18, y: 8, width: 1, height: 1, type: 'subletter_phone' });
     this.addFurniture({ x: 20, y: 6, width: 1, height: 1, type: 'subletter_sleeping' });
 
-    // Ladder access point (where player enters)
-    this.addFurniture({ x: 22, y: 12, width: 1, height: 2, type: 'ladder_access', noCollision: true });
   }
 
   addFurniture(item) {
@@ -224,7 +222,6 @@ class Rooftop {
         case 'satellite_dish': this.drawSatelliteDish(ctx, drawX, drawY); break;
         case 'cooler': this.drawCooler(ctx, drawX, drawY); break;
         case 'lawn_chair': this.drawLawnChair(ctx, drawX, drawY); break;
-        case 'ladder_access': this.drawLadderAccess(ctx, drawX, drawY); break;
         default:
           if (item.type.startsWith('subletter_')) {
             this.drawSubletter(ctx, drawX, drawY, item.type);
