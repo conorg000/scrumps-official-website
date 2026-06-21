@@ -83,80 +83,122 @@ class Player {
     }
 
     drawBanana(ctx, x, y) {
-        // Crisp body (wavy chip shape)
-        ctx.fillStyle = '#f4d03f'; // Golden crisp color
-        
-        // Main crisp shape - wavy oval
-        ctx.fillRect(x + 8, y + 8, 20, 28);
-        ctx.fillRect(x + 6, y + 12, 24, 20);
-        ctx.fillRect(x + 10, y + 6, 16, 32);
-        
-        // Crisp waves/ridges based on direction
-        if (this.direction === 'right') {
-            ctx.fillRect(x + 12, y + 4, 12, 4);
-            ctx.fillRect(x + 16, y + 36, 8, 4);
-            // Extra wavy bits
-            ctx.fillRect(x + 4, y + 16, 4, 8);
-            ctx.fillRect(x + 28, y + 20, 4, 8);
-        } else if (this.direction === 'left') {
-            ctx.fillRect(x + 12, y + 4, 12, 4);
-            ctx.fillRect(x + 12, y + 36, 8, 4);
-            // Extra wavy bits
-            ctx.fillRect(x + 4, y + 18, 4, 8);
-            ctx.fillRect(x + 28, y + 18, 4, 8);
-        } else {
-            ctx.fillRect(x + 12, y + 4, 12, 4);
-            ctx.fillRect(x + 14, y + 36, 8, 4);
-            // Extra wavy bits
-            ctx.fillRect(x + 4, y + 18, 4, 6);
-            ctx.fillRect(x + 28, y + 20, 4, 6);
+        const dir = this.direction;
+        // Golden crisp palette (light from top-left)
+        const OUTLINE = '#5a3409';
+        const SHADOW = '#cf9320';
+        const BASE = '#f4c63a';
+        const LIGHT = '#ffd95c';
+        const HI = '#fff3b8';
+
+        const cx = x + 18;      // body centre x
+        const cyc = y + 19;     // body centre y
+        const rx = 14, ry = 15;
+
+        // Contact shadow
+        drawContactShadow(ctx, cx, y + 42, 13, 4, 0.26);
+
+        // --- Build a wavy, bottom-heavy crisp silhouette ---
+        const rows = [];
+        for (let yy = -ry; yy <= ry; yy++) {
+            let hw = Math.sqrt(Math.max(0, 1 - (yy * yy) / (ry * ry))) * rx;
+            hw += Math.sin(yy * 0.85) * 1.4;          // rippled "crisp" edge
+            hw *= 1 + yy / (ry * 3.2);                 // wider toward the bottom
+            hw = Math.max(0, hw);
+            const w = Math.round(hw * 2);
+            if (w <= 1) continue;
+            rows.push([cyc + yy, Math.round(cx - hw), w]);
         }
 
-        // Crisp highlights and texture
-        ctx.fillStyle = '#f7dc6f'; // Lighter crisp color
-        ctx.fillRect(x + 8, y + 10, 4, 20);
-        ctx.fillRect(x + 24, y + 14, 4, 16);
-        ctx.fillRect(x + 14, y + 8, 8, 4);
-        
-        // Crisp darker edges and texture
-        ctx.fillStyle = '#d4ac0d'; // Darker crisp color
-        ctx.fillRect(x + 26, y + 12, 3, 20);
-        ctx.fillRect(x + 10, y + 32, 16, 3);
-        
-        // Crisp texture spots/bubbles
-        ctx.fillStyle = '#f8c471';
-        ctx.fillRect(x + 13, y + 14, 2, 2);
-        ctx.fillRect(x + 19, y + 18, 2, 2);
-        ctx.fillRect(x + 15, y + 24, 2, 2);
-        ctx.fillRect(x + 21, y + 28, 2, 2);
-        
-        // More texture
-        ctx.fillStyle = '#e67e22';
-        ctx.fillRect(x + 17, y + 16, 1, 1);
-        ctx.fillRect(x + 14, y + 22, 1, 1);
-        ctx.fillRect(x + 20, y + 26, 1, 1);
-        
-        // Simple face based on direction
-        ctx.fillStyle = COLORS.BLACK;
-        
-        // Eyes
-        if (this.direction === 'right') {
-            ctx.fillRect(x + 20, y + 16, 2, 2);
-            ctx.fillRect(x + 23, y + 16, 2, 2);
-        } else if (this.direction === 'left') {
-            ctx.fillRect(x + 11, y + 16, 2, 2);
-            ctx.fillRect(x + 14, y + 16, 2, 2);
-        } else {
-            ctx.fillRect(x + 15, y + 16, 2, 2);
-            ctx.fillRect(x + 19, y + 16, 2, 2);
-        }
-        
-        // Simple smile
-        ctx.fillRect(x + 16, y + 20, 4, 2);
+        // Little feet poke out below (bob with the walk animation)
+        ctx.fillStyle = OUTLINE;
+        ctx.fillRect(x + 10, y + 37, 7, 5);
+        ctx.fillRect(x + 19, y + 37, 7, 5);
+        ctx.fillStyle = '#caa24a';
+        ctx.fillRect(x + 11, y + 38, 5, 2);
+        ctx.fillRect(x + 20, y + 38, 5, 2);
 
-        // Shadow
-        ctx.fillStyle = COLORS.SHADOW;
-        ctx.fillRect(x + 6, y + 39, 24, 4);
+        // Stubby arms
+        ctx.fillStyle = OUTLINE;
+        ctx.fillRect(x + 1, y + 20, 4, 6);
+        ctx.fillRect(x + 31, y + 20, 4, 6);
+        ctx.fillStyle = BASE;
+        ctx.fillRect(x + 1, y + 21, 3, 4);
+        ctx.fillRect(x + 32, y + 21, 3, 4);
+
+        // Body: outlined base
+        drawBlob(ctx, rows, BASE, OUTLINE);
+
+        // Helper to fill an offset oval (shading), clipped to the body rows
+        const shadeOval = (ox, oy, orx, ory, color) => {
+            ctx.fillStyle = color;
+            for (const [ry_, rx_, w] of rows) {
+                const yy = ry_ - (cyc + oy);
+                if (Math.abs(yy) > ory) continue;
+                let hw = Math.sqrt(Math.max(0, 1 - (yy * yy) / (ory * ory))) * orx;
+                const left = Math.max(rx_, Math.round(cx + ox - hw));
+                const right = Math.min(rx_ + w, Math.round(cx + ox + hw));
+                if (right > left) ctx.fillRect(left, ry_, right - left, 1);
+            }
+        };
+
+        // Top-left highlight and hot spot
+        shadeOval(-3, -3, 10, 10, LIGHT);
+        shadeOval(-5, -5, 5, 5, HI);
+        // Bottom-right shade
+        shadeOval(5, 6, 9, 8, SHADOW);
+
+        // Ridges (sell the "crisp")
+        ctx.fillStyle = SHADOW;
+        ctx.fillRect(cx - 7, cyc - 6, 1, 16);
+        ctx.fillRect(cx - 1, cyc - 9, 1, 20);
+        ctx.fillRect(cx + 5, cyc - 6, 1, 15);
+        ctx.fillStyle = HI;
+        ctx.fillRect(cx - 6, cyc - 6, 1, 14);
+        ctx.fillRect(cx, cyc - 8, 1, 17);
+
+        // Salt flecks
+        ctx.fillStyle = HI;
+        ctx.fillRect(cx - 9, cyc + 1, 1, 1);
+        ctx.fillRect(cx + 8, cyc - 2, 1, 1);
+        ctx.fillRect(cx + 2, cyc + 7, 1, 1);
+
+        // --- Face ---
+        if (dir === 'up') {
+            // Back of the crisp: just a cheeky cowlick, no face
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(cx - 1, cyc - 12, 2, 4);
+            ctx.fillRect(cx, cyc - 14, 2, 3);
+            return;
+        }
+
+        let lx = cx - 7, rxe = cx + 2, eyeY = cyc - 3;
+        let pupOff = 1; // pupil horizontal offset within eye
+        if (dir === 'left') { lx = cx - 8; rxe = cx + 1; pupOff = 0; }
+        else if (dir === 'right') { lx = cx - 5; rxe = cx + 4; pupOff = 2; }
+
+        const eye = (ex) => {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(ex, eyeY, 5, 6);
+            ctx.fillRect(ex - 1, eyeY + 1, 7, 4);
+            ctx.fillStyle = OUTLINE;            // pupil
+            ctx.fillRect(ex + pupOff + 1, eyeY + 1, 2, 4);
+            ctx.fillStyle = '#ffffff';          // glint
+            ctx.fillRect(ex + pupOff + 1, eyeY + 1, 1, 1);
+        };
+        eye(lx);
+        eye(rxe);
+
+        // Rosy cheeks
+        ctx.fillStyle = 'rgba(255,120,90,0.55)';
+        ctx.fillRect(lx - 1, eyeY + 6, 3, 2);
+        ctx.fillRect(rxe + 3, eyeY + 6, 3, 2);
+
+        // Smile
+        ctx.fillStyle = OUTLINE;
+        ctx.fillRect(cx - 3, cyc + 6, 6, 1);
+        ctx.fillRect(cx - 4, cyc + 5, 1, 1);
+        ctx.fillRect(cx + 3, cyc + 5, 1, 1);
     }
 }
 

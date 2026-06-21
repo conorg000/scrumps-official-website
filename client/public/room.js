@@ -179,62 +179,90 @@ class Room {
         });
     }
 
-    drawTree(ctx, x, y, width, height) {
-        const treeWidth = width * 48;
-        const treeHeight = height * 24;
-        
-        // Tree trunk
-        drawPixelRect(ctx, x + 36, y - 12, 24, 36, '#8b4513');
-        drawPixelRect(ctx, x + 54, y + 6, 6, 18, '#654321');
-        
-        // Tree canopy - large and lush
-        const leafColor = '#228b22';
-        const darkLeaf = '#006400';
-        const lightLeaf = '#32cd32';
-        
-        // Main canopy shape
-        drawPixelRect(ctx, x + 12, y - 60, 72, 48, leafColor);
-        drawPixelRect(ctx, x + 6, y - 48, 84, 36, leafColor);
-        drawPixelRect(ctx, x + 18, y - 72, 60, 24, leafColor);
-        
-        // Canopy highlights
-        drawPixelRect(ctx, x + 18, y - 66, 24, 18, lightLeaf);
-        drawPixelRect(ctx, x + 48, y - 54, 18, 12, lightLeaf);
-        drawPixelRect(ctx, x + 24, y - 42, 30, 15, lightLeaf);
-        
-        // Canopy shadows
-        drawPixelRect(ctx, x + 66, y - 48, 18, 36, darkLeaf);
-        drawPixelRect(ctx, x + 54, y - 36, 24, 24, darkLeaf);
-        drawPixelRect(ctx, x + 12, y - 30, 18, 18, darkLeaf);
-        
-        // Extra leafy details
-        drawPixelRect(ctx, x + 6, y - 54, 12, 12, leafColor);
-        drawPixelRect(ctx, x + 78, y - 42, 12, 12, leafColor);
-        drawPixelRect(ctx, x + 30, y - 78, 18, 12, leafColor);
-        drawPixelRect(ctx, x + 54, y - 75, 15, 9, leafColor);
+    // Pixel-art disc (integer scanlines) — building block for round foliage
+    _disc(ctx, cx, cy, r, color) {
+        ctx.fillStyle = color;
+        for (let yy = -r; yy <= r; yy++) {
+            const hw = Math.floor(Math.sqrt(Math.max(0, r * r - yy * yy)));
+            ctx.fillRect(Math.round(cx - hw), Math.round(cy + yy), hw * 2 + 1, 1);
+        }
     }
-    
+
+    drawTree(ctx, x, y, width, height) {
+        const OUTLINE = '#16331a';
+        const dark = '#2c6b2c';
+        const base = '#3f8f38';
+        const mid = '#5cb048';
+        const hi = '#8ad65f';
+        const barkOut = '#311e0d';
+        const bark = '#7a4a24';
+        const barkLo = '#5c3417';
+        const barkHi = '#9c6638';
+
+        const cxc = x + 48;     // canopy/trunk centre
+        const baseY = y + 26;   // ground line
+
+        drawContactShadow(ctx, cxc, baseY, 34, 8, 0.22);
+
+        // Trunk with bark shading + root flare
+        ctx.fillStyle = barkOut;
+        ctx.fillRect(cxc - 11, y - 8, 22, baseY - (y - 8));
+        ctx.fillRect(cxc - 16, baseY - 6, 32, 6); // roots
+        ctx.fillStyle = bark;
+        ctx.fillRect(cxc - 9, y - 7, 18, baseY - (y - 7) - 1);
+        ctx.fillStyle = barkHi;
+        ctx.fillRect(cxc - 8, y - 6, 4, baseY - (y - 6) - 2);
+        ctx.fillStyle = barkLo;
+        ctx.fillRect(cxc + 4, y - 4, 5, baseY - (y - 4) - 2);
+        ctx.fillStyle = barkOut; // bark lines + knot
+        ctx.fillRect(cxc - 2, y + 2, 1, 14);
+        ctx.fillRect(cxc - 5, baseY - 12, 4, 3);
+
+        // Canopy clumps: [dx, dy, r]
+        const clumps = [
+            [0, -30, 30], [-22, -22, 20], [22, -24, 22],
+            [-6, -46, 20], [-16, -8, 17], [16, -8, 17],
+        ];
+        // outline pass
+        clumps.forEach(([dx, dy, r]) => this._disc(ctx, cxc + dx, y + dy, r + 1, OUTLINE));
+        // base fill
+        clumps.forEach(([dx, dy, r]) => this._disc(ctx, cxc + dx, y + dy, r, base));
+        // dark underside (lower-right clumps)
+        this._disc(ctx, cxc + 16, y - 6, 14, dark);
+        this._disc(ctx, cxc + 22, y - 22, 16, dark);
+        // lit upper-left
+        [[0, -30, 22], [-22, -22, 14], [-6, -46, 14], [-16, -8, 11]].forEach(
+            ([dx, dy, r]) => this._disc(ctx, cxc + dx - 4, y + dy - 4, r, mid));
+        // highlights
+        [[-8, -38, 8], [-24, -26, 6], [-14, -12, 5]].forEach(
+            ([dx, dy, r]) => this._disc(ctx, cxc + dx, y + dy, r, hi));
+        // little leaf flecks
+        ctx.fillStyle = hi;
+        ctx.fillRect(cxc + 4, y - 30, 2, 2);
+        ctx.fillRect(cxc - 2, y - 20, 2, 2);
+    }
+
     drawBush(ctx, x, y) {
-        // Bush - smaller and rounder than tree
-        const leafColor = '#228b22';
-        const darkLeaf = '#006400';
-        const lightLeaf = '#32cd32';
-        
-        // Main bush shape
-        drawPixelRect(ctx, x + 6, y - 24, 36, 30, leafColor);
-        drawPixelRect(ctx, x + 12, y - 30, 24, 18, leafColor);
-        drawPixelRect(ctx, x + 3, y - 18, 42, 24, leafColor);
-        
-        // Bush highlights
-        drawPixelRect(ctx, x + 9, y - 27, 12, 9, lightLeaf);
-        drawPixelRect(ctx, x + 24, y - 21, 9, 6, lightLeaf);
-        
-        // Bush shadows
-        drawPixelRect(ctx, x + 33, y - 18, 12, 18, darkLeaf);
-        drawPixelRect(ctx, x + 27, y - 9, 15, 9, darkLeaf);
-        
-        // Small stems/twigs
-        drawPixelRect(ctx, x + 21, y - 6, 6, 12, '#8b4513');
+        const OUTLINE = '#16331a';
+        const dark = '#2c6b2c';
+        const base = '#3f8f38';
+        const mid = '#5cb048';
+        const hi = '#8ad65f';
+
+        const cxc = x + 24;
+        const baseY = y + 4;
+        drawContactShadow(ctx, cxc, baseY, 22, 6, 0.2);
+
+        const clumps = [[0, -10, 16], [-13, -6, 12], [13, -6, 12], [-2, -18, 12]];
+        clumps.forEach(([dx, dy, r]) => this._disc(ctx, cxc + dx, baseY + dy, r + 1, OUTLINE));
+        clumps.forEach(([dx, dy, r]) => this._disc(ctx, cxc + dx, baseY + dy, r, base));
+        // shade lower-right, light upper-left
+        this._disc(ctx, cxc + 13, baseY - 4, 9, dark);
+        [[0, -10, 11], [-13, -6, 8], [-2, -18, 8]].forEach(
+            ([dx, dy, r]) => this._disc(ctx, cxc + dx - 3, baseY + dy - 3, r, mid));
+        this._disc(ctx, cxc - 5, baseY - 14, 5, hi);
+        ctx.fillStyle = hi;
+        ctx.fillRect(cxc + 2, baseY - 9, 2, 2);
     }
     
     drawBoxingRing(ctx, x, y, width, height, furnitureData, offsetX, offsetY) {
@@ -429,52 +457,78 @@ class Room {
     }
     
     drawBoxingGloves(ctx, x, y) {
-        const main = '#dc2626';
-        const dark = '#991b1b';
-        const mid = '#b91c1c';
-        const lace = '#f4f4f4';
-        
-        // Shadow
-        drawPixelRect(ctx, x + 8, y + 4, 24, 3, COLORS.SHADOW);
-        
-        // Main glove body
-        drawPixelRect(ctx, x + 8, y - 10, 12, 10, main);       // Knuckles
-        drawPixelRect(ctx, x + 20, y - 8, 6, 8, main);         // Palm
-        drawPixelRect(ctx, x + 26, y - 6, 4, 6, dark);         // Wrist
-        
-        // Thumb bump
-        drawPixelRect(ctx, x + 12, y, 6, 4, main);
-        
-        // Highlight
-        drawPixelRect(ctx, x + 10, y - 8, 2, 2, mid);
-        
-        // Lace/cuff
-        drawPixelRect(ctx, x + 27, y - 2, 3, 1, lace);
+        const OUTLINE = '#5a0d0d';
+        const base = '#e03030';
+        const dark = '#a81d1d';
+        const hi = '#ff6a5a';
+        const cuff = '#f4f4f4';
+        const cuffSh = '#c8c8c8';
+
+        drawContactShadow(ctx, x + 18, y + 4, 17, 4, 0.26);
+
+        const glove = (gx, gy, scale) => {
+            const r = Math.round(8 * scale);
+            // mitt
+            this._disc(ctx, gx, gy, r + 1, OUTLINE);
+            this._disc(ctx, gx, gy, r, base);
+            // thumb
+            this._disc(ctx, gx - r + 1, gy + 2, Math.round(4 * scale) + 1, OUTLINE);
+            this._disc(ctx, gx - r + 1, gy + 2, Math.round(4 * scale), base);
+            // shading
+            this._disc(ctx, gx - 3, gy - 3, Math.round(4 * scale), hi);
+            this._disc(ctx, gx + 3, gy + 3, Math.round(3 * scale), dark);
+            // cuff
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(gx - r + 1, gy + r - 1, 2 * r - 1, 7);
+            ctx.fillStyle = cuff;
+            ctx.fillRect(gx - r + 2, gy + r, 2 * r - 3, 5);
+            ctx.fillStyle = cuffSh;
+            ctx.fillRect(gx - r + 2, gy + r + 3, 2 * r - 3, 2);
+            ctx.fillStyle = OUTLINE; // laces
+            ctx.fillRect(gx - 1, gy + r, 1, 5);
+            ctx.fillRect(gx - 3, gy + r + 1, 5, 1);
+        };
+        glove(x + 24, y - 4, 0.85); // back glove
+        glove(x + 13, y - 7, 1);    // front glove
     }
     
     drawTShirt(ctx, x, y) {
-        // T-shirt - casual shirt lying flat
-        const shirtColor = '#3b82f6';
-        const darkShirt = '#1e40af';
-        const neckColor = '#1f2937';
-        
-        // Main shirt body
-        drawPixelRect(ctx, x + 12, y - 16, 24, 20, shirtColor);
-        drawPixelRect(ctx, x + 8, y - 12, 32, 12, shirtColor);
-        
-        // Sleeves
-        drawPixelRect(ctx, x + 6, y - 14, 8, 8, shirtColor);
-        drawPixelRect(ctx, x + 34, y - 14, 8, 8, shirtColor);
-        
-        // Neck opening
-        drawPixelRect(ctx, x + 20, y - 18, 8, 6, neckColor);
-        
-        // Shirt shadows/folds
-        drawPixelRect(ctx, x + 32, y - 12, 4, 12, darkShirt);
-        drawPixelRect(ctx, x + 16, y - 4, 16, 3, darkShirt);
-        
-        // Shadow
-        drawPixelRect(ctx, x + 6, y + 2, 36, 3, COLORS.SHADOW);
+        // A Scrumps band tee, laid out flat
+        const OUTLINE = '#16306b';
+        const base = '#3b82f6';
+        const dark = '#1e4fb0';
+        const hi = '#7eb0ff';
+        const collar = '#13213b';
+
+        drawContactShadow(ctx, x + 22, y + 3, 20, 4, 0.22);
+
+        // Body + sleeves outline (draw bigger blocks in outline, fill inside)
+        ctx.fillStyle = OUTLINE;
+        ctx.fillRect(x + 11, y - 17, 26, 22);   // body
+        ctx.fillRect(x + 4, y - 15, 10, 11);     // left sleeve
+        ctx.fillRect(x + 34, y - 15, 10, 11);    // right sleeve
+        ctx.fillStyle = base;
+        ctx.fillRect(x + 12, y - 16, 24, 20);
+        ctx.fillRect(x + 5, y - 14, 9, 9);
+        ctx.fillRect(x + 35, y - 14, 9, 9);
+        // shading
+        ctx.fillStyle = hi;
+        ctx.fillRect(x + 14, y - 15, 4, 17);
+        ctx.fillStyle = dark;
+        ctx.fillRect(x + 31, y - 14, 5, 17);
+        ctx.fillRect(x + 14, y + 1, 22, 3);      // bottom fold
+        // collar
+        ctx.fillStyle = OUTLINE;
+        ctx.fillRect(x + 19, y - 17, 10, 5);
+        ctx.fillStyle = collar;
+        ctx.fillRect(x + 20, y - 16, 8, 3);
+        // tiny band logo: a golden crisp
+        ctx.fillStyle = '#ffd95c';
+        this._disc(ctx, x + 24, y - 7, 4, '#ffd95c');
+        ctx.fillStyle = '#5a3409';
+        ctx.fillRect(x + 22, y - 8, 1, 1);
+        ctx.fillRect(x + 25, y - 8, 1, 1);
+        ctx.fillRect(x + 23, y - 5, 2, 1);
     }
     
     drawGuitar(ctx, x, y) {

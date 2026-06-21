@@ -4,3 +4,6 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Generated sprite contact sheets from the art-preview harness
+tools/*.png

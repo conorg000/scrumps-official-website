@@ -951,51 +951,107 @@ if (typeof Game === "undefined") {
             const screenPos = isometricToScreen(companion.x, companion.y);
             const x = screenPos.x + offsetX - 10;
             const y = screenPos.y + offsetY - 20;
+            const dir = companion.direction;
 
-            // Shadow
-            drawPixelRect(ctx, x + 2, y + 18, 16, 4, 'rgba(0,0,0,0.3)');
+            const OUT = '#2a1133';
+            const suit = '#ff5a7a';
+            const suitDk = '#d6325a';
+            const suitHi = '#ff96ae';
+            const skin = '#ffd9b0';
+            const skinDk = '#e0ab84';
 
-            // Big clown shoes
-            drawPixelRect(ctx, x - 2, y + 14, 8, 4, '#FF0000');
-            drawPixelRect(ctx, x + 14, y + 14, 8, 4, '#FF0000');
+            drawContactShadow(ctx, x + 10, y + 19, 11, 3, 0.28);
 
-            // Body - colorful outfit
-            drawPixelRect(ctx, x + 4, y + 2, 12, 14, '#FF6B6B');
+            // Big floppy shoes
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x - 4, y + 13, 11, 6);
+            ctx.fillRect(x + 12, y + 13, 11, 6);
+            ctx.fillStyle = '#ffb31f';
+            ctx.fillRect(x - 3, y + 14, 9, 3);
+            ctx.fillRect(x + 13, y + 14, 9, 3);
 
-            // Polka dots
-            drawPixelRect(ctx, x + 6, y + 6, 3, 3, '#4ECDC4');
-            drawPixelRect(ctx, x + 11, y + 10, 3, 3, '#4ECDC4');
+            // Legs
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x + 5, y + 10, 4, 5);
+            ctx.fillRect(x + 11, y + 10, 4, 5);
+            ctx.fillStyle = suitDk;
+            ctx.fillRect(x + 6, y + 10, 2, 4);
+            ctx.fillRect(x + 12, y + 10, 2, 4);
+
+            // Body (round jumpsuit) with outline
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x + 2, y + 1, 16, 12);
+            ctx.fillStyle = suit;
+            ctx.fillRect(x + 3, y + 2, 14, 10);
+            ctx.fillStyle = suitHi;
+            ctx.fillRect(x + 4, y + 2, 4, 9);
+            ctx.fillStyle = suitDk;
+            ctx.fillRect(x + 13, y + 3, 3, 9);
+            // ruffle collar
+            ctx.fillStyle = '#fff2a8';
+            ctx.fillRect(x + 4, y, 12, 2);
+            // pom-pom buttons
+            ctx.fillStyle = '#4ecdc4';
+            ctx.fillRect(x + 9, y + 4, 2, 2);
+            ctx.fillRect(x + 9, y + 8, 2, 2);
+
+            // Arms
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x, y + 3, 4, 6);
+            ctx.fillRect(x + 16, y + 3, 4, 6);
+            ctx.fillStyle = suit;
+            ctx.fillRect(x + 1, y + 3, 2, 5);
+            ctx.fillRect(x + 17, y + 3, 2, 5);
+            ctx.fillStyle = '#fff2a8';
+            ctx.fillRect(x, y + 8, 4, 2);
+            ctx.fillRect(x + 16, y + 8, 4, 2);
 
             // Head
-            drawPixelRect(ctx, x + 5, y - 8, 10, 10, '#FFE4C4');
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x + 4, y - 9, 12, 11);
+            ctx.fillStyle = skin;
+            ctx.fillRect(x + 5, y - 8, 10, 9);
+            ctx.fillStyle = skinDk;
+            ctx.fillRect(x + 13, y - 6, 2, 6);
 
-            // Red nose (big!)
-            drawPixelRect(ctx, x + 8, y - 4, 4, 4, '#FF0000');
-
-            // Eyes - direction aware
-            if (companion.direction === 'left') {
-                drawPixelRect(ctx, x + 5, y - 6, 2, 2, '#000000');
-                drawPixelRect(ctx, x + 10, y - 6, 2, 2, '#000000');
-            } else if (companion.direction === 'right') {
-                drawPixelRect(ctx, x + 8, y - 6, 2, 2, '#000000');
-                drawPixelRect(ctx, x + 13, y - 6, 2, 2, '#000000');
-            } else {
-                drawPixelRect(ctx, x + 6, y - 6, 2, 2, '#000000');
-                drawPixelRect(ctx, x + 12, y - 6, 2, 2, '#000000');
-            }
-
-            // Smile
-            drawPixelRect(ctx, x + 7, y - 1, 6, 1, '#FF0000');
-
-            // Rainbow hair puffs
-            const hairColors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF'];
+            // Rainbow hair puffs (with outline)
+            const hairColors = ['#ff3b3b', '#ff9b1f', '#ffe14d', '#46d160', '#3aa0ff'];
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x + 2, y - 13, 16, 5);
             for (let i = 0; i < 5; i++) {
-                drawPixelRect(ctx, x + 3 + i * 3, y - 12, 3, 4, hairColors[i]);
+                ctx.fillStyle = hairColors[i];
+                ctx.fillRect(x + 3 + i * 3, y - 13, 3, 4);
             }
 
-            // Tiny hat
-            drawPixelRect(ctx, x + 7, y - 16, 6, 4, '#800080');
-            drawPixelRect(ctx, x + 8, y - 18, 4, 2, '#800080');
+            // Pointy hat
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x + 7, y - 19, 7, 7);
+            ctx.fillStyle = '#8a2be2';
+            ctx.fillRect(x + 8, y - 18, 5, 6);
+            ctx.fillStyle = '#c77dff';
+            ctx.fillRect(x + 8, y - 18, 2, 5);
+            ctx.fillStyle = '#ffe14d';
+            ctx.fillRect(x + 9, y - 21, 3, 3);
+
+            // Eyes (direction aware)
+            let ex = x + 6;
+            if (dir === 'left') ex = x + 5; else if (dir === 'right') ex = x + 8;
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(ex, y - 5, 2, 3);
+            ctx.fillRect(ex + 5, y - 5, 2, 3);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(ex, y - 5, 1, 1);
+            ctx.fillRect(ex + 5, y - 5, 1, 1);
+
+            // Big red nose + smile
+            ctx.fillStyle = OUT;
+            ctx.fillRect(x + 8, y - 3, 5, 4);
+            ctx.fillStyle = '#ff2f2f';
+            ctx.fillRect(x + 9, y - 3, 3, 3);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(x + 9, y - 3, 1, 1);
+            ctx.fillStyle = '#aa1133';
+            ctx.fillRect(x + 7, y, 6, 1);
         }
 
         drawHumunculousCompanion(ctx, companion, offsetX, offsetY) {
@@ -1152,70 +1208,99 @@ if (typeof Game === "undefined") {
             const x = screenPos.x + offsetX - 16;
             const y = screenPos.y + offsetY - 36;
 
-            const bodyColor = '#6B3A2A';
-            const bodyDark = '#4A2818';
-            const wattleRed = '#CC2222';
-            const wattleDark = '#991111';
-            const beakColor = '#DAA520';
-            const tailColor = '#8B4513';
-            const tailDark = '#5C2D0E';
-            const legColor = '#CC9900';
+            // Australian brush turkey: glossy black body, bald RED head, YELLOW wattle
+            const OUTLINE = '#0c0c12';
+            const bodyBase = '#23232b';
+            const bodyLit = '#3a3a46';
+            const bodyHi = '#55555f';
+            const redHead = '#d8241f';
+            const redDark = '#9c130f';
+            const redHi = '#ff5a44';
+            const wattle = '#ffd11a';
+            const wattleDark = '#d49a00';
+            const beakColor = '#2a2a30';
+            const legColor = '#e0a52a';
+            const legDark = '#9c6d12';
 
-            // Shadow
-            drawPixelRect(ctx, x + 4, y + 34, 24, 4, 'rgba(0,0,0,0.3)');
+            drawContactShadow(ctx, x + 16, y + 36, 16, 4, 0.3);
 
-            // Tail feathers - fanned out
-            drawPixelRect(ctx, x, y - 2, 6, 16, tailColor);
-            drawPixelRect(ctx, x - 2, y, 4, 12, tailDark);
-            drawPixelRect(ctx, x + 2, y - 4, 4, 8, tailColor);
-            drawPixelRect(ctx, x - 4, y + 2, 4, 8, tailColor);
-            drawPixelRect(ctx, x + 4, y - 6, 4, 6, tailDark);
+            // Fanned upright tail (behind body), with outline
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(x - 4, y + 2, 12, 20);
+            ctx.fillStyle = bodyBase;
+            for (let i = 0; i < 4; i++) {
+                ctx.fillRect(x - 3 + i * 3, y + 3 + i, 2, 18 - i);
+            }
+            ctx.fillStyle = bodyHi;
+            ctx.fillRect(x - 1, y + 5, 1, 14);
 
-            // Legs
-            drawPixelRect(ctx, x + 10, y + 28, 3, 8, legColor);
-            drawPixelRect(ctx, x + 20, y + 28, 3, 8, legColor);
-            // Feet/claws
-            drawPixelRect(ctx, x + 8, y + 34, 7, 2, legColor);
-            drawPixelRect(ctx, x + 18, y + 34, 7, 2, legColor);
+            // Legs + claws
+            ctx.fillStyle = legDark;
+            ctx.fillRect(x + 11, y + 26, 4, 10);
+            ctx.fillRect(x + 19, y + 26, 4, 10);
+            ctx.fillStyle = legColor;
+            ctx.fillRect(x + 12, y + 26, 2, 10);
+            ctx.fillRect(x + 20, y + 26, 2, 10);
+            ctx.fillStyle = legDark;
+            for (const fx of [9, 13, 17, 21, 25]) ctx.fillRect(x + fx, y + 35, 3, 2);
 
-            // Body - large round shape
-            drawPixelRect(ctx, x + 6, y + 8, 20, 20, bodyColor);
-            drawPixelRect(ctx, x + 4, y + 12, 24, 14, bodyColor);
-            drawPixelRect(ctx, x + 8, y + 6, 16, 4, bodyColor);
+            // Round body (outlined blob)
+            const bodyRows = [];
+            const bcx = x + 16, bcy = y + 16, brx = 13, bry = 12;
+            for (let yy = -bry; yy <= bry; yy++) {
+                let hw = Math.sqrt(Math.max(0, 1 - (yy * yy) / (bry * bry))) * brx;
+                const w = Math.round(hw * 2);
+                if (w <= 1) continue;
+                bodyRows.push([bcy + yy, Math.round(bcx - hw), w]);
+            }
+            drawBlob(ctx, bodyRows, bodyBase, OUTLINE);
+            // body sheen
+            ctx.fillStyle = bodyLit;
+            ctx.fillRect(x + 7, y + 9, 12, 5);
+            ctx.fillStyle = bodyHi;
+            ctx.fillRect(x + 9, y + 9, 7, 2);
+            // wing fold line
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(x + 8, y + 18, 16, 1);
 
-            // Body dark shading
-            drawPixelRect(ctx, x + 22, y + 14, 6, 10, bodyDark);
+            // Neck (black) sweeping up to head on the right
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(x + 20, y - 2, 9, 14);
+            ctx.fillStyle = bodyBase;
+            ctx.fillRect(x + 21, y - 1, 7, 12);
+            ctx.fillStyle = bodyHi;
+            ctx.fillRect(x + 22, y, 1, 9);
 
-            // Breast feathers lighter
-            drawPixelRect(ctx, x + 10, y + 16, 10, 10, '#7D4A38');
+            // Bald RED head
+            const hcx = x + 26, hcy = y - 5;
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(hcx - 6, hcy - 6, 13, 12);
+            ctx.fillStyle = redHead;
+            ctx.fillRect(hcx - 5, hcy - 5, 11, 10);
+            ctx.fillStyle = redHi;
+            ctx.fillRect(hcx - 4, hcy - 4, 4, 3);
+            ctx.fillStyle = redDark;
+            ctx.fillRect(hcx + 2, hcy + 1, 4, 4);
 
-            // Neck
-            drawPixelRect(ctx, x + 14, y, 6, 10, bodyColor);
-            drawPixelRect(ctx, x + 12, y + 2, 10, 6, bodyColor);
+            // Yellow wattle hanging from neck
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(x + 20, y + 6, 7, 12);
+            ctx.fillStyle = wattle;
+            ctx.fillRect(x + 21, y + 6, 5, 11);
+            ctx.fillStyle = wattleDark;
+            ctx.fillRect(x + 24, y + 9, 2, 7);
 
-            // Head
-            drawPixelRect(ctx, x + 12, y - 8, 10, 10, bodyColor);
-            drawPixelRect(ctx, x + 10, y - 6, 14, 8, bodyColor);
-
-            // Wattle - red hanging bit
-            drawPixelRect(ctx, x + 22, y - 6, 4, 8, wattleRed);
-            drawPixelRect(ctx, x + 24, y - 4, 3, 6, wattleDark);
-            drawPixelRect(ctx, x + 22, y + 0, 6, 4, wattleRed);
-
-            // Beak
-            drawPixelRect(ctx, x + 22, y - 4, 6, 3, beakColor);
-            drawPixelRect(ctx, x + 26, y - 3, 3, 2, beakColor);
-
-            // Eye - angry
-            drawPixelRect(ctx, x + 18, y - 4, 3, 3, '#FFFF00');
-            drawPixelRect(ctx, x + 19, y - 3, 1, 1, '#000000');
-
-            // Angry eyebrow
-            drawPixelRect(ctx, x + 17, y - 6, 5, 1, '#000000');
-
-            // Wing detail
-            drawPixelRect(ctx, x + 4, y + 12, 4, 10, bodyDark);
-            drawPixelRect(ctx, x + 6, y + 14, 2, 6, tailColor);
+            // Beak (pointing right) + angry eye + brow
+            ctx.fillStyle = OUTLINE;
+            ctx.fillRect(hcx + 5, hcy - 2, 6, 4);
+            ctx.fillStyle = beakColor;
+            ctx.fillRect(hcx + 5, hcy - 1, 5, 2);
+            ctx.fillStyle = '#ffd400';
+            ctx.fillRect(hcx, hcy - 2, 3, 3);
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(hcx + 1, hcy - 1, 2, 2);
+            ctx.fillStyle = OUTLINE; // angry brow
+            ctx.fillRect(hcx - 2, hcy - 4, 6, 2);
         }
 
         drawMrFeng(ctx, offsetX, offsetY) {

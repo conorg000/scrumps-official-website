@@ -50,6 +50,38 @@ if (typeof drawDitheredRect === 'undefined') {
     window.drawDitheredRect = drawDitheredRect;
 }
 
+// Soft elliptical contact shadow
+if (typeof drawContactShadow === 'undefined') {
+    function drawContactShadow(ctx, cx, cy, rx, ry, alpha) {
+        ctx.fillStyle = `rgba(0,0,0,${alpha == null ? 0.28 : alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(Math.floor(cx), Math.floor(cy), rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    window.drawContactShadow = drawContactShadow;
+}
+
+// Fill a silhouette described as horizontal scanlines [ [y, x, w], ... ] in a
+// single colour, with a 1px dark outline hugging the shape. Great for giving
+// procedural blobs a clean, readable pixel-art edge.
+if (typeof drawBlob === 'undefined') {
+    function drawBlob(ctx, rows, fill, outline) {
+        // outline pass: expand each row by 1px on every side
+        ctx.fillStyle = outline;
+        for (const [y, x, w] of rows) {
+            ctx.fillRect(x - 1, y, w + 2, 1);   // sides
+            ctx.fillRect(x, y - 1, w, 1);        // top cap
+            ctx.fillRect(x, y + 1, w, 1);        // bottom cap (cheap, overdrawn by fill)
+        }
+        // fill pass
+        ctx.fillStyle = fill;
+        for (const [y, x, w] of rows) {
+            ctx.fillRect(x, y, w, 1);
+        }
+    }
+    window.drawBlob = drawBlob;
+}
+
 if (typeof isometricToScreen === 'undefined') {
     function isometricToScreen(isoX, isoY) {
         const screenX = (isoX - isoY) * 24;

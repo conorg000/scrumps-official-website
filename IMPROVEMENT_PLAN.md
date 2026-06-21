@@ -40,9 +40,20 @@ A first, working slice across every phase (all builds clean; engine files pass `
 - **Combat & chase feel**: punch/dodge/KO SFX, crit hits, and screen shake when Adele catches
   you.
 - **UI skin** (`index.css`): pixel font, CRT scanlines, and shared animations.
+- **Procedural art overhaul (Route B)**: established one art philosophy — top-left light,
+  1px dark outlines, 3–4 tone shading ramps, soft contact shadows (shared helpers in
+  `utils.js`: `drawBlob`, `drawContactShadow`). Redrew the highest-impact assets: **Scrump**
+  (now a clearly-readable wavy crisp with a face, ridges and feet, all 4 directions), the
+  **bush turkey** (was nearly invisible → bold black/red/yellow brush turkey), the **tree**
+  and **bush** (blocky cubes → lush rounded foliage), the **Tiny Clown** companion, and the
+  **boxing gloves** + **band tee** props. Added `tools/` — a node-canvas harness that renders
+  every sprite to a PNG contact sheet so art can be iterated without a browser.
 
-Deferred (documented below, not yet built): the sprite-sheet art pipeline (no art assets
-yet), the `GameCanvas` interactables-registry refactor, and a deeper boxing timing rework.
+Deferred (documented, not yet built): the **sprite-sheet pipeline** (per the band's call);
+the **long tail of ~70 background room props** (downstairs band gear, living-room/bedroom
+furniture, rooftop dressing — they read fine but are still flat; the new harness makes a
+room-by-room pass fast); the `GameCanvas` interactables-registry refactor; and a deeper
+boxing timing rework.
 
 ---
 
