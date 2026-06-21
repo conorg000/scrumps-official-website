@@ -12,24 +12,32 @@ class Player {
         this.moveSpeed = 0.1;
         this.width = 36;
         this.height = 48;
+        this.animTime = 0;     // walk-cycle phase
+        this.landSquash = 0;   // squash impulse on arrival (0..1)
     }
 
     update() {
         if (this.isMoving) {
+            this.animTime += 0.35;
             const dx = this.targetX - this.x;
             const dy = this.targetY - this.y;
-            
+
             if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) {
                 this.x = this.targetX;
                 this.y = this.targetY;
                 this.gridX = this.targetX;
                 this.gridY = this.targetY;
                 this.isMoving = false;
+                this.landSquash = 1; // trigger landing squash
+                if (window.Effects) window.Effects.burstDust(this.x, this.y);
             } else {
                 this.x += dx * this.moveSpeed * 8;
                 this.y += dy * this.moveSpeed * 8;
             }
+        } else {
+            this.animTime = 0;
         }
+        if (this.landSquash > 0) this.landSquash = Math.max(0, this.landSquash - 0.12);
     }
 
     moveTo(newX, newY) {
@@ -58,7 +66,20 @@ class Player {
         const drawX = screenPos.x + offsetX - this.width / 2;
         const drawY = screenPos.y + offsetY - this.height + 8;
 
+        // Walk bob: gentle vertical hop while moving
+        const bob = this.isMoving ? -Math.abs(Math.sin(this.animTime)) * 4 : 0;
+        // Squash & stretch: wide+short on landing, slight stretch mid-stride
+        const sx = 1 + this.landSquash * 0.25 + (this.isMoving ? Math.sin(this.animTime) * 0.04 : 0);
+        const sy = 1 - this.landSquash * 0.22 + (this.isMoving ? Math.abs(Math.sin(this.animTime)) * 0.05 : 0);
+
+        ctx.save();
+        const pivotX = drawX + this.width / 2;
+        const pivotY = drawY + this.height;
+        ctx.translate(pivotX, pivotY + bob);
+        ctx.scale(sx, sy);
+        ctx.translate(-pivotX, -pivotY);
         this.drawBanana(ctx, drawX, drawY);
+        ctx.restore();
     }
 
     drawBanana(ctx, x, y) {

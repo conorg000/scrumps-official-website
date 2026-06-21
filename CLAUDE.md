@@ -44,11 +44,12 @@ The game is an isometric 2D pixel-art adventure. The core game engine is in vani
 Key game files:
 
 - `game.js` - Main game loop, camera system, scene management
-- `player.js` - Player entity (a crisp character named "Scrump")
+- `effects.js` - Game-feel layer: screen shake, particles, floating text, scene-transition flashes, and synthesized Web Audio SFX (exposed as `window.Effects` / `window.playSfx`)
+- `player.js` - Player entity (a crisp character named "Scrump") with walk bob + landing squash
 - `room.js` - Main backyard scene with furniture/objects
 - `downstairsRoom.js` - Downstairs room scene
 - `balcony.js` - Balcony scene
-- `controls.js` - Input handling
+- `controls.js` - Input handling (keyboard, plus tap/click-to-walk pathing)
 - `utils.js` - Isometric coordinate conversion, drawing utilities
 
 Game spaces terminology:

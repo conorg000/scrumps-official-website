@@ -15,6 +15,37 @@ highest-leverage work and it's woven through the phases below.
 
 ---
 
+## ✅ Shipped in this pass
+
+A first, working slice across every phase (all builds clean; engine files pass `node --check`):
+
+- **Game feel** (`client/public/effects.js`, new): screen shake, particle bursts (pickup
+  sparkles, footstep dust, confetti), floating combat/pickup text, scene-transition flashes,
+  and a full set of **synthesized Web-Audio SFX** (no asset files needed). Player now has a
+  walk bob + landing squash (`player.js`). A soft vignette and per-scene dusk/sunset color
+  grade were added to the render loop.
+- **Tap/click-to-walk** pathfinding (`controls.js` + a canvas pointer handler) on top of the
+  existing keyboard + joystick — a big mobile win.
+- **Interactable indicators**: bobbing chevrons + ground glow over nearby interactables.
+- **Title screen** (`TitleScreen.tsx`): logo, premise, social links, "Enter the Backyard"
+  gate that also satisfies audio autoplay.
+- **Band integration**: a **Jukebox** (`Jukebox.tsx`) where collected CDs unlock playable
+  tracks and all four reveal the full-EP streaming CTA; a **Band HQ** modal (`BandHub.tsx`)
+  with listen/shows/merch/follow links and an in-character mailing-list signup; persistent
+  launchers for both; a **share** button + Web-Share/clipboard at the ending; OG/Twitter
+  meta tags, description, theme color, and a crisp favicon (`index.html`). All links live in
+  one editable place: `client/src/bandConfig.ts`.
+- **Quest log** (`QuestLog.tsx`): derives the current objective + a progress checklist so
+  players never dead-end.
+- **Combat & chase feel**: punch/dodge/KO SFX, crit hits, and screen shake when Adele catches
+  you.
+- **UI skin** (`index.css`): pixel font, CRT scanlines, and shared animations.
+
+Deferred (documented below, not yet built): the sprite-sheet art pipeline (no art assets
+yet), the `GameCanvas` interactables-registry refactor, and a deeper boxing timing rework.
+
+---
+
 ## Phase 1 — "Juice": game feel (highest ratio of impact to effort)
 
 The mechanics work but feel flat. Add the polish that makes a 2D game feel alive. None of

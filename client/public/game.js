@@ -160,6 +160,7 @@ if (typeof Game === "undefined") {
             this.updateCamera();
             this.updateCompanions();
             this.updateAdele(deltaTime);
+            if (window.Effects) window.Effects.update(deltaTime);
 
             // Dialog is now handled by React component
         }
@@ -634,15 +635,19 @@ if (typeof Game === "undefined") {
             // Apply zoom scaling
             this.ctx.scale(this.zoom, this.zoom);
 
-            // Adjust camera position for zoom
-            const zoomedCameraX = this.cameraX / this.zoom;
-            const zoomedCameraY = this.cameraY / this.zoom;
+            // Adjust camera position for zoom, applying screen shake
+            const shake = window.Effects ? window.Effects.shakeOffset() : { x: 0, y: 0 };
+            const zoomedCameraX = this.cameraX / this.zoom + shake.x;
+            const zoomedCameraY = this.cameraY / this.zoom + shake.y;
 
             // Draw room
             this.room.draw(this.ctx, zoomedCameraX, zoomedCameraY);
 
             // Draw exit markers on the floor
             this.drawExitMarkers(this.ctx, zoomedCameraX, zoomedCameraY);
+
+            // Floating indicators over nearby interactables
+            this.drawInteractableIndicators(this.ctx, zoomedCameraX, zoomedCameraY);
 
             // Draw companions (behind player)
             this.drawCompanions(this.ctx, zoomedCameraX, zoomedCameraY);
@@ -665,10 +670,91 @@ if (typeof Game === "undefined") {
             // Draw player
             this.player.draw(this.ctx, zoomedCameraX, zoomedCameraY);
 
+            // World-space effects (particles, floating text)
+            if (window.Effects) window.Effects.drawWorld(this.ctx, zoomedCameraX, zoomedCameraY);
+
             // Restore context state
             this.ctx.restore();
 
+            // Screen-space post processing (ambient tint, vignette, transition flash)
+            this.drawAmbient();
+            this.drawVignette();
+            if (window.Effects) window.Effects.drawFlash(this.ctx, this.canvas.width, this.canvas.height);
+
             // Dialog is now handled by React component
+        }
+
+        // Per-scene color grade for mood (subtle multiply/overlay tint)
+        drawAmbient() {
+            const tints = {
+                upstairs: 'rgba(255,150,70,0.16)',   // dusk on the balcony
+                rooftop: 'rgba(255,110,90,0.20)',    // sunset on the roof
+                downstairs: 'rgba(40,40,90,0.22)',   // dim interior
+                bedroom: 'rgba(60,40,90,0.16)',
+                livingRoom: 'rgba(255,210,140,0.10)',
+            };
+            const tint = tints[this.currentScene];
+            if (!tint) return;
+            this.ctx.fillStyle = tint;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
+        // Soft vignette to focus the eye toward the centre
+        drawVignette() {
+            const w = this.canvas.width, h = this.canvas.height;
+            const g = this.ctx.createRadialGradient(
+                w / 2, h / 2, Math.min(w, h) * 0.35,
+                w / 2, h / 2, Math.max(w, h) * 0.75
+            );
+            g.addColorStop(0, 'rgba(0,0,0,0)');
+            g.addColorStop(1, 'rgba(0,0,0,0.35)');
+            this.ctx.fillStyle = g;
+            this.ctx.fillRect(0, 0, w, h);
+        }
+
+        // Bobbing chevron + glow over interactable furniture near the player
+        drawInteractableIndicators(ctx, offsetX, offsetY) {
+            if (this.frozen) return;
+            const interactable = {
+                mr_tibbles: 1, hollandia_can: 1, cd_item: 1, ladder: 1, tent: 1,
+                compost: 1, beer_pyramid: 1, tiny_clown: 1, xray: 1, kiddy_pool: 1,
+                guitar: 1, boxing_ring: 1, tree: 1, beer_bottle: 1, boxing_gloves: 1,
+            };
+            if (!this.room || !this.room.furniture) return;
+            const t = Date.now() * 0.005;
+            this.room.furniture.forEach(f => {
+                if (!interactable[f.type]) return;
+                const cx = f.x + (f.width || 1) / 2;
+                const cy = f.y + (f.height || 1) / 2;
+                const pdx = this.player.x - cx;
+                const pdy = this.player.y - cy;
+                if (Math.sqrt(pdx * pdx + pdy * pdy) > 2.6) return;
+
+                const pos = isometricToScreen(cx, cy);
+                const sx = pos.x + offsetX;
+                const baseY = pos.y + offsetY - 36 - (f.height || 1) * 6;
+                const bob = Math.sin(t + cx) * 3;
+
+                // Soft glow on the ground
+                ctx.globalAlpha = 0.25 + Math.sin(t * 1.4) * 0.08;
+                ctx.fillStyle = '#fff7b0';
+                ctx.beginPath();
+                ctx.ellipse(pos.x + offsetX, pos.y + offsetY, 16, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Down-chevron marker
+                const y = baseY + bob;
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(sx - 7, y - 1, 14, 14);
+                ctx.fillStyle = '#ffe14d';
+                ctx.beginPath();
+                ctx.moveTo(sx - 6, y);
+                ctx.lineTo(sx + 6, y);
+                ctx.lineTo(sx, y + 8);
+                ctx.closePath();
+                ctx.fill();
+            });
         }
 
         drawCompanions(ctx, offsetX, offsetY) {
@@ -1401,6 +1487,12 @@ if (typeof Game === "undefined") {
 
             // Update global room reference
             window.room = this.room;
+
+            // Transition feedback
+            if (window.Effects) {
+                window.Effects.flashIn('0,0,0');
+                window.Effects.sfx('whoosh');
+            }
         }
 
         // Dialog methods will be overridden by React component

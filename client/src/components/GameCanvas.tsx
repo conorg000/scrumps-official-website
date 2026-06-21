@@ -3,6 +3,11 @@ import { VirtualJoystick } from './VirtualJoystick';
 import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
 import { InventoryUI } from './InventoryUI';
+import { TitleScreen } from './TitleScreen';
+import { BandHub } from './BandHub';
+import { Jukebox } from './Jukebox';
+import { QuestLog } from './QuestLog';
+import { SHARE_TEXT } from '../bandConfig';
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -77,6 +82,53 @@ export const GameCanvas: React.FC = () => {
     imageSrc: '',
     imageTitle: ''
   });
+  const [hasStarted, setHasStarted] = useState(false);
+  const [showBandHub, setShowBandHub] = useState(false);
+  const [showJukebox, setShowJukebox] = useState(false);
+  const [shareMsg, setShareMsg] = useState('');
+
+  // Small helper: synthesized SFX + pickup burst at the player's tile
+  const pickupFx = (colors?: string[]) => {
+    const fx = (window as any).Effects;
+    const game = gameRef.current;
+    if (fx) {
+      fx.sfx('pickup');
+      if (game && game.player) fx.burstPickup(game.player.x, game.player.y, colors);
+    }
+  };
+
+  const handleStartExperience = () => {
+    setHasStarted(true);
+    const audio = audioRef.current;
+    if (audio && !audio.muted) audio.play().catch(() => {});
+    (window as any).Effects?.sfx('select');
+  };
+
+  // Keep the synthesized-SFX engine in sync with the mute preference
+  useEffect(() => {
+    const fx = (window as any).Effects;
+    if (fx) fx.muted = isMuted;
+  }, [isMuted, hasStarted, isLoading]);
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = { title: 'The Scrumps', text: SHARE_TEXT, url };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch {
+      /* user cancelled or unsupported — fall through to clipboard */
+    }
+    try {
+      await navigator.clipboard.writeText(`${SHARE_TEXT} ${url}`);
+      setShareMsg('Link copied!');
+      setTimeout(() => setShareMsg(''), 2000);
+    } catch {
+      setShareMsg(url);
+    }
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -132,7 +184,7 @@ export const GameCanvas: React.FC = () => {
       let gameReady = false;
       
       try {
-        const scripts = ['/utils.js', '/player.js', '/room.js', '/downstairsRoom.js', '/balcony.js', '/livingRoom.js', '/bedroom.js', '/frontPorch.js', '/rooftop.js', '/controls.js', '/game.js'];
+        const scripts = ['/utils.js', '/effects.js', '/player.js', '/room.js', '/downstairsRoom.js', '/balcony.js', '/livingRoom.js', '/bedroom.js', '/frontPorch.js', '/rooftop.js', '/controls.js', '/game.js'];
         
         // Load scripts one by one (actual loading happens fast)
         for (const script of scripts) {
@@ -185,6 +237,13 @@ export const GameCanvas: React.FC = () => {
             // Freeze the player in place
             if (gameRef.current) {
               gameRef.current.frozen = true;
+            }
+
+            // Impact feedback
+            const fx = (window as any).Effects;
+            if (fx) {
+              fx.shake(12, 400);
+              fx.sfx('hurt');
             }
 
             setLives(prev => {
@@ -551,6 +610,7 @@ export const GameCanvas: React.FC = () => {
 
   // Handle dialog continue - defined before the useEffect that uses it
   const handleDialogContinue = useCallback(() => {
+    (window as any).Effects?.sfx('blip');
     if (dialogState.currentTextIndex < dialogState.text.length - 1) {
       // More text to show, go to next
       setDialogState(prev => ({
@@ -646,6 +706,11 @@ export const GameCanvas: React.FC = () => {
           gameRef.current.mrFengVisible = true;
         }
         setGameEnded(true);
+        const fx = (window as any).Effects;
+        if (fx && gameRef.current?.player) {
+          fx.confetti(gameRef.current.player.x, gameRef.current.player.y);
+          fx.sfx('fanfare');
+        }
         currentSpeakerRef.current = null;
         return;
       }
@@ -871,6 +936,8 @@ export const GameCanvas: React.FC = () => {
     if (gameRef.current && gameRef.current.showDialog) {
       const newCount = hollandiaCount + 1;
       setHollandiaCount(newCount);
+      pickupFx(['#7ec8e3', '#ffffff', '#1b6ca8']);
+      (window as any).Effects?.floatText(gameRef.current.player.x, gameRef.current.player.y, '🍺 +1', '#7ec8e3');
 
       // Remove the can from furniture and persist removal
       const room = gameRef.current.room;
@@ -904,6 +971,9 @@ export const GameCanvas: React.FC = () => {
             setCollectedCDs(prev => [...prev, songName]);
             gameRef.current.removeItem(gameRef.current.currentScene, cd.type, cd.x, cd.y);
             room.furniture.splice(cdIndex, 1);
+            pickupFx(['#e040fb', '#ffffff', '#ffd740']);
+            (window as any).Effects?.floatText(gameRef.current.player.x, gameRef.current.player.y, `💿 ${songName}`, '#e040fb');
+            (window as any).Effects?.sfx('success');
 
             gameRef.current.showDialog("Scrump", [
               "*picks up CD*",
@@ -943,6 +1013,7 @@ export const GameCanvas: React.FC = () => {
           }
         }
         setHasLadder(true);
+        pickupFx(['#ffa726', '#ffe0b2', '#8d6e63']);
         gameRef.current.showDialog("Scrump", [
           "*picks up ladder*",
           "A sturdy wooden ladder!",
@@ -1108,8 +1179,10 @@ export const GameCanvas: React.FC = () => {
     const damage = Math.floor(Math.random() * 20) + 10;
     const newTurkeyHealth = Math.max(0, turkeyHealth - damage);
     setTurkeyHealth(newTurkeyHealth);
-    setBoxingMessage(`POW! ${damage} damage!`);
+    const crit = damage >= 25;
+    setBoxingMessage(crit ? `★ CRITICAL! ${damage} damage! ★` : `POW! ${damage} damage!`);
     setBoxingAnimation('punch');
+    (window as any).Effects?.sfx('punch');
     setTimeout(() => setBoxingAnimation(null), 300);
 
     // Turkey counter-attacks
@@ -1117,6 +1190,7 @@ export const GameCanvas: React.FC = () => {
       if (newTurkeyHealth > 0) {
         const counterDamage = Math.floor(Math.random() * 15) + 5;
         setBoxingAnimation('turkey_attack');
+        (window as any).Effects?.sfx('hurt');
         setTimeout(() => setBoxingAnimation(null), 300);
         setBoxingHealth(prev => {
           const newPlayerHealth = Math.max(0, prev - counterDamage);
@@ -1140,6 +1214,7 @@ export const GameCanvas: React.FC = () => {
     // Check for victory
     if (newTurkeyHealth <= 0) {
       setBoxingMessage("K.O.! YOU WIN!");
+      (window as any).Effects?.sfx('success');
       setBushTurkeyDefeated(true);
       setBoxingGameActive(false);
       // Remove bush turkey from backyard
@@ -1174,10 +1249,12 @@ export const GameCanvas: React.FC = () => {
     setBoxingAnimation('dodge');
     setTimeout(() => setBoxingAnimation(null), 300);
     if (Math.random() < 0.7) {
+      (window as any).Effects?.sfx('whoosh');
       setBoxingMessage("Dodged! Quick, counter-attack!");
     } else {
       const damage = Math.floor(Math.random() * 10) + 5;
       setBoxingHealth(prev => Math.max(0, prev - damage));
+      (window as any).Effects?.sfx('hurt');
       setBoxingMessage(`Dodge failed! ${damage} damage!`);
     }
   };
@@ -1214,6 +1291,7 @@ export const GameCanvas: React.FC = () => {
           }
         }
         setHasXray(true);
+        pickupFx(['#26c6da', '#b2ebf2', '#ffffff']);
         gameRef.current.showDialog("Scrump", [
           "*picks up x-ray*",
           "Whoa, this is an x-ray of a foot!",
@@ -1284,13 +1362,36 @@ export const GameCanvas: React.FC = () => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     localStorage.setItem('scrumps-sound-muted', String(newMuted));
-    
+
+    const fx = (window as any).Effects;
+    if (fx) fx.muted = newMuted;
+
     if (audioRef.current) {
       audioRef.current.muted = newMuted;
       if (!newMuted) {
         audioRef.current.play().catch(() => {});
       }
     }
+  };
+
+  // Tap/click a tile to walk there (mobile-friendly). Converts screen point to
+  // an isometric grid tile, accounting for camera position and zoom.
+  const handleCanvasTap = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const game = gameRef.current;
+    const canvas = canvasRef.current;
+    if (!game || !canvas || !game.controls) return;
+    if (boxingGameActive || poolJumpActive || dialogState.isVisible || gameOver || game.frozen) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const isoScreenX = (px - game.cameraX) / game.zoom;
+    const isoScreenY = (py - game.cameraY) / game.zoom;
+    const toIso = (window as any).screenToIsometric;
+    if (!toIso) return;
+    // Nudge down a little so the pick lands on the tile under the character's feet.
+    const tile = toIso(isoScreenX, isoScreenY + 14);
+    game.controls.setMoveTarget(tile.x, tile.y);
   };
 
   return (
@@ -1305,7 +1406,64 @@ export const GameCanvas: React.FC = () => {
       />
 
       {isLoading && <LoadingScreen progress={loadingProgress} />}
-      
+
+      {/* Title screen — gates entry, surfaces the band up front */}
+      {!hasStarted && <TitleScreen onStart={handleStartExperience} ready={!isLoading} />}
+
+      {/* Band HQ + Jukebox modals */}
+      {showBandHub && <BandHub onClose={() => setShowBandHub(false)} />}
+      {showJukebox && (
+        <Jukebox
+          collectedCDs={collectedCDs}
+          bgAudioRef={audioRef}
+          onClose={() => setShowJukebox(false)}
+        />
+      )}
+
+      {/* Persistent band-hub + jukebox launchers (bottom-right, out of the way) */}
+      {hasStarted && !isLoading && !gameOver && !boxingGameActive && !poolJumpActive && (
+        <div className="fixed bottom-4 right-4 z-[150] flex flex-col gap-2">
+          <button
+            onClick={() => { (window as any).Effects?.sfx('select'); setShowJukebox(true); }}
+            className="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-500 border-2 border-purple-300 text-xl shadow-lg hover:scale-110 transition-transform flex items-center justify-center relative"
+            title="Jukebox"
+          >
+            💿
+            {collectedCDs.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border border-black">
+                {collectedCDs.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { (window as any).Effects?.sfx('select'); setShowBandHub(true); }}
+            className="w-12 h-12 rounded-full bg-yellow-400 hover:bg-yellow-300 border-2 border-yellow-200 text-xl shadow-lg hover:scale-110 transition-transform flex items-center justify-center animate-glow"
+            title="The Scrumps — listen, shows, merch"
+          >
+            ♪
+          </button>
+        </div>
+      )}
+
+      {/* Quest log — current objective + progress */}
+      {hasStarted && !isLoading && !gameOver && !gameEnded && !boxingGameActive && !poolJumpActive && (
+        <QuestLog
+          mrTibblesJoined={mrTibblesJoined}
+          hasCompost={hasCompost}
+          possumFed={possumFed}
+          collectedCDs={collectedCDs.length}
+          hollandiaCount={hollandiaCount}
+          tinyClownJoined={tinyClownJoined}
+          hasXray={hasXray}
+          humunculousJoined={humunculousJoined}
+          hasLadder={hasLadder}
+          isChaseActive={isChaseActive}
+          hasJumpedToPool={hasJumpedToPool}
+          bushTurkeyDefeated={bushTurkeyDefeated}
+          gameEnded={gameEnded}
+        />
+      )}
+
       {/* Sound Toggle Button - Top Left */}
       {!isLoading && (
         <button
@@ -1330,6 +1488,7 @@ export const GameCanvas: React.FC = () => {
       
       <canvas
         ref={canvasRef}
+        onPointerDown={handleCanvasTap}
         className={`absolute top-0 left-0 w-full h-full bg-[#87ceeb] ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}
         style={{
           imageRendering: 'pixelated',
@@ -1881,20 +2040,37 @@ export const GameCanvas: React.FC = () => {
             <p className="text-xl text-green-400 font-mono mb-8">
               Thank you for playing!
             </p>
-            <div className="text-lg text-gray-400 font-mono">
-              🎵 Check out The Scrumps music! 🎵
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-8">
+              <button
+                onClick={() => { (window as any).Effects?.sfx('select'); setShowJukebox(true); }}
+                className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-purple-400 transition-all duration-200 hover:scale-105"
+              >
+                💿 LISTEN
+              </button>
+              <button
+                onClick={() => { (window as any).Effects?.sfx('select'); setShowBandHub(true); }}
+                className="bg-yellow-400 hover:bg-yellow-300 text-black px-6 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105"
+              >
+                ♪ BAND HQ
+              </button>
+              <button
+                onClick={handleShare}
+                className="bg-green-500 hover:bg-green-400 text-black px-6 py-3 rounded-lg font-mono text-base font-bold shadow-lg border-2 border-green-700 transition-all duration-200 hover:scale-105"
+              >
+                {shareMsg || '📣 SHARE'}
+              </button>
             </div>
             <button
               onClick={() => window.location.reload()}
-              className="mt-8 bg-yellow-500 hover:bg-yellow-400 text-black px-8 py-3 rounded-lg font-mono text-lg font-bold shadow-lg border-2 border-yellow-600 transition-all duration-200 hover:scale-105"
+              className="mt-6 text-gray-400 hover:text-white px-8 py-2 rounded-lg font-mono text-sm underline transition-colors"
             >
-              PLAY AGAIN
+              play again
             </button>
           </div>
         </div>
       )}
 
-      {!isLoading && (
+      {!isLoading && hasStarted && (
         <InventoryUI
           hollandiaCount={hollandiaCount}
           collectedCDs={collectedCDs}
@@ -1909,7 +2085,7 @@ export const GameCanvas: React.FC = () => {
         />
       )}
 
-      {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
+      {!isLoading && hasStarted && <VirtualJoystick onMove={handleJoystickMove} />}
       
       <DialogModal
         isVisible={dialogState.isVisible}

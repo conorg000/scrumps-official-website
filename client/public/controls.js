@@ -5,8 +5,49 @@ class Controls {
         this.keys = {};
         this.lastMoveTime = 0;
         this.moveDelay = 150; // Milliseconds between moves
-        
+        this.moveTarget = null; // tap-to-move destination tile
+
         this.setupKeyboardControls();
+    }
+
+    setMoveTarget(x, y) {
+        this.moveTarget = { x: Math.round(x), y: Math.round(y) };
+    }
+
+    isWalkable(x, y) {
+        if (x < 0 || x >= 20 || y < 0 || y >= 15) return false;
+        const room = window.room;
+        if (room && room.collisionMap && room.collisionMap[y]) {
+            return !room.collisionMap[y][x];
+        }
+        return true;
+    }
+
+    // Step one tile toward the tapped destination (4-directional, avoids walls)
+    handleAutoPath() {
+        if (!this.moveTarget || this.player.isMoving) return;
+        const tx = this.moveTarget.x, ty = this.moveTarget.y;
+        if (this.player.gridX === tx && this.player.gridY === ty) {
+            this.moveTarget = null;
+            return;
+        }
+        const dx = tx - this.player.gridX;
+        const dy = ty - this.player.gridY;
+        const steps = [];
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            if (dx !== 0) steps.push([this.player.gridX + Math.sign(dx), this.player.gridY]);
+            if (dy !== 0) steps.push([this.player.gridX, this.player.gridY + Math.sign(dy)]);
+        } else {
+            if (dy !== 0) steps.push([this.player.gridX, this.player.gridY + Math.sign(dy)]);
+            if (dx !== 0) steps.push([this.player.gridX + Math.sign(dx), this.player.gridY]);
+        }
+        for (const [nx, ny] of steps) {
+            if (this.isWalkable(nx, ny) && this.player.moveTo(nx, ny)) {
+                this.lastMoveTime = Date.now();
+                return;
+            }
+        }
+        this.moveTarget = null; // stuck — give up
     }
 
     setupKeyboardControls() {
@@ -53,6 +94,8 @@ class Controls {
             return;
         }
 
+        this.moveTarget = null; // manual input cancels tap-to-move
+
         let newX = this.player.gridX;
         let newY = this.player.gridY;
 
@@ -78,6 +121,7 @@ class Controls {
 
     update() {
         this.handleMovement();
+        this.handleAutoPath();
     }
 }
 
