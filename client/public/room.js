@@ -52,8 +52,9 @@ class Room {
         // CD hidden by tree - House of Peterson (collectible)
         this.addFurniture({ x: 2, y: 2, width: 1, height: 1, type: 'cd_item', songName: 'House of Peterson', noCollision: true });
 
-        // Ladder leaning against fence (collectible for roof access later)
-        this.addFurniture({ x: 18, y: 12, width: 1, height: 2, type: 'ladder' });
+        // Ladder leaning against the side fence (collectible for roof access later).
+        // Kept clear of the back-right corner, which the house staircase occupies.
+        this.addFurniture({ x: 0, y: 6, width: 1, height: 2, type: 'ladder' });
     }
 
     addFurniture(furniture) {

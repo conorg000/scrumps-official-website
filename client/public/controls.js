@@ -5,7 +5,9 @@ class Controls {
         this.keys = {};
         this.lastMoveTime = 0;
         this.moveDelay = 150; // Milliseconds between moves
-        
+        // Turned off while a 3D POV renderer is driving the player directly
+        this.enabled = true;
+
         this.setupKeyboardControls();
     }
 
@@ -31,6 +33,8 @@ class Controls {
     }
 
     handleMovement() {
+        if (!this.enabled) return;
+
         const currentTime = Date.now();
         if (currentTime - this.lastMoveTime < this.moveDelay) {
             return;
@@ -48,6 +52,8 @@ class Controls {
     }
 
     movePlayer(direction) {
+        if (!this.enabled) return;
+
         const currentTime = Date.now();
         if (currentTime - this.lastMoveTime < this.moveDelay) {
             return;

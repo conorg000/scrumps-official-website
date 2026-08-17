@@ -55,8 +55,10 @@ if (typeof Game === "undefined") {
             // Exit markers for each scene
             this.exitMarkers = {
                 mainRoom: [
+                    // The back door of the house, centred on the far wall
                     { x: 10, y: 14, label: 'Downstairs', direction: 'down' },
-                    { x: 19, y: 7, label: 'Upstairs', direction: 'right' }
+                    // Foot of the concrete staircase up the left-hand end
+                    { x: 18, y: 10, label: 'Upstairs', direction: 'right' }
                 ],
                 downstairs: [
                     { x: 10, y: 0, label: 'Backyard', direction: 'up' }
@@ -87,6 +89,10 @@ if (typeof Game === "undefined") {
             this.mrFengVisible = false;
             this.onAdeleCaught = null;
             this.frozen = false;
+
+            // When a 3D POV renderer owns the current scene it drives the player
+            // itself, so the isometric movement tween and 2D draw both stand down.
+            this.use3D = false;
 
             // Start dialog after a brief delay to ensure game is visible
             setTimeout(() => {
@@ -153,11 +159,13 @@ if (typeof Game === "undefined") {
         }
 
         update(deltaTime) {
-            if (!this.frozen) {
+            if (!this.frozen && !this.use3D) {
                 this.controls.update();
                 this.player.update();
             }
-            this.updateCamera();
+            if (!this.use3D) {
+                this.updateCamera();
+            }
             this.updateCompanions();
             this.updateAdele(deltaTime);
 
@@ -615,6 +623,9 @@ if (typeof Game === "undefined") {
         }
 
         draw() {
+            // The 3D renderer paints its own canvas for scenes it has taken over
+            if (this.use3D) return;
+
             // Only draw sky and clouds for main room
             if (this.currentScene === "mainRoom") {
                 // Clear canvas with baby blue sky
@@ -1398,6 +1409,12 @@ if (typeof Game === "undefined") {
             for (let i = 0; i < 20; i++) {
                 this.companionHistory.push({ x: this.player.x, y: this.player.y });
             }
+
+            // Snap the isometric camera onto the new player position so scenes
+            // handed back from the 3D renderer do not slide into place.
+            const startScreenPos = isometricToScreen(this.player.x, this.player.y);
+            this.cameraX = this.canvas.width / 2 - startScreenPos.x * this.zoom;
+            this.cameraY = this.canvas.height / 2 - startScreenPos.y * this.zoom;
 
             // Update global room reference
             window.room = this.room;

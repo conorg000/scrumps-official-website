@@ -3,6 +3,11 @@ import { VirtualJoystick } from './VirtualJoystick';
 import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
 import { InventoryUI } from './InventoryUI';
+import { PovStage } from './PovStage';
+import type { DPadDirection } from '../game3d/PovEngine';
+
+/** Scenes that have been converted to the first-person 3D renderer. */
+const POV_SCENES = ['mainRoom'];
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -14,6 +19,9 @@ export const GameCanvas: React.FC = () => {
   
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  // Mirrors gameRef.current.currentScene so React can swap renderers on it
+  const [currentScene, setCurrentScene] = useState('mainRoom');
+  const [isGameReady, setIsGameReady] = useState(false);
   const [isMuted, setIsMuted] = useState(() => {
     const saved = localStorage.getItem('scrumps-sound-muted');
     return saved === 'true';
@@ -216,8 +224,9 @@ export const GameCanvas: React.FC = () => {
           gameRef.current.ctx = canvas.getContext('2d');
           gameRef.current.ctx.imageSmoothingEnabled = false;
           gameRef.current.resizeCanvas();
-          
+
           gameReady = true;
+          setIsGameReady(true);
         }
         
         // Animate progress over minimum loading time regardless of actual load speed
@@ -409,6 +418,10 @@ export const GameCanvas: React.FC = () => {
       const scene = gameRef.current?.currentScene;
       const exitMarkers = gameRef.current?.exitMarkers;
       if (!player || !scene || !exitMarkers) return;
+
+      // Keep React in step with which scene the vanilla engine is showing, so
+      // the 3D renderer can take over the scenes that have been converted.
+      setCurrentScene(scene);
 
       const px = player.x;
       const py = player.y;
@@ -1293,6 +1306,12 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  const isPovScene = POV_SCENES.includes(currentScene);
+  // The POV camera holds still whenever a modal, cutscene or mini-game is up
+  const povPaused =
+    dialogState.isVisible || boxingGameActive || poolJumpActive || gameOver || gameEnded;
+  const povDpad = joystickDirection as DPadDirection;
+
   return (
     <div className="relative w-full h-full">
       {/* Background Music Audio Element */}
@@ -1330,7 +1349,7 @@ export const GameCanvas: React.FC = () => {
       
       <canvas
         ref={canvasRef}
-        className={`absolute top-0 left-0 w-full h-full bg-[#87ceeb] ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}
+        className={`absolute top-0 left-0 w-full h-full bg-[#87ceeb] ${isLoading || isPovScene ? 'opacity-0' : 'opacity-100'} transition-opacity duration-500`}
         style={{
           imageRendering: 'pixelated',
           touchAction: 'none',
@@ -1339,6 +1358,16 @@ export const GameCanvas: React.FC = () => {
           WebkitTouchCallout: 'none'
         }}
       />
+
+      {/* First-person renderer for the scenes that have been converted */}
+      {isGameReady && (
+        <PovStage
+          game={gameRef.current}
+          active={isPovScene && !isLoading}
+          paused={povPaused}
+          dpad={povDpad}
+        />
+      )}
       
       {/* Examine Boxing Ring Button (only when not in fight mode) */}
       {!isLoading && !dialogState.isVisible && nearBoxingRing && gameRef.current?.currentScene === 'mainRoom' && !hasJumpedToPool && (
