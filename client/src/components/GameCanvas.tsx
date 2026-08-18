@@ -7,7 +7,7 @@ import { PovStage } from './PovStage';
 import type { DPadDirection } from '../game3d/PovEngine';
 
 /** Scenes that have been converted to the first-person 3D renderer. */
-const POV_SCENES = ['mainRoom'];
+const POV_SCENES = ['mainRoom', 'downstairs'];
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);

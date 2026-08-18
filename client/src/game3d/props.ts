@@ -67,6 +67,40 @@ function noisyBlob(radius: number, detail: number, amount: number, seed: number)
 }
 
 /**
+ * Rescale a box's UVs from the default 0..1-per-face to world units.
+ *
+ * Without this the same texture is stretched across a 40-unit wall and squashed
+ * onto a 0.3-unit mullion, which reads as smeared marble rather than concrete.
+ * BoxGeometry lays its 24 vertices out as +x, -x, +y, -y, +z, -z, so each face's
+ * two in-plane dimensions are known. `density` is texture tiles per world unit.
+ */
+export function applyWorldUVs(
+  geometry: THREE.BoxGeometry,
+  w: number,
+  h: number,
+  d: number,
+  density: number,
+): void {
+  const uv = geometry.attributes.uv as THREE.BufferAttribute;
+  // Per face pair: the world extents that u and v run along
+  const spans: [number, number][] = [
+    [d, h], // +x
+    [d, h], // -x
+    [w, d], // +y
+    [w, d], // -y
+    [w, h], // +z
+    [w, h], // -z
+  ];
+
+  spans.forEach(([spanU, spanV], face) => {
+    for (let i = face * 4; i < face * 4 + 4; i++) {
+      uv.setXY(i, uv.getX(i) * spanU * density, uv.getY(i) * spanV * density);
+    }
+  });
+  uv.needsUpdate = true;
+}
+
+/**
  * Position and orient a y-axis mesh (cylinder, or a box built tall) so it spans
  * exactly from `from` to `to`. Much easier to reason about than hand-derived
  * Euler angles, and it cannot pick the mirrored solution by accident.
@@ -767,16 +801,18 @@ export function buildCD(songName: string): { group: THREE.Group; animated: Anima
   artBack.rotation.y = Math.PI;
   pivot.add(artBack);
 
-  // The disc itself, peeking out of the case
+  // The disc itself, peeking out of the case. Iridescence lives on
+  // MeshPhysicalMaterial, not MeshStandardMaterial — setting it on the latter
+  // just warns and does nothing.
   const disc = new THREE.Mesh(
     new THREE.CylinderGeometry(0.26, 0.26, 0.012, 40),
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshPhysicalMaterial({
       color: 0xdfe6ef,
       roughness: 0.06,
       metalness: 1.0,
       iridescence: 1.0,
       iridescenceIOR: 1.8,
-    } as THREE.MeshStandardMaterialParameters),
+    }),
   );
   disc.rotation.x = Math.PI / 2;
   disc.position.set(0.28, 0, 0);

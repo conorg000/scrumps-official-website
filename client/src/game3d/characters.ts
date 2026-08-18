@@ -495,3 +495,281 @@ export function buildMrFeng(): Character {
     },
   };
 }
+
+/**
+ * Adele, the property manager. Navy suit, brown bob, clipboard, and an
+ * expression that has already decided against you.
+ *
+ * She patrols every room downstairs and up, so both POV scenes can build her;
+ * PovScene only does so the first time she is actually seen.
+ */
+export function buildAdele(): Character {
+  const group = new THREE.Group();
+  const root = new THREE.Group();
+  group.add(root);
+
+  const suit = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.78 });
+  const suitDark = new THREE.MeshStandardMaterial({ color: 0x0f0f1a, roughness: 0.8 });
+  const blouse = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.85 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xf5cba7, roughness: 0.72 });
+  const hair = new THREE.MeshStandardMaterial({ color: 0x5c3317, roughness: 0.85 });
+
+  // Legs and sensible shoes
+  const legs: THREE.Mesh[] = [];
+  [-0.16, 0.16].forEach((x) => {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.62, 6, 10), suit);
+    leg.position.set(x, 0.46, 0);
+    leg.castShadow = true;
+    root.add(leg);
+    legs.push(leg);
+
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.11, 0.34), suitDark);
+    shoe.position.set(x, 0.06, 0.06);
+    shoe.castShadow = true;
+    root.add(shoe);
+  });
+
+  // Jacket, cut square at the shoulders
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.78, 0.36), suit);
+  torso.position.y = 1.2;
+  torso.castShadow = true;
+  root.add(torso);
+
+  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.74, 0.16, 0.4), suit);
+  shoulders.position.y = 1.55;
+  shoulders.castShadow = true;
+  root.add(shoulders);
+
+  // White blouse showing through the lapels
+  const collar = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.44, 0.06), blouse);
+  collar.position.set(0, 1.34, 0.19);
+  root.add(collar);
+
+  [-0.16, 0.16].forEach((x) => {
+    const lapel = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.42, 0.06), suitDark);
+    lapel.position.set(x, 1.36, 0.19);
+    lapel.rotation.z = x > 0 ? -0.16 : 0.16;
+    root.add(lapel);
+  });
+
+  // Arms. The right one holds the clipboard out in front of her.
+  const arms: THREE.Group[] = [];
+  [-1, 1].forEach((side) => {
+    const arm = new THREE.Group();
+    const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.56, 6, 10), suit);
+    sleeve.position.y = -0.34;
+    sleeve.castShadow = true;
+    arm.add(sleeve);
+
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), skin);
+    hand.position.y = -0.66;
+    arm.add(hand);
+
+    arm.position.set(side * 0.38, 1.5, 0);
+    arm.rotation.x = side > 0 ? -0.85 : -0.1;
+    root.add(arm);
+    arms.push(arm);
+  });
+
+  const clipboard = new THREE.Mesh(
+    new THREE.BoxGeometry(0.42, 0.54, 0.04),
+    new THREE.MeshStandardMaterial({ color: 0xc4a35a, roughness: 0.7 }),
+  );
+  clipboard.position.set(0.34, 1.02, 0.5);
+  clipboard.rotation.set(-1.1, 0, 0.1);
+  clipboard.castShadow = true;
+  root.add(clipboard);
+
+  const paper = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.32, 0.42),
+    new THREE.MeshStandardMaterial({ color: 0xfdfdf8, roughness: 0.9 }),
+  );
+  paper.position.z = 0.025;
+  clipboard.add(paper);
+
+  const clip = new THREE.Mesh(
+    new THREE.BoxGeometry(0.16, 0.05, 0.05),
+    new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.35, metalness: 0.8 }),
+  );
+  clip.position.set(0, 0.24, 0.04);
+  clipboard.add(clip);
+
+  // Head
+  const head = new THREE.Group();
+  head.position.y = 1.78;
+  root.add(head);
+
+  const face = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.46, 0.4), skin);
+  face.castShadow = true;
+  head.add(face);
+
+  // Brown business bob: a shell around the back and sides, fringe at the front
+  const bob = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 14), hair);
+  bob.scale.set(1.05, 0.95, 1.05);
+  bob.position.set(0, 0.07, -0.03);
+  head.add(bob);
+
+  [-1, 1].forEach((side) => {
+    const side_ = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.36, 0.36), hair);
+    side_.position.set(side * 0.22, -0.05, -0.02);
+    head.add(side_);
+  });
+
+  const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.12, 0.1), hair);
+  fringe.position.set(0, 0.19, 0.17);
+  head.add(fringe);
+
+  addEyes(head, 0.11, 0.03, 0.21, 0.045);
+
+  // Narrowed eyes: a brow bar low over each one does the whole expression
+  [-0.11, 0.11].forEach((x) => {
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.03, 0.03), hair);
+    brow.position.set(x, 0.12, 0.21);
+    brow.rotation.z = x > 0 ? 0.32 : -0.32;
+    head.add(brow);
+  });
+
+  const mouth = new THREE.Mesh(
+    new THREE.BoxGeometry(0.14, 0.02, 0.02),
+    new THREE.MeshStandardMaterial({ color: 0x8a4a4a, roughness: 0.7 }),
+  );
+  mouth.position.set(0, -0.13, 0.21);
+  head.add(mouth);
+
+  const flat = new THREE.Vector3();
+  let stride = 0;
+  const lastPos = new THREE.Vector3();
+
+  return {
+    group,
+    update(time, delta, playerPos) {
+      // Face the player. She is always either walking toward you or judging you.
+      flat.set(playerPos.x - group.position.x, 0, playerPos.z - group.position.z);
+      if (flat.lengthSq() > 0.0001) {
+        const targetY = Math.atan2(flat.x, flat.z);
+        root.rotation.y += THREE.MathUtils.clamp(
+          Math.atan2(Math.sin(targetY - root.rotation.y), Math.cos(targetY - root.rotation.y)),
+          -0.09,
+          0.09,
+        );
+      }
+
+      // Stride only advances while she is actually covering ground, so she does
+      // not moonwalk on the spot between patrol waypoints.
+      const moved = lastPos.distanceTo(group.position);
+      lastPos.copy(group.position);
+      stride += Math.min(moved, 0.4) * 7;
+
+      const swing = Math.sin(stride);
+      legs[0].rotation.x = swing * 0.6;
+      legs[1].rotation.x = -swing * 0.6;
+      arms[1].rotation.x = -0.85 + Math.sin(time * 2.4) * 0.05;
+      arms[0].rotation.x = -0.1 - swing * 0.35;
+      root.position.y = Math.abs(Math.sin(stride)) * 0.03;
+      head.rotation.z = Math.sin(time * 0.8) * 0.03;
+    },
+  };
+}
+
+/**
+ * The possum living in the tent downstairs. A brushtail: grey, enormous ears,
+ * black eyes, entirely unbothered.
+ */
+export function buildPossum(): Character {
+  const group = new THREE.Group();
+  const root = new THREE.Group();
+  group.add(root);
+
+  const fur = new THREE.MeshStandardMaterial({ color: 0x8d8577, roughness: 0.95 });
+  const furLight = new THREE.MeshStandardMaterial({ color: 0xc0b5a0, roughness: 0.95 });
+  const earPink = new THREE.MeshStandardMaterial({ color: 0xe0a0a8, roughness: 0.8 });
+  const nose = new THREE.MeshStandardMaterial({ color: 0xf1b7c4, roughness: 0.6 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 14), fur);
+  body.scale.set(1, 0.86, 1.25);
+  body.position.set(0, 0.3, -0.14);
+  body.castShadow = true;
+  root.add(body);
+
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), furLight);
+  belly.scale.set(1, 0.8, 1.15);
+  belly.position.set(0, 0.22, 0.02);
+  root.add(belly);
+
+  const head = new THREE.Group();
+  head.position.set(0, 0.5, 0.2);
+  root.add(head);
+
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 14), fur);
+  skull.scale.set(1, 0.95, 1.05);
+  skull.castShadow = true;
+  head.add(skull);
+
+  const snout = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.24, 12), furLight);
+  snout.rotation.x = Math.PI / 2;
+  snout.position.set(0, -0.04, 0.2);
+  head.add(snout);
+
+  const snoutTip = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), nose);
+  snoutTip.position.set(0, -0.04, 0.31);
+  head.add(snoutTip);
+
+  // The ears are the whole character. Comically large, thin, pink inside.
+  const ears: THREE.Group[] = [];
+  [-1, 1].forEach((side) => {
+    const ear = new THREE.Group();
+    const outer = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), fur);
+    outer.scale.set(0.45, 1.25, 1);
+    ear.add(outer);
+
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), earPink);
+    inner.scale.set(0.3, 1.2, 0.95);
+    inner.position.x = side * 0.03;
+    ear.add(inner);
+
+    ear.position.set(side * 0.17, 0.22, -0.02);
+    ear.rotation.z = side * 0.3;
+    head.add(ear);
+    ears.push(ear);
+  });
+
+  addEyes(head, 0.1, 0.03, 0.17, 0.055);
+
+  // Bushy tail, curled around
+  const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.42, 6, 10), fur);
+  tail.rotation.x = 0.9;
+  tail.position.set(0.14, 0.24, -0.44);
+  tail.castShadow = true;
+  root.add(tail);
+
+  // Front paws, folded over the lip of the tent
+  [-0.16, 0.16].forEach((x) => {
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), furLight);
+    paw.position.set(x, 0.16, 0.28);
+    root.add(paw);
+  });
+
+  const flat = new THREE.Vector3();
+
+  return {
+    group,
+    update(time, _delta, playerPos) {
+      flat.set(playerPos.x - group.position.x, 0, playerPos.z - group.position.z);
+      if (flat.lengthSq() > 0.0001) {
+        // Measured against whichever way the tent has been turned, so he tracks
+        // the player rather than a direction in his own local space.
+        const targetY = Math.atan2(flat.x, flat.z) - group.rotation.y;
+        // Only swivels within a narrow arc — he is not leaving the tent for you
+        const delta = Math.atan2(Math.sin(targetY), Math.cos(targetY));
+        head.rotation.y = THREE.MathUtils.clamp(delta, -0.7, 0.7);
+      }
+
+      // Breathing, plus the odd ear twitch
+      root.position.y = Math.sin(time * 1.8) * 0.014;
+      const twitch = Math.sin(time * 0.7) > 0.97 ? Math.sin(time * 40) * 0.18 : 0;
+      ears.forEach((ear, i) => {
+        ear.rotation.x = twitch * (i === 0 ? 1 : -1);
+      });
+    },
+  };
+}

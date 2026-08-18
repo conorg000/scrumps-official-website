@@ -409,6 +409,394 @@ function build_createCDArtTexture(songName: string): THREE.Texture {
   return finish(canvas, 1);
 }
 
+// ---------------------------------------------------------------- downstairs
+//
+// The converted garage is lit almost entirely by lamps and a doorway, so these
+// maps are drawn several stops darker than the outdoor set. Anything painted
+// mid-grey up here would read as white once a warm point light lands on it.
+
+/** Painted garage slab: patched, stained, saw-cut joints, spilled paint. */
+function build_createSlabTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(4404);
+
+  ctx.fillStyle = '#5a564e';
+  ctx.fillRect(0, 0, size, size);
+
+  // Broad patches where the slab was poured, ground back or re-sealed
+  for (let i = 0; i < 90; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(108,102,92,0.16)' : 'rgba(58,54,48,0.18)';
+    ctx.beginPath();
+    ctx.arc(rand() * size, rand() * size, 20 + rand() * 90, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Aggregate speckle, the same trick the outdoor concrete uses
+  for (let i = 0; i < 34000; i++) {
+    ctx.fillStyle =
+      rand() > 0.45 ? `rgba(40,37,33,${rand() * 0.3})` : `rgba(150,144,132,${rand() * 0.22})`;
+    ctx.fillRect(rand() * size, rand() * size, 1, 1);
+  }
+
+  // Saw-cut control joints on a grid, the giveaway that this is a slab
+  ctx.strokeStyle = 'rgba(26,24,21,0.55)';
+  ctx.lineWidth = 3;
+  [size / 2].forEach((p) => {
+    ctx.beginPath();
+    ctx.moveTo(p, 0);
+    ctx.lineTo(p, size);
+    ctx.moveTo(0, p);
+    ctx.lineTo(size, p);
+    ctx.stroke();
+  });
+
+  // Hairline cracks wandering off the joints
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(30,28,25,0.5)';
+  for (let i = 0; i < 14; i++) {
+    let x = rand() * size;
+    let y = rand() * size;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    for (let step = 0; step < 12; step++) {
+      x += (rand() - 0.5) * 44;
+      y += (rand() - 0.5) * 44;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Oil stains, and paint the last tenants never cleaned up
+  for (let i = 0; i < 5; i++) {
+    const g = ctx.createRadialGradient(
+      rand() * size,
+      rand() * size,
+      2,
+      rand() * size,
+      rand() * size,
+      30 + rand() * 60,
+    );
+    g.addColorStop(0, 'rgba(18,16,20,0.45)');
+    g.addColorStop(1, 'rgba(18,16,20,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  const splats = ['#c8442e', '#2f7fa8', '#d8a72c', '#7a3f9c'];
+  for (let i = 0; i < 40; i++) {
+    ctx.fillStyle = splats[Math.floor(rand() * splats.length)];
+    ctx.globalAlpha = 0.1 + rand() * 0.25;
+    ctx.beginPath();
+    ctx.ellipse(
+      rand() * size,
+      rand() * size,
+      2 + rand() * 9,
+      2 + rand() * 6,
+      rand() * Math.PI,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  return finish(canvas, 1);
+}
+
+/** Painted besser block: coursed rectangles with recessed mortar joints. */
+function build_createBesserTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(8181);
+
+  // Four courses of two blocks, so the map tiles seamlessly in both directions
+  const rows = 4;
+  const cols = 2;
+  const blockH = size / rows;
+  const blockW = size / cols;
+
+  ctx.fillStyle = '#2e2b28';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let row = 0; row < rows; row++) {
+    // Alternate courses are offset half a block, like real blockwork
+    const offset = row % 2 === 0 ? 0 : blockW / 2;
+    for (let col = -1; col <= cols; col++) {
+      const x = col * blockW + offset;
+      const y = row * blockH;
+      const tone = 0.86 + rand() * 0.28;
+      const r = Math.round(122 * tone);
+      const g = Math.round(116 * tone);
+      const b = Math.round(104 * tone);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x + 3, y + 3, blockW - 6, blockH - 6);
+
+      // Light catches the top arris, the underside stays in shadow
+      ctx.fillStyle = 'rgba(210,202,186,0.18)';
+      ctx.fillRect(x + 3, y + 3, blockW - 6, 3);
+      ctx.fillStyle = 'rgba(20,18,16,0.3)';
+      ctx.fillRect(x + 3, y + blockH - 8, blockW - 6, 5);
+    }
+  }
+
+  // Open-textured aggregate — besser block is coarse, not smooth render
+  for (let i = 0; i < 40000; i++) {
+    ctx.fillStyle =
+      rand() > 0.5 ? `rgba(28,26,23,${rand() * 0.4})` : `rgba(180,172,158,${rand() * 0.22})`;
+    ctx.fillRect(rand() * size, rand() * size, 1, 1);
+  }
+
+  // Damp rising up from the slab, plus a few sloppy paint runs
+  for (let i = 0; i < 24; i++) {
+    ctx.fillStyle = `rgba(44,52,40,${0.04 + rand() * 0.1})`;
+    ctx.beginPath();
+    ctx.arc(rand() * size, rand() * size, 12 + rand() * 44, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  return finish(canvas, 1);
+}
+
+/** Op-shop persian: deep red field, navy border, a medallion in the middle. */
+function build_createRugTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(2727);
+
+  ctx.fillStyle = '#7a1f22';
+  ctx.fillRect(0, 0, size, size);
+
+  // Nested borders
+  const bands: [number, string][] = [
+    [0.0, '#1d2a4a'],
+    [0.045, '#c9a227'],
+    [0.06, '#7a1f22'],
+    [0.1, '#1d2a4a'],
+    [0.125, '#7a1f22'],
+  ];
+  bands.forEach(([inset, color]) => {
+    ctx.fillStyle = color;
+    const p = inset * size;
+    ctx.fillRect(p, p, size - p * 2, size - p * 2);
+  });
+
+  // Central medallion, built from stacked diamonds
+  const cx = size / 2;
+  const cy = size / 2;
+  const diamond = (radius: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - radius);
+    ctx.lineTo(cx + radius * 0.62, cy);
+    ctx.lineTo(cx, cy + radius);
+    ctx.lineTo(cx - radius * 0.62, cy);
+    ctx.closePath();
+    ctx.fill();
+  };
+  diamond(140, '#1d2a4a');
+  diamond(112, '#c9a227');
+  diamond(84, '#7a1f22');
+  diamond(46, '#1d2a4a');
+  diamond(22, '#d9cbb0');
+
+  // Scattered botanical flecks so the field is not flat
+  for (let i = 0; i < 700; i++) {
+    const x = rand() * size;
+    const y = rand() * size;
+    ctx.fillStyle = ['#c9a227', '#d9cbb0', '#1d2a4a', '#3f6b4a'][Math.floor(rand() * 4)];
+    ctx.globalAlpha = 0.5 + rand() * 0.4;
+    ctx.fillRect(x, y, 3 + rand() * 4, 3 + rand() * 4);
+  }
+  ctx.globalAlpha = 1;
+
+  // Worn traffic path and general grime
+  const wear = ctx.createRadialGradient(cx, cy, size * 0.1, cx, cy, size * 0.62);
+  wear.addColorStop(0, 'rgba(0,0,0,0.28)');
+  wear.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = wear;
+  ctx.fillRect(0, 0, size, size);
+
+  return finish(canvas, 1);
+}
+
+/** The jam-room rug: loud kilim stripes, entirely the wrong colours. */
+function build_createKilimTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(5150);
+
+  const palette = ['#d9622b', '#136f63', '#e0b429', '#5c2c4e', '#c8452f', '#2b5f7a'];
+
+  ctx.fillStyle = '#2a1f26';
+  ctx.fillRect(0, 0, size, size);
+
+  // Horizontal bands of alternating widths
+  let y = 0;
+  while (y < size) {
+    const h = 14 + rand() * 46;
+    ctx.fillStyle = palette[Math.floor(rand() * palette.length)];
+    ctx.fillRect(0, y, size, h);
+
+    // Zig-zags and diamonds inside the wider bands
+    if (h > 34) {
+      ctx.fillStyle = palette[Math.floor(rand() * palette.length)];
+      const step = 40;
+      for (let x = 0; x < size; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + h / 2);
+        ctx.lineTo(x + step / 2, y + 6);
+        ctx.lineTo(x + step, y + h / 2);
+        ctx.lineTo(x + step / 2, y + h - 6);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    y += h;
+  }
+
+  // Weave grain, then knock the whole thing back with dust
+  for (let i = 0; i < 26000; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.08)';
+    ctx.fillRect(rand() * size, rand() * size, 2, 1);
+  }
+  ctx.fillStyle = 'rgba(30,24,20,0.22)';
+  ctx.fillRect(0, 0, size, size);
+
+  return finish(canvas, 1);
+}
+
+/** Wall tapestry. A mandala, obviously. */
+function build_createTapestryTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(3131);
+  const cx = size / 2;
+  const cy = size / 2;
+
+  ctx.fillStyle = '#160b26';
+  ctx.fillRect(0, 0, size, size);
+
+  const hot = ['#ff2d95', '#ffb02e', '#2ee6d6', '#8a2be2', '#f5f04a', '#ff5a2d'];
+
+  // Concentric petal rings, each ring offset half a petal from the last
+  for (let ring = 7; ring >= 1; ring--) {
+    const radius = (ring / 7) * size * 0.46;
+    const petals = 6 + ring * 2;
+    const color = hot[ring % hot.length];
+    for (let p = 0; p < petals; p++) {
+      const angle = (p / petals) * Math.PI * 2 + ring * 0.2;
+      ctx.save();
+      ctx.translate(cx + Math.cos(angle) * radius * 0.72, cy + Math.sin(angle) * radius * 0.72);
+      ctx.rotate(angle);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, radius * 0.3, radius * 0.14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // The eye in the middle, because it is that kind of house
+  ctx.fillStyle = '#f5f04a';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 62, 34, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#2ee6d6';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 26, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#12061f';
+  ctx.beginPath();
+  ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Fabric weave and fade, so it reads as cloth rather than a screen
+  for (let i = 0; i < 30000; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.07)';
+    ctx.fillRect(rand() * size, rand() * size, 1, 2);
+  }
+
+  return finish(canvas, 1);
+}
+
+/** Gig posters gaffer-taped to the blockwork. */
+function build_createPosterTexture(index: number): THREE.Texture {
+  const width = 256;
+  const height = 384;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable for procedural texture');
+
+  const rand = seededRandom(9000 + index * 77);
+  const schemes: [string, string, string][] = [
+    ['#1b0f2e', '#ff2d95', '#f5f04a'],
+    ['#0d2b1f', '#f0e6d2', '#ff8c1a'],
+    ['#2b0d0d', '#ffd23f', '#2ee6d6'],
+    ['#101820', '#ff5a2d', '#f0f0f0'],
+  ];
+  const [bg, ink, accent] = schemes[index % schemes.length];
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, width, height);
+
+  // Radiating sunburst behind the type
+  ctx.save();
+  ctx.translate(width / 2, height * 0.42);
+  for (let i = 0; i < 24; i++) {
+    ctx.rotate(Math.PI / 12);
+    ctx.fillStyle = i % 2 === 0 ? accent : bg;
+    ctx.globalAlpha = 0.28;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width, -60);
+    ctx.lineTo(width, 60);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  const lines = [
+    ['THE', 'SCRUMPS', 'LIVE'],
+    ['HOT', 'SHOT', 'TOUR'],
+    ['BASEMENT', 'JAM', 'FRI 8PM'],
+    ['FREE', 'ENTRY', 'BYO'],
+  ][index % 4];
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = ink;
+  ctx.font = 'bold 54px Impact, sans-serif';
+  ctx.fillText(lines[0], width / 2, height * 0.3);
+  ctx.font = 'bold 66px Impact, sans-serif';
+  ctx.fillText(lines[1], width / 2, height * 0.46);
+  ctx.fillStyle = accent;
+  ctx.font = 'bold 34px Impact, sans-serif';
+  ctx.fillText(lines[2], width / 2, height * 0.6);
+
+  ctx.fillStyle = ink;
+  ctx.font = '18px monospace';
+  ctx.fillText('THE GARAGE · WEST END', width / 2, height * 0.86);
+
+  // Print grain, foxing and a torn-looking edge
+  for (let i = 0; i < 9000; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.08)';
+    ctx.fillRect(rand() * width, rand() * height, 1, 1);
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(0, 0, width, height);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
 export const createGrassTexture = (): THREE.Texture => memoize('grass', build_createGrassTexture);
 
 export const createGrassRoughness = (): THREE.Texture => memoize('grassRoughness', build_createGrassRoughness);
@@ -428,3 +816,23 @@ export const createCDArtTexture = (songName: string): THREE.Texture =>
 
 export const createStuccoTexture = (): THREE.Texture => memoize('stucco', build_createStuccoTexture);
 export const createConcreteTexture = (): THREE.Texture => memoize('concrete', build_createConcreteTexture);
+
+export const createSlabTexture = (): THREE.Texture => memoize('slab', build_createSlabTexture);
+export const createBesserTexture = (): THREE.Texture => memoize('besser', build_createBesserTexture);
+export const createRugTexture = (): THREE.Texture => memoize('rug', build_createRugTexture);
+export const createKilimTexture = (): THREE.Texture => memoize('kilim', build_createKilimTexture);
+export const createTapestryTexture = (): THREE.Texture => memoize('tapestry', build_createTapestryTexture);
+export const createPosterTexture = (index: number): THREE.Texture =>
+  memoize(`poster:${index}`, () => build_createPosterTexture(index));
+
+/**
+ * A copy of a memoised map with its own tiling. The clone shares the underlying
+ * canvas upload, so this is cheap — it exists because `repeat` lives on the
+ * texture, and several surfaces need the same map at different scales.
+ */
+export function tiled(texture: THREE.Texture, x: number, y: number): THREE.Texture {
+  const copy = texture.clone();
+  copy.repeat.set(x, y);
+  copy.needsUpdate = true;
+  return copy;
+}

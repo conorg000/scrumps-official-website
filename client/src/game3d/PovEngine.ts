@@ -10,8 +10,6 @@
 import * as THREE from 'three';
 import {
   EYE_HEIGHT,
-  GRID_H,
-  GRID_W,
   HORIZONTAL_FOV,
   MOUSE_SENSITIVITY,
   PITCH_LIMIT,
@@ -22,9 +20,21 @@ import {
   WALK_SPEED,
   gridToWorldX,
   gridToWorldZ,
-  isPovBlocked,
+  isTileBlocked,
 } from './constants';
-import { BackyardScene, Furniture, RoomLike } from './BackyardScene';
+import { AdeleLike, Furniture, PovScene, RoomLike } from './PovScene';
+import { BackyardScene } from './BackyardScene';
+import { DownstairsScene } from './DownstairsScene';
+
+/**
+ * Which rooms have a first-person build, and how to make one. Anything absent
+ * here stays on the isometric renderer; GameCanvas keeps the same list so React
+ * knows when to hand the screen over.
+ */
+const SCENE_BUILDERS: Record<string, (room: RoomLike, lowDetail: boolean) => PovScene> = {
+  mainRoom: (room, lowDetail) => new BackyardScene(room, lowDetail),
+  downstairs: (room, lowDetail) => new DownstairsScene(room, lowDetail),
+};
 
 /** The subset of the vanilla Game object the engine touches. */
 export interface GameLike {
@@ -32,6 +42,7 @@ export interface GameLike {
   room: RoomLike;
   currentScene: string;
   companions: { type: string; x: number; y: number; direction: string }[];
+  adele?: AdeleLike;
   frozen?: boolean;
   bushTurkeyVisible?: boolean;
   mrFengVisible?: boolean;
@@ -42,9 +53,14 @@ export type DPadDirection = 'up' | 'down' | 'left' | 'right' | null;
 export class PovEngine {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly camera: THREE.PerspectiveCamera;
-  private readonly world: BackyardScene;
   private readonly game: GameLike;
   private readonly canvas: HTMLCanvasElement;
+  private readonly lowDetail: boolean;
+
+  /** Built on first visit and then kept, so re-entering a room is instant. */
+  private readonly scenes = new Map<string, PovScene>();
+  private world: PovScene | null = null;
+  private sceneKey = '';
 
   private yaw: number;
   private pitch = 0;
@@ -73,9 +89,10 @@ export class PovEngine {
     this.canvas = canvas;
     this.game = game;
 
-    const lowDetail =
+    this.lowDetail =
       window.innerWidth <= 768 ||
       (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    const lowDetail = this.lowDetail;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -92,10 +109,9 @@ export class PovEngine {
     this.camera = new THREE.PerspectiveCamera(74, 1, 0.1, 400);
     // fov is recomputed from the aspect ratio in resize()
 
-    this.world = new BackyardScene(game.room, lowDetail);
-
-    // Open looking at the boxing ring, so Scrump's first line lands
-    this.yaw = PovEngine.yawToward(game.player.x, game.player.y, 16.5, 2.5);
+    this.switchScene(game.currentScene);
+    this.yaw = 0;
+    this.resetView();
 
     this.resize();
     this.attachListeners();
@@ -125,14 +141,15 @@ export class PovEngine {
   }
 
   /**
-   * Start or stop driving the backyard. The engine is kept alive across scene
-   * changes so returning from an interior does not rebuild the whole world.
+   * Start or stop driving the 3D view. The engine is kept alive across scene
+   * changes so returning to a room does not rebuild it from scratch.
    */
   setActive(active: boolean): void {
     if (this.disposed || this.active === active) return;
     this.active = active;
 
     if (active) {
+      this.switchScene(this.game.currentScene);
       this.resetView();
       this.clock.getDelta(); // discard time spent in another scene
       this.frameHandle = requestAnimationFrame(this.loop);
@@ -143,12 +160,41 @@ export class PovEngine {
     }
   }
 
-  /** Re-aim on entry and invalidate the cached walkability grid. */
+  /**
+   * Point the camera at whatever the room wants you to notice first, and drop
+   * the cached walkability grid so the new room's furniture is re-read.
+   */
   private resetView(): void {
     const { player } = this.game;
-    this.yaw = PovEngine.yawToward(player.x, player.y, 16.5, 2.5);
+    const focus = this.world?.focus;
+    if (focus) this.yaw = PovEngine.yawToward(player.x, player.y, focus.x, focus.y);
     this.pitch = 0;
     this.passableSignature = -1;
+  }
+
+  /**
+   * Move to the room the game has loaded. Called on activation and once a frame
+   * while running, because walking through a door changes the scene underneath
+   * us without React necessarily having caught up yet.
+   */
+  private switchScene(key: string): void {
+    if (key === this.sceneKey) return;
+    this.sceneKey = key;
+
+    const build = SCENE_BUILDERS[key];
+    if (!build) {
+      // A room that is still isometric. Nothing to draw.
+      this.world = null;
+      return;
+    }
+
+    let scene = this.scenes.get(key);
+    if (!scene) {
+      scene = build(this.game.room, this.lowDetail);
+      this.scenes.set(key, scene);
+    }
+    this.world = scene;
+    this.resetView();
   }
 
   dispose(): void {
@@ -164,7 +210,9 @@ export class PovEngine {
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('pointercancel', this.onPointerUp);
 
-    this.world.dispose();
+    this.scenes.forEach((scene) => scene.dispose());
+    this.scenes.clear();
+    this.world = null;
     this.renderer.dispose();
   }
 
@@ -256,7 +304,7 @@ export class PovEngine {
     room.furniture.forEach((f: Furniture) => {
       for (let y = f.y; y < f.y + f.height; y++) {
         for (let x = f.x; x < f.x + f.width; x++) {
-          const key = y * GRID_W + x;
+          const key = y * room.width + x;
           if (f.noCollision) passable.add(key);
           else blocking.add(key);
         }
@@ -271,15 +319,16 @@ export class PovEngine {
     const tx = Math.round(gx);
     const ty = Math.round(gy);
 
-    if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) return true;
+    if (tx < 0 || tx >= room.width || ty < 0 || ty >= room.height) return true;
 
-    // The house, its staircase and the balcony columns exist only in 3D, so the
-    // 2D collision map still reports these tiles as open floor.
-    if (isPovBlocked(tx, ty)) return true;
+    // The house and staircase outside, the shelving and stacked gear inside:
+    // things that exist only in 3D, which the 2D collision map reports as open
+    // floor. Each scene carries its own list.
+    if (this.world && isTileBlocked(this.world.blockers, tx, ty)) return true;
 
     if (!room.collisionMap?.[ty]?.[tx]) return false;
 
-    return !this.passableTiles.has(ty * GRID_W + tx);
+    return !this.passableTiles.has(ty * room.width + tx);
   }
 
   /** Sample the four corners of the player's footprint. */
@@ -299,11 +348,15 @@ export class PovEngine {
     if (this.disposed || !this.active) return;
     this.frameHandle = requestAnimationFrame(this.loop);
 
+    // Walking through a door swaps the room out from under us
+    this.switchScene(this.game.currentScene);
+    if (!this.world) return;
+
     const delta = Math.min(this.clock.getDelta(), 0.05);
     const time = this.clock.elapsedTime;
 
     this.updateMovement(delta);
-    this.syncWorld(time, delta);
+    this.syncWorld(this.world, time, delta);
     this.renderer.render(this.world.scene, this.camera);
   };
 
@@ -357,9 +410,9 @@ export class PovEngine {
       const nextY = player.y + moveY;
       if (!this.collides(player.x, nextY, room)) player.y = nextY;
 
-      // Keep inside the yard
-      player.x = THREE.MathUtils.clamp(player.x, -0.5 + PLAYER_RADIUS, GRID_W - 0.5 - PLAYER_RADIUS);
-      player.y = THREE.MathUtils.clamp(player.y, -0.5 + PLAYER_RADIUS, GRID_H - 0.5 - PLAYER_RADIUS);
+      // Keep inside the room
+      player.x = THREE.MathUtils.clamp(player.x, -0.5 + PLAYER_RADIUS, room.width - 0.5 - PLAYER_RADIUS);
+      player.y = THREE.MathUtils.clamp(player.y, -0.5 + PLAYER_RADIUS, room.height - 0.5 - PLAYER_RADIUS);
 
       this.bobPhase += delta * (sprinting ? 13 : 9);
     } else {
@@ -406,17 +459,18 @@ export class PovEngine {
     return 'right';
   }
 
-  private syncWorld(time: number, delta: number): void {
+  private syncWorld(world: PovScene, time: number, delta: number): void {
     this.playerWorldPos.set(
       gridToWorldX(this.game.player.x),
       0,
       gridToWorldZ(this.game.player.y),
     );
 
-    this.world.syncFurniture(this.game.room);
-    this.world.syncCompanions(this.game.companions ?? []);
-    this.world.setBushTurkeyVisible(this.game.bushTurkeyVisible === true);
-    this.world.setMrFengVisible(this.game.mrFengVisible === true);
-    this.world.update(time, delta, this.playerWorldPos);
+    world.syncFurniture(this.game.room);
+    world.syncCompanions(this.game.companions ?? []);
+    world.setAdele(this.game.adele ?? null);
+    world.setBushTurkeyVisible(this.game.bushTurkeyVisible === true);
+    world.setMrFengVisible(this.game.mrFengVisible === true);
+    world.update(time, delta, this.playerWorldPos);
   }
 }

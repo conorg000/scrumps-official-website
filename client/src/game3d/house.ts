@@ -13,7 +13,7 @@
 
 import * as THREE from 'three';
 import { HOUSE } from './constants';
-import { Animated, spanBetween } from './props';
+import { Animated, applyWorldUVs, spanBetween } from './props';
 import { createConcreteTexture, createStuccoTexture, createWoodTexture } from './textures';
 
 const ORANGE = 0xef7a24;
@@ -26,42 +26,10 @@ const INTERIOR_DARK = 0x14100c;
 /** How many texture tiles per world unit on the house surfaces. */
 const TEXEL_DENSITY = 0.26;
 
-/**
- * Rescale a box's UVs from the default 0..1-per-face to world units.
- *
- * Without this the same texture is stretched across a 46-unit wall and squashed
- * onto a 0.3-unit mullion, which reads as smeared marble rather than render and
- * concrete. BoxGeometry lays its 24 vertices out as +x, -x, +y, -y, +z, -z, so
- * each face's two in-plane dimensions are known.
- */
-function applyWorldUVs(geometry: THREE.BoxGeometry, w: number, h: number, d: number): void {
-  const uv = geometry.attributes.uv as THREE.BufferAttribute;
-  // Per face pair: the world extents that u and v run along
-  const spans: [number, number][] = [
-    [d, h], // +x
-    [d, h], // -x
-    [w, d], // +y
-    [w, d], // -y
-    [w, h], // +z
-    [w, h], // -z
-  ];
-
-  spans.forEach(([spanU, spanV], face) => {
-    for (let i = face * 4; i < face * 4 + 4; i++) {
-      uv.setXY(
-        i,
-        uv.getX(i) * spanU * TEXEL_DENSITY,
-        uv.getY(i) * spanV * TEXEL_DENSITY,
-      );
-    }
-  });
-  uv.needsUpdate = true;
-}
-
 /** Box with world-scaled UVs, sized by its extents rather than its centre. */
 function box(material: THREE.Material, w: number, h: number, d: number): THREE.Mesh {
   const geometry = new THREE.BoxGeometry(w, h, d);
-  applyWorldUVs(geometry, w, h, d);
+  applyWorldUVs(geometry, w, h, d, TEXEL_DENSITY);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;

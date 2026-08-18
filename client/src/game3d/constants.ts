@@ -130,11 +130,63 @@ export const POV_BLOCKERS: readonly GridRect[] = [
   { x0: 14, x1: 14, y0: 12, y1: 12 },
 ];
 
-/** True if the tile falls inside any POV-only blocker. */
-export function isPovBlocked(tx: number, ty: number): boolean {
-  return POV_BLOCKERS.some(
+/** True if the tile falls inside any of the given blockers. */
+export function isTileBlocked(blockers: readonly GridRect[], tx: number, ty: number): boolean {
+  return blockers.some(
     (rect) => tx >= rect.x0 && tx <= rect.x1 && ty >= rect.y0 && ty <= rect.y1,
   );
+}
+
+/** True if the tile falls inside any POV-only backyard blocker. */
+export function isPovBlocked(tx: number, ty: number): boolean {
+  return isTileBlocked(POV_BLOCKERS, tx, ty);
+}
+
+/**
+ * The converted garage under the house. Same 20x15 grid as the backyard, but
+ * enclosed: four walls, a low ceiling of exposed joists, and one doorway back
+ * out to the yard at grid (10, 0).
+ */
+export const DOWNSTAIRS = {
+  width: WORLD_W,
+  depth: WORLD_H,
+  /** Underside of the floor joists. Low enough that the space feels like a lid. */
+  ceilingY: 4.6,
+  /** Height of the joists themselves, which sit above the ceiling line. */
+  joistDepth: 0.55,
+  wallThickness: 0.6,
+
+  /** Opening back to the backyard, centred on the grid (10, 0) exit marker. */
+  doorway: { centreX: gridToWorldX(10), width: 4.2, height: 3.5 },
+
+  /**
+   * Breeze-block screens, the one bit of a Queenslander garage that lets any
+   * daylight in. Each is a run of decorative blocks set into a wall.
+   */
+  screens: [
+    { wall: 'left' as const, from: 19.0, to: 25.0, baseY: 2.4 },
+    { wall: 'right' as const, from: 16.0, to: 22.0, baseY: 2.4 },
+    { wall: 'far' as const, from: 17.0, to: 25.0, baseY: 2.6 },
+  ],
+  /** One course of blocks, sized so the runs above divide evenly enough. */
+  blockSize: 1.5,
+} as const;
+
+/**
+ * Solid tiles that exist only in the 3D garage: the shelving, fridge, stacked
+ * gear and laundry heaps pushed against the walls. The 2D collision map has no
+ * idea these are here, exactly as with the backyard house.
+ */
+export const DOWNSTAIRS_BLOCKERS: readonly GridRect[] = [
+  { x0: 0, x1: 0, y0: 3, y1: 8 }, // floor lamp, record crates and shelving, left wall
+  { x0: 0, x1: 1, y0: 13, y1: 14 }, // bar fridge and laundry heap, back-left
+  { x0: 4, x1: 8, y0: 14, y1: 14 }, // telly on milk crates, back wall
+  { x0: 12, x1: 13, y0: 14, y1: 14 }, // stacked speaker cabs
+  { x0: 19, x1: 19, y0: 2, y1: 7 }, // junk shelf and clothes rack, right wall
+];
+
+export function isDownstairsBlocked(tx: number, ty: number): boolean {
+  return isTileBlocked(DOWNSTAIRS_BLOCKERS, tx, ty);
 }
 
 /** Palette carried over from the pixel-art original, warmed up for 3D lighting. */

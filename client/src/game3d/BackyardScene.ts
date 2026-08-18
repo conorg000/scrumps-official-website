@@ -12,6 +12,7 @@ import {
   GRID_H,
   GRID_W,
   HOUSE,
+  POV_BLOCKERS,
   PALETTE,
   TILE,
   WORLD_H,
@@ -38,73 +39,19 @@ import {
 import { buildHouse } from './house';
 import { Character, buildBushTurkey, buildMrFeng, buildMrTibbles } from './characters';
 import { createBladeTexture, createGrassRoughness, createGrassTexture, createPuffTexture } from './textures';
+import { Furniture, PovScene, RoomLike, makeLabelSprite } from './PovScene';
 
-/** The shape of a furniture entry as defined by the vanilla JS rooms. */
-export interface Furniture {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  type: string;
-  songName?: string;
-  noCollision?: boolean;
-}
+// Furniture and RoomLike used to live here; they are shared with the other
+// rooms now, but plenty of call sites still import them from this module.
+export type { Furniture, RoomLike };
 
-export interface RoomLike {
-  width: number;
-  height: number;
-  furniture: Furniture[];
-  collisionMap: boolean[][];
-}
+export class BackyardScene extends PovScene {
+  readonly blockers = POV_BLOCKERS;
+  /** Open looking at the boxing ring, so Scrump's first line lands. */
+  readonly focus = { x: 16.5, y: 2.5 };
 
-/** Key identifying a furniture instance across rebuilds. */
-function furnitureKey(f: Furniture): string {
-  return `${f.type}:${f.x}:${f.y}`;
-}
-
-/** Text label floating above exits, mirroring the 2D exit markers. */
-function makeLabelSprite(text: string): THREE.Sprite {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('2D context unavailable for label');
-
-  ctx.font = 'bold 60px monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  ctx.lineWidth = 10;
-  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
-  ctx.strokeText(text, 256, 64);
-  ctx.fillStyle = '#ffeeaa';
-  ctx.fillText(text, 256, 64);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false }),
-  );
-  sprite.scale.set(4, 1, 1);
-  sprite.renderOrder = 10;
-  return sprite;
-}
-
-export class BackyardScene {
-  readonly scene = new THREE.Scene();
   readonly sun: THREE.DirectionalLight;
 
-  private readonly animated: Animated[] = [];
-  private readonly characters: Character[] = [];
-  /** Furniture meshes keyed so they can be hidden when the quest removes them. */
-  private readonly furnitureNodes = new Map<string, THREE.Object3D>();
-  private readonly companionNodes = new Map<
-    string,
-    { object: THREE.Object3D; character: Character; lastPos: THREE.Vector3 }
-  >();
-
-  private readonly labels: THREE.Sprite[] = [];
   private readonly clouds: { sprite: THREE.Sprite; speed: number; baseX: number }[] = [];
   private slug: THREE.Group | null = null;
   private readonly windUniform = { value: 0 };
@@ -115,6 +62,7 @@ export class BackyardScene {
   private readonly lowDetail: boolean;
 
   constructor(room: RoomLike, lowDetail: boolean) {
+    super();
     this.lowDetail = lowDetail;
 
     this.scene.fog = new THREE.Fog(0xbfe0f0, 44, 130);
@@ -581,23 +529,7 @@ export class BackyardScene {
 
   // ------------------------------------------------------------------ furniture
 
-  private buildFurniture(room: RoomLike): void {
-    room.furniture.forEach((f) => {
-      const node = this.createFurnitureNode(f);
-      if (!node) return;
-
-      // Multi-tile furniture is centred over its whole footprint
-      node.position.set(
-        gridToWorldX(f.x + (f.width - 1) / 2),
-        node.position.y,
-        gridToWorldZ(f.y + (f.height - 1) / 2),
-      );
-      this.scene.add(node);
-      this.furnitureNodes.set(furnitureKey(f), node);
-    });
-  }
-
-  private createFurnitureNode(f: Furniture): THREE.Object3D | null {
+  protected createFurnitureNode(f: Furniture): THREE.Object3D | null {
     switch (f.type) {
       case 'tree': {
         const { group, animated } = buildTree();
@@ -674,72 +606,7 @@ export class BackyardScene {
     this.addLabel(upLabel);
   }
 
-  private addLabel(sprite: THREE.Sprite): void {
-    this.scene.add(sprite);
-    this.labels.push(sprite);
-  }
-
-  // --------------------------------------------------------------- live syncing
-
-  /**
-   * Hide anything the quest logic has removed from `room.furniture`.
-   * Called every frame; it is a cheap map walk.
-   */
-  syncFurniture(room: RoomLike): void {
-    if (!room?.furniture) return;
-
-    const present = new Set(room.furniture.map(furnitureKey));
-    this.furnitureNodes.forEach((node, key) => {
-      const shouldShow = present.has(key);
-      if (node.visible !== shouldShow) node.visible = shouldShow;
-    });
-  }
-
-  /**
-   * Mirror `game.companions` into the scene. Companions are keyed by type, so
-   * each one is built once and then just repositioned.
-   */
-  syncCompanions(companions: { type: string; x: number; y: number; direction: string }[]): void {
-    companions.forEach((companion) => {
-      let entry = this.companionNodes.get(companion.type);
-
-      if (!entry) {
-        const character = this.buildCompanion(companion.type);
-        if (!character) return;
-        this.scene.add(character.group);
-        entry = {
-          object: character.group,
-          character,
-          lastPos: new THREE.Vector3(gridToWorldX(companion.x), 0, gridToWorldZ(companion.y)),
-        };
-        this.companionNodes.set(companion.type, entry);
-        this.characters.push(character);
-      }
-
-      // Companions carry the same grid coordinates as the 2D renderer uses
-      const x = gridToWorldX(companion.x);
-      const z = gridToWorldZ(companion.y);
-
-      // Turn to face the way they are travelling. Below a small threshold the
-      // heading is just noise, so they hold their last facing instead.
-      const dx = x - entry.lastPos.x;
-      const dz = z - entry.lastPos.z;
-      if (dx * dx + dz * dz > 0.0004) {
-        const target = Math.atan2(dx, dz);
-        const delta = Math.atan2(
-          Math.sin(target - entry.object.rotation.y),
-          Math.cos(target - entry.object.rotation.y),
-        );
-        entry.object.rotation.y += THREE.MathUtils.clamp(delta, -0.12, 0.12);
-        entry.lastPos.set(x, 0, z);
-      }
-
-      entry.object.position.x = x;
-      entry.object.position.z = z;
-    });
-  }
-
-  private buildCompanion(type: string): Character | null {
+  protected buildCompanion(type: string): Character | null {
     switch (type) {
       case 'mr_tibbles':
         return buildMrTibbles(0.85);
@@ -776,18 +643,7 @@ export class BackyardScene {
 
   update(time: number, delta: number, playerPos: THREE.Vector3): void {
     this.windUniform.value = time;
-
-    this.animated.forEach((item) => item.update(time, delta));
-    this.characters.forEach((character) => character.update(time, delta, playerPos));
-
-    // Exit labels hold a roughly constant on-screen size and get out of the way
-    // once you are close enough for the interaction button to have appeared.
-    this.labels.forEach((label) => {
-      const distance = label.position.distanceTo(playerPos);
-      const width = THREE.MathUtils.clamp(distance * 0.16, 1.6, 4.5);
-      label.scale.set(width, width / 4, 1);
-      (label.material as THREE.SpriteMaterial).opacity = THREE.MathUtils.smoothstep(distance, 3.5, 7);
-    });
+    super.update(time, delta, playerPos);
 
     // Clouds drift and wrap around
     this.clouds.forEach((cloud) => {
@@ -817,17 +673,5 @@ export class BackyardScene {
     this.sun.position.set(playerPos.x + 26, 34, playerPos.z - 22);
     this.sun.target.position.set(playerPos.x, 0, playerPos.z);
     this.sun.target.updateMatrixWorld();
-  }
-
-  dispose(): void {
-    this.scene.traverse((object) => {
-      if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Sprite) {
-        object.geometry?.dispose?.();
-        const material = object.material;
-        if (Array.isArray(material)) material.forEach((m) => m.dispose());
-        else material?.dispose?.();
-      }
-    });
-    this.scene.clear();
   }
 }
