@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import { GridRect, gridToWorldX, gridToWorldZ } from './constants';
 import { Animated } from './props';
-import { Character, buildAdele } from './characters';
+import { Character, buildAdele, buildMrTibbles, buildPossum, buildTinyClown } from './characters';
 
 /** The shape of a furniture entry as defined by the vanilla JS rooms. */
 export interface Furniture {
@@ -130,9 +130,22 @@ export abstract class PovScene {
     this.labels.push(sprite);
   }
 
-  /** Companions that have a model in this room. Default: none. */
-  protected buildCompanion(_type: string): Character | null {
-    return null;
+  /**
+   * Companions follow you from room to room, so the mapping lives here rather
+   * than in each scene. `tent` is the possum — the 2D game keys him by where
+   * you found him. Humunculous is picked up in a room that is still isometric.
+   */
+  protected buildCompanion(type: string): Character | null {
+    switch (type) {
+      case 'mr_tibbles':
+        return buildMrTibbles(0.85);
+      case 'tent':
+        return buildPossum();
+      case 'tiny_clown':
+        return buildTinyClown();
+      default:
+        return null;
+    }
   }
 
   // --------------------------------------------------------------- live syncing
@@ -231,6 +244,9 @@ export abstract class PovScene {
   /** End-game arrivals. Only the backyard has anywhere to put them. */
   setBushTurkeyVisible(_visible: boolean): void {}
   setMrFengVisible(_visible: boolean): void {}
+
+  /** Tiny Clown's beer pyramid grows as you hand cans over. Living room only. */
+  setClownCans(_count: number): void {}
 
   // ---------------------------------------------------------------------- frame
 

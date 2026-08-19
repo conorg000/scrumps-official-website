@@ -909,6 +909,208 @@ function build_createSunsetCloudTexture(): THREE.Texture {
   return texture;
 }
 
+// --------------------------------------------------------------- living room
+
+/** Polished interior floorboards: long, tight-jointed, waxed. */
+function build_createFloorboardTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(3344);
+
+  const boards = 6;
+  const boardH = size / boards;
+
+  ctx.fillStyle = '#6b4a2c';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let b = 0; b < boards; b++) {
+    const y = b * boardH;
+    const tone = 0.86 + rand() * 0.3;
+    ctx.fillStyle = `rgb(${Math.round(160 * tone)},${Math.round(112 * tone)},${Math.round(64 * tone)})`;
+    ctx.fillRect(0, y + 1, size, boardH - 2);
+
+    // End joints, staggered board to board
+    const jointX = rand() * size;
+    ctx.fillStyle = 'rgba(58,36,20,0.5)';
+    ctx.fillRect(jointX, y + 1, 2, boardH - 2);
+
+    // Grain, much finer and straighter than exterior decking
+    for (let i = 0; i < 130; i++) {
+      const gy = y + 2 + rand() * (boardH - 5);
+      ctx.strokeStyle =
+        rand() > 0.5 ? `rgba(92,58,30,${0.08 + rand() * 0.22})` : `rgba(206,158,104,${rand() * 0.18})`;
+      ctx.lineWidth = 0.5 + rand() * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(rand() * size, gy);
+      ctx.lineTo(rand() * size + 60 + rand() * 220, gy + (rand() - 0.5) * 1.6);
+      ctx.stroke();
+    }
+
+    if (rand() > 0.6) {
+      const kx = rand() * size;
+      const ky = y + boardH / 2;
+      const g = ctx.createRadialGradient(kx, ky, 1, kx, ky, 4 + rand() * 5);
+      g.addColorStop(0, 'rgba(62,38,18,0.8)');
+      g.addColorStop(1, 'rgba(62,38,18,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(kx - 12, ky - 12, 24, 24);
+    }
+
+    // Tight shadow line in the joint
+    ctx.fillStyle = 'rgba(40,24,12,0.45)';
+    ctx.fillRect(0, y + boardH - 2, size, 2);
+  }
+
+  // Wax sheen, unevenly worn
+  for (let i = 0; i < 26; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(232,196,148,0.05)' : 'rgba(46,28,14,0.06)';
+    ctx.beginPath();
+    ctx.arc(rand() * size, rand() * size, 30 + rand() * 90, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  return finish(canvas, 1);
+}
+
+/**
+ * The banana paintings. Four canvases, each a different take on the subject,
+ * because the house's art collection has exactly one theme.
+ */
+function build_createBananaArtTexture(variant: number): THREE.Texture {
+  const size = 384;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(700 + variant * 41);
+
+  const grounds = ['#f2ead4', '#e8dcc0', '#1e2340', '#f0d8b0'];
+  ctx.fillStyle = grounds[variant % 4];
+  ctx.fillRect(0, 0, size, size);
+
+  // Canvas tooth, so it does not read as flat vector
+  for (let i = 0; i < 14000; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
+    ctx.fillRect(rand() * size, rand() * size, 2, 2);
+  }
+
+  const banana = (cx: number, cy: number, scale: number, angle: number, fill: string) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(-70, 20);
+    ctx.quadraticCurveTo(0, -62, 70, 16);
+    ctx.quadraticCurveTo(58, 34, 44, 30);
+    ctx.quadraticCurveTo(0, -22, -56, 36);
+    ctx.closePath();
+    ctx.fill();
+    // Stem and tip
+    ctx.fillStyle = '#6b4a20';
+    ctx.fillRect(-78, 14, 14, 10);
+    ctx.fillRect(66, 10, 12, 9);
+    ctx.restore();
+  };
+
+  if (variant === 0) {
+    // One banana, centred, reverent
+    banana(size / 2, size / 2, 1.15, 0.12, '#ffe135');
+    ctx.strokeStyle = '#c9a227';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(size * 0.12, size * 0.12, size * 0.76, size * 0.76);
+  } else if (variant === 1) {
+    // A bunch, overlapping
+    banana(size * 0.42, size * 0.44, 0.8, -0.2, '#f5d21e');
+    banana(size * 0.56, size * 0.52, 0.8, 0.1, '#ffe135');
+    banana(size * 0.5, size * 0.62, 0.8, 0.34, '#e0bc18');
+  } else if (variant === 2) {
+    // Blue period. Same banana, worse mood.
+    for (let i = 0; i < 5; i++) {
+      const g = ctx.createRadialGradient(size / 2, size / 2, 10, size / 2, size / 2, size * 0.5);
+      g.addColorStop(0, `rgba(90,120,220,${0.08 - i * 0.012})`);
+      g.addColorStop(1, 'rgba(20,26,60,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, size, size);
+    }
+    banana(size / 2, size / 2, 1.0, -0.5, '#9fd0f5');
+    ctx.fillStyle = '#5a7fd0';
+    ctx.font = 'italic 22px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('untitled (sad)', size / 2, size * 0.86);
+  } else {
+    // Portrait format: one very tall banana
+    banana(size / 2, size / 2, 1.0, Math.PI / 2 + 0.05, '#ffd91e');
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 22; i++) {
+      ctx.beginPath();
+      ctx.moveTo(rand() * size, 0);
+      ctx.lineTo(rand() * size, size);
+      ctx.stroke();
+    }
+  }
+
+  // Brush texture over the whole thing, and a little varnish bloom
+  for (let i = 0; i < 240; i++) {
+    ctx.strokeStyle = rand() > 0.5 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 1 + rand() * 3;
+    const x = rand() * size;
+    const y = rand() * size;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (rand() - 0.5) * 46, y + (rand() - 0.5) * 46);
+    ctx.stroke();
+  }
+
+  return finish(canvas, 1);
+}
+
+/** A shelf of book spines, for the bookcase. */
+function build_createBookSpineTexture(): THREE.Texture {
+  const size = 256;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(1212);
+
+  ctx.fillStyle = '#1a1410';
+  ctx.fillRect(0, 0, size, size);
+
+  const colours = ['#8a2f2a', '#2f5c7a', '#3f6b3a', '#c4a24a', '#5c3f7a', '#a85a2a', '#d8cfc0'];
+  let x = 0;
+  while (x < size) {
+    const w = 8 + rand() * 20;
+    const lean = rand() > 0.88;
+    const top = rand() * 22;
+
+    ctx.save();
+    if (lean) {
+      ctx.translate(x, size);
+      ctx.rotate(-0.12);
+      ctx.translate(-x, -size);
+    }
+    ctx.fillStyle = colours[Math.floor(rand() * colours.length)];
+    ctx.fillRect(x, top, w - 2, size - top);
+
+    // Bands and a title block
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(x, top + 14, w - 2, 3);
+    ctx.fillRect(x, size - 26, w - 2, 3);
+    ctx.fillStyle = 'rgba(230,214,170,0.65)';
+    ctx.fillRect(x + 2, top + 34, w - 6, 22);
+
+    // Shading down the spine so they read as round
+    const g = ctx.createLinearGradient(x, 0, x + w, 0);
+    g.addColorStop(0, 'rgba(0,0,0,0.35)');
+    g.addColorStop(0.4, 'rgba(255,255,255,0.1)');
+    g.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, top, w - 2, size - top);
+    ctx.restore();
+
+    x += w;
+  }
+
+  return finish(canvas, 1);
+}
+
 export const createGrassTexture = (): THREE.Texture => memoize('grass', build_createGrassTexture);
 
 export const createGrassRoughness = (): THREE.Texture => memoize('grassRoughness', build_createGrassRoughness);
@@ -928,6 +1130,13 @@ export const createCDArtTexture = (songName: string): THREE.Texture =>
 
 export const createStuccoTexture = (): THREE.Texture => memoize('stucco', build_createStuccoTexture);
 export const createConcreteTexture = (): THREE.Texture => memoize('concrete', build_createConcreteTexture);
+
+export const createFloorboardTexture = (): THREE.Texture =>
+  memoize('floorboard', build_createFloorboardTexture);
+export const createBananaArtTexture = (variant: number): THREE.Texture =>
+  memoize(`bananaArt:${variant}`, () => build_createBananaArtTexture(variant));
+export const createBookSpineTexture = (): THREE.Texture =>
+  memoize('bookSpine', build_createBookSpineTexture);
 
 export const createDeckingTexture = (): THREE.Texture => memoize('decking', build_createDeckingTexture);
 export const createSunsetCloudTexture = (): THREE.Texture =>

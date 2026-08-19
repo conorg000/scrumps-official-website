@@ -773,3 +773,156 @@ export function buildPossum(): Character {
     },
   };
 }
+
+/**
+ * Tiny Clown, who lives in the living room and is building a beer pyramid.
+ *
+ * Rainbow hair, red nose, purple cone hat, enormous shoes, and roughly knee
+ * height on a creature that is itself a crisp. He is delighted to see you.
+ */
+export function buildTinyClown(): Character {
+  const group = new THREE.Group();
+  const root = new THREE.Group();
+  group.add(root);
+
+  const suit = new THREE.MeshStandardMaterial({ color: 0xff6b6b, roughness: 0.85 });
+  const dots = new THREE.MeshStandardMaterial({ color: 0x4ecdc4, roughness: 0.8 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0xffe4c4, roughness: 0.75 });
+  const red = new THREE.MeshStandardMaterial({ color: 0xff2020, roughness: 0.5 });
+  const purple = new THREE.MeshStandardMaterial({ color: 0x8a2be2, roughness: 0.7 });
+
+  // Jumpsuit: a tapered barrel, wider at the shoulders
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.85, 14), suit);
+  body.position.y = 0.62;
+  body.castShadow = true;
+  root.add(body);
+
+  // Polka dots, scattered around the front
+  const dotSpots: [number, number, number][] = [
+    [-0.14, 0.78, 0.3],
+    [0.16, 0.62, 0.32],
+    [-0.05, 0.45, 0.36],
+    [0.2, 0.88, 0.26],
+  ];
+  dotSpots.forEach(([x, y, z]) => {
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 8), dots);
+    dot.position.set(x, y, z);
+    dot.scale.z = 0.4;
+    root.add(dot);
+  });
+
+  // Ruff collar
+  const ruff = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.09, 8, 18), dots);
+  ruff.rotation.x = Math.PI / 2;
+  ruff.position.y = 1.04;
+  ruff.castShadow = true;
+  root.add(ruff);
+
+  // Arms, held out because he is mid-gesture at all times
+  const arms: THREE.Group[] = [];
+  [-1, 1].forEach((side) => {
+    const arm = new THREE.Group();
+    const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.42, 6, 10), suit);
+    sleeve.position.y = -0.26;
+    sleeve.castShadow = true;
+    arm.add(sleeve);
+
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.09, 10, 8), skin);
+    hand.position.y = -0.52;
+    arm.add(hand);
+
+    arm.position.set(side * 0.3, 0.95, 0);
+    arm.rotation.z = side * 0.9;
+    root.add(arm);
+    arms.push(arm);
+  });
+
+  // The shoes. Comically long, as is the tradition.
+  const shoes: THREE.Mesh[] = [];
+  [-1, 1].forEach((side) => {
+    const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), red);
+    shoe.scale.set(0.75, 0.5, 2.1);
+    shoe.position.set(side * 0.15, 0.08, 0.16);
+    shoe.castShadow = true;
+    root.add(shoe);
+    shoes.push(shoe);
+  });
+
+  // Head
+  const head = new THREE.Group();
+  head.position.y = 1.28;
+  root.add(head);
+
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 14), skin);
+  face.castShadow = true;
+  head.add(face);
+
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 10), red);
+  nose.position.set(0, -0.02, 0.26);
+  head.add(nose);
+
+  addEyes(head, 0.11, 0.07, 0.24, 0.045);
+
+  // A painted smile, built from a torus arc
+  const smile = new THREE.Mesh(
+    new THREE.TorusGeometry(0.12, 0.022, 6, 14, Math.PI),
+    new THREE.MeshStandardMaterial({ color: 0xd02020, roughness: 0.5 }),
+  );
+  smile.rotation.z = Math.PI;
+  smile.position.set(0, -0.13, 0.23);
+  head.add(smile);
+
+  // Rainbow hair: tufts around the back and sides, bald on top. The arc starts
+  // past the front so the tufts do not sit over his face.
+  const hairColours = [0xff0000, 0xff7f00, 0xffff00, 0x00c000, 0x0060ff, 0x8a2be2];
+  for (let i = 0; i < 10; i++) {
+    const angle = Math.PI * 0.68 + (i / 9) * Math.PI * 1.64;
+    const tuft = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 10, 8),
+      new THREE.MeshStandardMaterial({ color: hairColours[i % hairColours.length], roughness: 0.9 }),
+    );
+    tuft.position.set(Math.cos(angle) * 0.27, 0.05, Math.sin(angle) * 0.27);
+    tuft.castShadow = true;
+    head.add(tuft);
+  }
+
+  // Cone hat with a pompom
+  const hat = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.44, 14), purple);
+  hat.position.set(0.03, 0.42, -0.03);
+  hat.rotation.z = -0.16;
+  hat.castShadow = true;
+  head.add(hat);
+
+  const pompom = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), dots);
+  pompom.position.set(0.09, 0.63, -0.03);
+  head.add(pompom);
+
+  const flat = new THREE.Vector3();
+
+  return {
+    group,
+    update(time, _delta, playerPos) {
+      flat.set(playerPos.x - group.position.x, 0, playerPos.z - group.position.z);
+      if (flat.lengthSq() > 0.0001) {
+        const targetY = Math.atan2(flat.x, flat.z);
+        root.rotation.y += THREE.MathUtils.clamp(
+          Math.atan2(Math.sin(targetY - root.rotation.y), Math.cos(targetY - root.rotation.y)),
+          -0.08,
+          0.08,
+        );
+      }
+
+      // Permanently bouncing on the spot, arms going
+      const bounce = Math.abs(Math.sin(time * 3.1));
+      root.position.y = bounce * 0.09;
+      root.rotation.z = Math.sin(time * 1.6) * 0.05;
+      head.rotation.z = Math.sin(time * 2.2) * 0.09;
+      arms.forEach((arm, i) => {
+        arm.rotation.z = (i === 0 ? -1 : 1) * (0.9 + Math.sin(time * 4 + i * Math.PI) * 0.35);
+      });
+      shoes.forEach((shoe, i) => {
+        shoe.position.y = 0.08 + Math.max(0, Math.sin(time * 3.1 + i * Math.PI)) * 0.05;
+      });
+    },
+  };
+}

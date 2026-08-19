@@ -265,6 +265,60 @@ export function isBalconyBlocked(tx: number, ty: number): boolean {
   return isTileBlocked(BALCONY_BLOCKERS, tx, ty);
 }
 
+/**
+ * The living room, through the door off the balcony. Note this is the one room
+ * that is NOT 20x15 — LivingRoom sets height to 16 — which is why the engine
+ * reads room.width/height rather than the grid constants.
+ *
+ * Four walls, three doors: the balcony off the north end of the east wall, the
+ * bedroom further down the same wall, and the front porch out to the west.
+ */
+export const LIVING_ROOM = {
+  width: 20 * TILE,
+  depth: 16 * TILE,
+  /**
+   * Low enough to feel like a room rather than a hall. At 5.2 the metre and a
+   * half of blank plaster above the picture rail dominated every view.
+   */
+  ceilingY: 4.5,
+  wallThickness: 0.6,
+  /** Picture rail height, which the artwork hangs from. */
+  railY: 3.3,
+
+  doors: {
+    balcony: { wall: 'east' as const, centre: gridToWorldZ(1), width: 3.2, height: 3.8 },
+    bedroom: { wall: 'east' as const, centre: gridToWorldZ(10), width: 3.0, height: 3.8 },
+    frontPorch: { wall: 'west' as const, centre: gridToWorldZ(13), width: 3.0, height: 3.8 },
+  },
+
+  /**
+   * Where each banana painting hangs. The 2D room places them a tile in from
+   * the wall; here they go on the wall itself, keyed by furniture type.
+   */
+  artwork: {
+    banana_painting_1: { wall: 'north' as const, along: gridToWorldX(3.5), width: 2.6, height: 2.2 },
+    banana_painting_2: { wall: 'north' as const, along: gridToWorldX(8.5), width: 3.0, height: 2.4 },
+    banana_painting_3: { wall: 'north' as const, along: gridToWorldX(13.5), width: 2.4, height: 2.0 },
+    banana_painting_4: { wall: 'east' as const, along: gridToWorldZ(3.5), width: 1.7, height: 2.8 },
+  },
+} as const;
+
+/**
+ * Solid tiles that exist only in the 3D living room: the plinth, the canvases
+ * stacked against the south wall and the drinks trolley in the corner. The
+ * walls themselves need no blockers — the engine's grid clamp stops the player
+ * 0.64 short of them already.
+ */
+export const LIVING_ROOM_BLOCKERS: readonly GridRect[] = [
+  { x0: 9, x1: 9, y0: 13, y1: 13 }, // plinth with the banana sculpture
+  { x0: 2, x1: 4, y0: 15, y1: 15 }, // framed canvases leaning on the south wall
+  { x0: 17, x1: 18, y0: 14, y1: 15 }, // drinks trolley and record player
+];
+
+export function isLivingRoomBlocked(tx: number, ty: number): boolean {
+  return isTileBlocked(LIVING_ROOM_BLOCKERS, tx, ty);
+}
+
 /** Palette carried over from the pixel-art original, warmed up for 3D lighting. */
 export const PALETTE = {
   grassLight: 0x7ba85a,

@@ -784,11 +784,6 @@ export class DownstairsScene extends PovScene {
     return group;
   }
 
-  protected buildCompanion(type: string): Character | null {
-    // Mr Tibbles follows you down here once he has joined
-    return type === 'mr_tibbles' ? buildMrTibbles(0.85) : null;
-  }
-
   private buildExits(): void {
     const label = makeLabelSprite('BACKYARD');
     label.position.set(DOWNSTAIRS.doorway.centreX, DOWNSTAIRS.doorway.height + 0.5, 0.6);

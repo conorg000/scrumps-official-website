@@ -606,16 +606,6 @@ export class BackyardScene extends PovScene {
     this.addLabel(upLabel);
   }
 
-  protected buildCompanion(type: string): Character | null {
-    switch (type) {
-      case 'mr_tibbles':
-        return buildMrTibbles(0.85);
-      default:
-        // Other companions are introduced in scenes that are still 2D
-        return null;
-    }
-  }
-
   /** Show or hide the end-game arrivals. */
   setBushTurkeyVisible(visible: boolean): void {
     if (visible && !this.bushTurkey) {

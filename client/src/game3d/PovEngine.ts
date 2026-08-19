@@ -26,6 +26,7 @@ import { AdeleLike, Furniture, PovScene, RoomLike } from './PovScene';
 import { BackyardScene } from './BackyardScene';
 import { DownstairsScene } from './DownstairsScene';
 import { BalconyScene } from './BalconyScene';
+import { LivingRoomScene } from './LivingRoomScene';
 
 /**
  * Which rooms have a first-person build, and how to make one. Anything absent
@@ -36,6 +37,7 @@ const SCENE_BUILDERS: Record<string, (room: RoomLike, lowDetail: boolean) => Pov
   mainRoom: (room, lowDetail) => new BackyardScene(room, lowDetail),
   downstairs: (room, lowDetail) => new DownstairsScene(room, lowDetail),
   upstairs: (room, lowDetail) => new BalconyScene(room, lowDetail),
+  livingRoom: (room, lowDetail) => new LivingRoomScene(room, lowDetail),
 };
 
 /** The subset of the vanilla Game object the engine touches. */
@@ -45,6 +47,7 @@ export interface GameLike {
   currentScene: string;
   companions: { type: string; x: number; y: number; direction: string }[];
   adele?: AdeleLike;
+  tinyClownCans?: number;
   frozen?: boolean;
   bushTurkeyVisible?: boolean;
   mrFengVisible?: boolean;
@@ -473,6 +476,7 @@ export class PovEngine {
     world.syncFurniture(this.game.room);
     world.syncCompanions(this.game.companions ?? []);
     world.setAdele(this.game.adele ?? null);
+    world.setClownCans(this.game.tinyClownCans ?? 0);
     world.setBushTurkeyVisible(this.game.bushTurkeyVisible === true);
     world.setMrFengVisible(this.game.mrFengVisible === true);
     world.update(time, delta, this.playerWorldPos);

@@ -866,10 +866,6 @@ export class BalconyScene extends PovScene {
     return group;
   }
 
-  protected buildCompanion(type: string): Character | null {
-    return type === 'mr_tibbles' ? buildMrTibbles(0.85) : null;
-  }
-
   private buildExits(): void {
     const door = BALCONY.livingRoomDoor;
     const livingRoom = makeLabelSprite('LIVING ROOM');
