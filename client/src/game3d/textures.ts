@@ -797,6 +797,118 @@ function build_createPosterTexture(index: number): THREE.Texture {
   return texture;
 }
 
+// ------------------------------------------------------------------- balcony
+
+/** Hardwood decking: boards running one way, with gaps and weathered grain. */
+function build_createDeckingTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(6161);
+
+  // Eight boards across the tile, so the gaps land on exact pixel boundaries
+  const boards = 8;
+  const boardH = size / boards;
+
+  ctx.fillStyle = '#2a1d13';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let b = 0; b < boards; b++) {
+    const y = b * boardH;
+    const tone = 0.82 + rand() * 0.36;
+    ctx.fillStyle = `rgb(${Math.round(148 * tone)},${Math.round(110 * tone)},${Math.round(74 * tone)})`;
+    ctx.fillRect(0, y + 3, size, boardH - 6);
+
+    // Grain: long wandering strokes along the board
+    for (let i = 0; i < 90; i++) {
+      const gy = y + 4 + rand() * (boardH - 9);
+      const len = 30 + rand() * 180;
+      ctx.strokeStyle =
+        rand() > 0.5 ? `rgba(70,48,30,${0.1 + rand() * 0.3})` : `rgba(196,158,114,${rand() * 0.22})`;
+      ctx.lineWidth = 0.5 + rand();
+      ctx.beginPath();
+      ctx.moveTo(rand() * size, gy);
+      ctx.lineTo(rand() * size + len, gy + (rand() - 0.5) * 2);
+      ctx.stroke();
+    }
+
+    // The odd knot
+    if (rand() > 0.55) {
+      const kx = rand() * size;
+      const ky = y + boardH / 2;
+      const g = ctx.createRadialGradient(kx, ky, 1, kx, ky, 5 + rand() * 6);
+      g.addColorStop(0, 'rgba(52,34,20,0.85)');
+      g.addColorStop(1, 'rgba(52,34,20,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(kx - 14, ky - 14, 28, 28);
+    }
+
+    // Highlight along the top arris, shadow into the gap below
+    ctx.fillStyle = 'rgba(226,192,148,0.16)';
+    ctx.fillRect(0, y + 3, size, 2);
+    ctx.fillStyle = 'rgba(24,14,8,0.4)';
+    ctx.fillRect(0, y + boardH - 6, size, 3);
+  }
+
+  // Fixings, two per board at regular centres
+  for (let b = 0; b < boards; b++) {
+    for (let i = 0; i < 4; i++) {
+      const x = 40 + i * 128 + rand() * 8;
+      const y = b * boardH + boardH / 2;
+      ctx.fillStyle = 'rgba(70,62,54,0.7)';
+      ctx.fillRect(x, y - 4, 2, 2);
+      ctx.fillRect(x, y + 3, 2, 2);
+    }
+  }
+
+  // Sun-bleaching and general weather
+  for (let i = 0; i < 40; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(214,186,150,0.05)' : 'rgba(46,32,20,0.07)';
+    ctx.beginPath();
+    ctx.arc(rand() * size, rand() * size, 20 + rand() * 70, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  return finish(canvas, 1);
+}
+
+/** Long, thin, backlit sunset cloud. Alpha-masked billboard. */
+function build_createSunsetCloudTexture(): THREE.Texture {
+  const width = 512;
+  const height = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable for procedural texture');
+  const rand = seededRandom(2468);
+
+  // Stacked ellipses, densest through the middle, so the edges wisp out
+  for (let i = 0; i < 90; i++) {
+    const t = rand();
+    const x = width * (0.08 + t * 0.84);
+    const edge = 1 - Math.abs(t - 0.5) * 2;
+    const y = height / 2 + (rand() - 0.5) * height * 0.34;
+    const rx = 18 + rand() * 62;
+    const ry = (4 + rand() * 16) * (0.35 + edge);
+
+    const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry));
+    g.addColorStop(0, `rgba(255,255,255,${0.16 + edge * 0.24})`);
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry));
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(rx, ry), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 export const createGrassTexture = (): THREE.Texture => memoize('grass', build_createGrassTexture);
 
 export const createGrassRoughness = (): THREE.Texture => memoize('grassRoughness', build_createGrassRoughness);
@@ -816,6 +928,10 @@ export const createCDArtTexture = (songName: string): THREE.Texture =>
 
 export const createStuccoTexture = (): THREE.Texture => memoize('stucco', build_createStuccoTexture);
 export const createConcreteTexture = (): THREE.Texture => memoize('concrete', build_createConcreteTexture);
+
+export const createDeckingTexture = (): THREE.Texture => memoize('decking', build_createDeckingTexture);
+export const createSunsetCloudTexture = (): THREE.Texture =>
+  memoize('sunsetCloud', build_createSunsetCloudTexture);
 
 export const createSlabTexture = (): THREE.Texture => memoize('slab', build_createSlabTexture);
 export const createBesserTexture = (): THREE.Texture => memoize('besser', build_createBesserTexture);

@@ -189,6 +189,82 @@ export function isDownstairsBlocked(tx: number, ty: number): boolean {
   return isTileBlocked(DOWNSTAIRS_BLOCKERS, tx, ty);
 }
 
+/**
+ * The first-floor balcony, at the top of the concrete staircase.
+ *
+ * Orientation follows the exit markers in game.js: the yard is off the north
+ * edge (grid y = 0), the house closes the south and the lower half of the west,
+ * and the stair back down to the yard lands in the south-east corner at grid
+ * (19, 14). Balcony's own railings already occupy grid row y = 0 and grid
+ * column x = 0 for y 1..7, so those tiles come pre-blocked by the 2D map.
+ *
+ * Geometry sits on the near edge of whichever tile row is blocked, so the
+ * player ends up standing right against it rather than a tile short.
+ */
+export const BALCONY = {
+  /** Walking surface. The yard is BALCONY.dropToYard below this. */
+  deckY: 0,
+  dropToYard: HOUSE.balcony.deckY,
+  railHeight: HOUSE.balcony.railHeight,
+
+  /** Main deck, inside the railings and the house walls. */
+  deck: { minX: 2.0, maxX: 38.0, minZ: 2.0, maxZ: 28.0 },
+  /**
+   * Concrete landing in the south-east corner, bulging out past the deck where
+   * the stair arrives. Laid out on exact tile boundaries so the walkable tiles
+   * and the geometry agree: the well below is a hole in it, not a slab over it.
+   */
+  landing: { minX: 32.0, maxX: 40.4, minZ: 24.0, maxZ: 30.4 },
+
+  /** The railed edges, as world-space runs along the deck boundary. */
+  rails: {
+    north: { z: 2.0, fromX: 2.0, toX: 38.0 },
+    west: { x: 2.0, fromZ: 2.0, toZ: 15.0 },
+    east: { x: 38.0, fromZ: 2.0, toZ: 24.0 },
+    landingEast: { x: 40.4, fromZ: 24.0, toZ: 30.4 },
+  },
+
+  /** Rendered house walls. The door in the west wall leads to the living room. */
+  wall: {
+    southZ: 28.0,
+    /** The south wall stops here so the balcony can wrap the corner to the stair. */
+    southMaxX: 32.0,
+    westX: 2.0,
+    westFromZ: 15.0,
+    height: 5.0,
+    thickness: 0.7,
+  },
+  /** Centred on the grid (0, 11) exit marker. */
+  livingRoomDoor: { centreZ: gridToWorldZ(11), width: 3.4, height: 3.6 },
+  /** Windows in the south wall, matching the pair on the house exterior. */
+  southWindows: [
+    { centreX: 11, width: 4.4, height: 2.6, sill: 1.3 },
+    { centreX: 25, width: 4.4, height: 2.6, sill: 1.3 },
+  ],
+
+  /**
+   * The hole the stair drops through, exactly covering grid tiles (17..18, 14).
+   * The flight runs south out of it and below the deck.
+   */
+  stairWell: { minX: 34.0, maxX: 38.0, minZ: 28.0, maxZ: 30.4 },
+} as const;
+
+/**
+ * Solid tiles that exist only in the 3D balcony: the house walls, and the
+ * railing along the eastern edge that the 2D map never bothered with because
+ * the isometric camera could not show you falling off it.
+ */
+export const BALCONY_BLOCKERS: readonly GridRect[] = [
+  { x0: 0, x1: 0, y0: 8, y1: 14 }, // west wall, below the railed section
+  { x0: 0, x1: 15, y0: 14, y1: 14 }, // south wall of the house
+  { x0: 17, x1: 18, y0: 14, y1: 14 }, // the open stair well
+  { x0: 19, x1: 19, y0: 0, y1: 11 }, // east railing, above the stair landing
+];
+
+export function isBalconyBlocked(tx: number, ty: number): boolean {
+  return isTileBlocked(BALCONY_BLOCKERS, tx, ty);
+}
+
 /** Palette carried over from the pixel-art original, warmed up for 3D lighting. */
 export const PALETTE = {
   grassLight: 0x7ba85a,

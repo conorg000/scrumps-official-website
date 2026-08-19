@@ -16,8 +16,8 @@ import { HOUSE } from './constants';
 import { Animated, applyWorldUVs, spanBetween } from './props';
 import { createConcreteTexture, createStuccoTexture, createWoodTexture } from './textures';
 
-const ORANGE = 0xef7a24;
-const ORANGE_DARK = 0xc25a12;
+export const ORANGE = 0xef7a24;
+export const ORANGE_DARK = 0xc25a12;
 const DOOR_BROWN = 0x8a5a2e;
 const DOOR_BROWN_DARK = 0x4a2a14;
 const DOOR_BROWN_LIGHT = 0xa87038;
@@ -125,8 +125,11 @@ function flight(
  * A run of orange balusters with a top and bottom rail, from `from` to `to`.
  * Used along the balcony edge and up the open side of the stairs, and it slopes
  * happily if the two ends are at different heights.
+ *
+ * Exported so the balcony you stand on upstairs is built from the same railing
+ * you see from the yard below.
  */
-function balustrade(from: THREE.Vector3, to: THREE.Vector3, height: number): THREE.Group {
+export function balustrade(from: THREE.Vector3, to: THREE.Vector3, height: number): THREE.Group {
   const group = new THREE.Group();
 
   const barMaterial = new THREE.MeshStandardMaterial({

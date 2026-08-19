@@ -25,6 +25,7 @@ import {
 import { AdeleLike, Furniture, PovScene, RoomLike } from './PovScene';
 import { BackyardScene } from './BackyardScene';
 import { DownstairsScene } from './DownstairsScene';
+import { BalconyScene } from './BalconyScene';
 
 /**
  * Which rooms have a first-person build, and how to make one. Anything absent
@@ -34,6 +35,7 @@ import { DownstairsScene } from './DownstairsScene';
 const SCENE_BUILDERS: Record<string, (room: RoomLike, lowDetail: boolean) => PovScene> = {
   mainRoom: (room, lowDetail) => new BackyardScene(room, lowDetail),
   downstairs: (room, lowDetail) => new DownstairsScene(room, lowDetail),
+  upstairs: (room, lowDetail) => new BalconyScene(room, lowDetail),
 };
 
 /** The subset of the vanilla Game object the engine touches. */
@@ -106,7 +108,9 @@ export class PovEngine {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.camera = new THREE.PerspectiveCamera(74, 1, 0.1, 400);
+    // Far has to clear the largest sky sphere any scene builds — the balcony's
+    // is 500 out, and anything beyond the far plane is simply clipped away.
+    this.camera = new THREE.PerspectiveCamera(74, 1, 0.1, 1000);
     // fov is recomputed from the aspect ratio in resize()
 
     this.switchScene(game.currentScene);
