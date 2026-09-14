@@ -319,6 +319,59 @@ export function isLivingRoomBlocked(tx: number, ty: number): boolean {
   return isTileBlocked(LIVING_ROOM_BLOCKERS, tx, ty);
 }
 
+/**
+ * The bedroom, east off the living room. Also 20x16, and the only room the
+ * game visits at night — the last CD you find in here is Middle of the Night.
+ *
+ * Lined in VJ boards rather than plaster, with sash windows on the north and
+ * east walls so the moon and the streetlight have somewhere to come in.
+ */
+export const BEDROOM = {
+  width: 20 * TILE,
+  depth: 16 * TILE,
+  ceilingY: 4.3,
+  wallThickness: 0.6,
+  /** Picture rail height, which the posters hang off. */
+  railY: 3.2,
+  /** Back out to the living room. Grid (0, 12) in the 2D exit markers. */
+  door: { centre: gridToWorldZ(12), width: 3.0, height: 3.6 },
+  windows: [
+    // Over the desk, so the monitor glow and the moonlight fight it out
+    { wall: 'north' as const, along: gridToWorldX(9), width: 5.0, height: 2.6, sill: 1.5 },
+    // Onto the side street, where the streetlight is
+    { wall: 'east' as const, along: gridToWorldZ(13), width: 4.2, height: 2.6, sill: 1.5 },
+  ],
+  /**
+   * The 2D room lists posters as furniture a tile in from the north wall; these
+   * put them on the wall itself, keyed by the order they appear in furniture.
+   */
+  posters: [
+    { along: gridToWorldX(5.5), width: 1.6, height: 2.2 },
+    { along: gridToWorldX(11.5), width: 1.8, height: 2.4 },
+  ],
+} as const;
+
+/**
+ * Solid tiles that exist only in the 3D bedroom: the pedestal fan, the beanbag
+ * and the crate stack beside the bed. Everything the 2D room already knows
+ * about is in its own collision map.
+ */
+export const BEDROOM_BLOCKERS: readonly GridRect[] = [
+  { x0: 18, x1: 18, y0: 13, y1: 13 }, // pedestal fan in the corner
+  { x0: 13, x1: 14, y0: 8, y1: 9 }, // beanbag
+  { x0: 2, x1: 2, y0: 6, y1: 6 }, // milk crates doing duty as a side table
+  // The run along the south wall that nobody has dealt with since moving in
+  { x0: 5, x1: 6, y0: 15, y1: 15 }, // clothes airer
+  { x0: 9, x1: 10, y0: 15, y1: 15 }, // boxes and a suitcase
+  { x0: 13, x1: 13, y0: 15, y1: 15 }, // mirror leaning on the wall
+  // The sitting-on-the-floor corner, which is where anyone who visits sits.
+  // It goes on the rug, which is the one thing standing between the door and
+  // the far half of the room.
+  { x0: 8, x1: 8, y0: 9, y1: 9 }, // upturned crate doing duty as a table
+  { x0: 11, x1: 11, y0: 11, y1: 11 }, // floor lamp beside it
+  { x0: 1, x1: 1, y0: 14, y1: 15 }, // record crates against the west wall
+];
+
 /** Palette carried over from the pixel-art original, warmed up for 3D lighting. */
 export const PALETTE = {
   grassLight: 0x7ba85a,

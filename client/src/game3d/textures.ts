@@ -1111,6 +1111,242 @@ function build_createBookSpineTexture(): THREE.Texture {
   return finish(canvas, 1);
 }
 
+/**
+ * Vertical-joint tongue-and-groove boards — the lining every Queenslander
+ * bedroom is wrapped in. Painted a tired mint, because nobody has repainted it
+ * since the eighties.
+ */
+function build_createVJBoardTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(5521);
+
+  const boards = 8;
+  const boardW = size / boards;
+
+  ctx.fillStyle = '#b9c9b4';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let b = 0; b < boards; b++) {
+    const x = b * boardW;
+    const tone = 0.9 + rand() * 0.16;
+    ctx.fillStyle = `rgb(${Math.round(185 * tone)},${Math.round(201 * tone)},${Math.round(180 * tone)})`;
+    ctx.fillRect(x, 0, boardW, size);
+
+    // Paint that has gone chalky in patches
+    for (let i = 0; i < 40; i++) {
+      ctx.fillStyle = `rgba(255,255,255,${rand() * 0.07})`;
+      const py = rand() * size;
+      ctx.fillRect(x + 2, py, boardW - 4, 2 + rand() * 18);
+    }
+
+    // The V-groove: a dark line with a highlight on the leading edge
+    ctx.fillStyle = 'rgba(52,64,52,0.55)';
+    ctx.fillRect(x, 0, 2.5, size);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fillRect(x + 2.5, 0, 1.5, size);
+  }
+
+  // Grubby hand height and a few scuffs
+  const grime = ctx.createLinearGradient(0, size * 0.55, 0, size);
+  grime.addColorStop(0, 'rgba(60,54,40,0)');
+  grime.addColorStop(1, 'rgba(60,54,40,0.18)');
+  ctx.fillStyle = grime;
+  ctx.fillRect(0, size * 0.55, size, size * 0.45);
+
+  for (let i = 0; i < 2600; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+    ctx.fillRect(rand() * size, rand() * size, 1, 1);
+  }
+
+  return finish(canvas, 1);
+}
+
+/** A doona cover: washed-out stripes, creased from never being made. */
+function build_createDoonaTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(8130);
+
+  ctx.fillStyle = '#3d5aa8';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let y = 0; y < size; y += 48) {
+    ctx.fillStyle = 'rgba(232,226,204,0.75)';
+    ctx.fillRect(0, y, size, 16);
+    ctx.fillStyle = 'rgba(214,90,68,0.7)';
+    ctx.fillRect(0, y + 22, size, 6);
+  }
+
+  // Creases, as soft diagonal bands of shade
+  for (let i = 0; i < 26; i++) {
+    ctx.save();
+    ctx.translate(rand() * size, rand() * size);
+    ctx.rotate((rand() - 0.5) * 1.4);
+    const g = ctx.createLinearGradient(0, -20, 0, 20);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.5, `rgba(0,0,0,${0.1 + rand() * 0.14})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-size, -20, size * 2, 40);
+    ctx.restore();
+  }
+
+  return finish(canvas, 1);
+}
+
+/**
+ * The x-ray: a foot, in a plastic sleeve, on film. Drawn light-on-dark so it
+ * can be used as an emissive map on the lightbox and actually glow.
+ */
+function build_createXrayTexture(): THREE.Texture {
+  const width = 256;
+  const height = 320;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable for procedural texture');
+  const rand = seededRandom(4242);
+
+  ctx.fillStyle = '#05080e';
+  ctx.fillRect(0, 0, width, height);
+
+  // Soft tissue: a foot-shaped haze the bones sit inside
+  ctx.save();
+  ctx.translate(width / 2, height / 2);
+  ctx.rotate(-0.12);
+  const flesh = ctx.createRadialGradient(0, 10, 10, 0, 10, 130);
+  flesh.addColorStop(0, 'rgba(120,160,190,0.5)');
+  flesh.addColorStop(1, 'rgba(120,160,190,0)');
+  ctx.fillStyle = flesh;
+  ctx.beginPath();
+  ctx.ellipse(0, 10, 66, 122, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const bone = (x: number, y: number, w: number, h: number, angle: number) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    const g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, 'rgba(190,215,235,0.55)');
+    g.addColorStop(0.5, 'rgba(240,250,255,0.95)');
+    g.addColorStop(1, 'rgba(190,215,235,0.55)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+
+  // Toes, then the long metatarsals fanning back toward the heel
+  for (let i = 0; i < 5; i++) {
+    const spread = (i - 2) * 15;
+    const drop = Math.abs(i - 1) * 7;
+    bone(spread, -104 + drop, 15 - i * 1.2, 20, spread * 0.006);
+    bone(spread * 1.05, -80 + drop, 14 - i, 26, spread * 0.006);
+    bone(spread * 1.12, -40 + drop * 0.6, 15 - i, 62, spread * 0.005);
+  }
+
+  // Tarsals and the heel
+  bone(-6, 20, 54, 46, 0.1);
+  bone(2, 58, 46, 44, -0.05);
+  bone(-4, 96, 56, 54, 0.05);
+  // Ankle, cut off by the edge of the film
+  bone(10, 140, 34, 70, -0.02);
+  ctx.restore();
+
+  // Film grain and the exposure falloff at the edges
+  for (let i = 0; i < 12000; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.06)';
+    ctx.fillRect(rand() * width, rand() * height, 1, 1);
+  }
+  const vignette = ctx.createRadialGradient(width / 2, height / 2, height * 0.3, width / 2, height / 2, height * 0.62);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.75)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, width, height);
+
+  // The label strip every film carries, nonsense on this one
+  ctx.fillStyle = 'rgba(210,235,255,0.75)';
+  ctx.font = 'bold 13px monospace';
+  ctx.fillText('SCRUMP C.  R FOOT', 12, 22);
+  ctx.font = '11px monospace';
+  ctx.fillText('NO CRISPS DETECTED', 12, height - 14);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+/**
+ * What is outside the bedroom windows: a Brisbane sky at about two in the
+ * morning, sodium-orange along the bottom where the suburb is and deep indigo
+ * overhead, with as many stars as the streetlights allow.
+ */
+function build_createNightSkyTexture(): THREE.Texture {
+  const width = 1024;
+  const height = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable for procedural texture');
+  const rand = seededRandom(2029);
+
+  const sky = ctx.createLinearGradient(0, 0, 0, height);
+  sky.addColorStop(0, '#06070f');
+  sky.addColorStop(0.45, '#101634');
+  sky.addColorStop(0.78, '#2c2a44');
+  sky.addColorStop(0.93, '#6a4436');
+  sky.addColorStop(1, '#8a5630');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, width, height);
+
+  // Stars, thinning out toward the light pollution at the horizon
+  for (let i = 0; i < 900; i++) {
+    const y = rand() * height * 0.8;
+    const fade = 1 - y / (height * 0.85);
+    const r = rand() * 1.1 + 0.2;
+    ctx.fillStyle = `rgba(232,240,255,${(0.2 + rand() * 0.8) * fade})`;
+    ctx.beginPath();
+    ctx.arc(rand() * width, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // A few brighter ones with a cross flare
+  for (let i = 0; i < 14; i++) {
+    const x = rand() * width;
+    const y = rand() * height * 0.55;
+    ctx.strokeStyle = 'rgba(220,235,255,0.5)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y);
+    ctx.lineTo(x + 4, y);
+    ctx.moveTo(x, y - 4);
+    ctx.lineTo(x, y + 4);
+    ctx.stroke();
+  }
+
+  // Thin cloud, catching the orange from below
+  for (let i = 0; i < 16; i++) {
+    const cy = height * (0.55 + rand() * 0.35);
+    const cw = 120 + rand() * 420;
+    const g = ctx.createLinearGradient(0, cy - 22, 0, cy + 22);
+    g.addColorStop(0, 'rgba(120,96,110,0)');
+    g.addColorStop(0.5, `rgba(146,112,110,${0.1 + rand() * 0.16})`);
+    g.addColorStop(1, 'rgba(120,96,110,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(rand() * width - cw / 2, cy - 22, cw, 44);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+}
+
 export const createGrassTexture = (): THREE.Texture => memoize('grass', build_createGrassTexture);
 
 export const createGrassRoughness = (): THREE.Texture => memoize('grassRoughness', build_createGrassRoughness);
@@ -1149,6 +1385,12 @@ export const createKilimTexture = (): THREE.Texture => memoize('kilim', build_cr
 export const createTapestryTexture = (): THREE.Texture => memoize('tapestry', build_createTapestryTexture);
 export const createPosterTexture = (index: number): THREE.Texture =>
   memoize(`poster:${index}`, () => build_createPosterTexture(index));
+
+export const createVJBoardTexture = (): THREE.Texture => memoize('vjBoard', build_createVJBoardTexture);
+export const createDoonaTexture = (): THREE.Texture => memoize('doona', build_createDoonaTexture);
+export const createXrayTexture = (): THREE.Texture => memoize('xray', build_createXrayTexture);
+export const createNightSkyTexture = (): THREE.Texture =>
+  memoize('nightSky', build_createNightSkyTexture);
 
 /**
  * A copy of a memoised map with its own tiling. The clone shares the underlying

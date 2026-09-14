@@ -9,7 +9,7 @@ import { findTrack } from '../music/tracks';
 import type { DPadDirection } from '../game3d/PovEngine';
 
 /** Scenes that have been converted to the first-person 3D renderer. */
-const POV_SCENES = ['mainRoom', 'downstairs', 'upstairs', 'livingRoom'];
+const POV_SCENES = ['mainRoom', 'downstairs', 'upstairs', 'livingRoom', 'bedroom'];
 
 /** Resting volume of the looping background track. */
 const GAME_MUSIC_VOLUME = 0.5;
