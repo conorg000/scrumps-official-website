@@ -4,10 +4,15 @@ import { LoadingScreen } from './LoadingScreen';
 import { DialogModal } from './DialogModal';
 import { InventoryUI } from './InventoryUI';
 import { PovStage } from './PovStage';
+import { Boombox } from './Boombox';
+import { findTrack } from '../music/tracks';
 import type { DPadDirection } from '../game3d/PovEngine';
 
 /** Scenes that have been converted to the first-person 3D renderer. */
 const POV_SCENES = ['mainRoom', 'downstairs', 'upstairs', 'livingRoom'];
+
+/** Resting volume of the looping background track. */
+const GAME_MUSIC_VOLUME = 0.5;
 
 export const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -16,6 +21,8 @@ export const GameCanvas: React.FC = () => {
   const isLoadingRef = useRef(true);
   const pendingDialogRef = useRef<{characterName: string, text: string[], imageSrc: string, imageTitle: string} | null>(null);
   const currentSpeakerRef = useRef<string | null>(null);
+  // A freshly picked-up CD waits here until its dialog is dismissed
+  const pendingCdRef = useRef<string | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -50,6 +57,9 @@ export const GameCanvas: React.FC = () => {
   const [nearCD, setNearCD] = useState(false);
   const [hollandiaCount, setHollandiaCount] = useState(0);
   const [collectedCDs, setCollectedCDs] = useState<string[]>([]);
+  // The CD on the stereo right now, and whether Spotify is actually playing it
+  const [boomboxSong, setBoomboxSong] = useState<string | null>(null);
+  const [spotifyPlaying, setSpotifyPlaying] = useState(false);
   const [tinyClownJoined, setTinyClownJoined] = useState(false);
   const [hasLadder, setHasLadder] = useState(false);
   const [nearLadder, setNearLadder] = useState(false);
@@ -95,7 +105,7 @@ export const GameCanvas: React.FC = () => {
       const audio = audioRef.current;
       if (audio) {
         audio.src = '/background-music.mp3';
-        audio.volume = 0.5;
+        audio.volume = GAME_MUSIC_VOLUME;
         const savedMuted = localStorage.getItem('scrumps-sound-muted') === 'true';
         audio.muted = savedMuted;
         
@@ -580,6 +590,12 @@ export const GameCanvas: React.FC = () => {
         imageTitle: ''
       }));
 
+      // A CD picked up during this dialog goes straight on the stereo
+      if (pendingCdRef.current) {
+        setBoomboxSong(pendingCdRef.current);
+        pendingCdRef.current = null;
+      }
+
       // Check if Mr Tibbles just finished talking - add him as companion
       if (currentSpeakerRef.current === 'Mr Tibbles' && !mrTibblesJoined) {
         setMrTibblesJoined(true);
@@ -918,11 +934,14 @@ export const GameCanvas: React.FC = () => {
             gameRef.current.removeItem(gameRef.current.currentScene, cd.type, cd.x, cd.y);
             room.furniture.splice(cdIndex, 1);
 
+            const playable = findTrack(songName);
+            if (playable) pendingCdRef.current = songName;
+
             gameRef.current.showDialog("Scrump", [
               "*picks up CD*",
               `Oh sick, it's "${songName}" by The Scrumps!`,
               `That's ${collectedCDs.length + 1} of 4 CDs collected.`,
-              "These tunes are gonna slap."
+              playable ? "Chucking this on the stereo right now." : "These tunes are gonna slap."
             ]);
           }
         }
@@ -1293,6 +1312,35 @@ export const GameCanvas: React.FC = () => {
     }
   };
 
+  // Duck the game's own music while a Scrumps track is on the stereo, and bring
+  // it back as soon as Spotify stops - paused, finished, or the boombox closed.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const target = spotifyPlaying ? 0 : GAME_MUSIC_VOLUME;
+
+    if (!spotifyPlaying && !isMuted && audio.paused) {
+      audio.volume = 0;
+      audio.play().catch(() => {});
+    }
+
+    let frame = 0;
+    const fade = () => {
+      const remaining = target - audio.volume;
+      if (Math.abs(remaining) < 0.02) {
+        audio.volume = target;
+        if (target === 0) audio.pause();
+        return;
+      }
+      audio.volume = Math.min(1, Math.max(0, audio.volume + Math.sign(remaining) * 0.02));
+      frame = requestAnimationFrame(fade);
+    };
+    frame = requestAnimationFrame(fade);
+
+    return () => cancelAnimationFrame(frame);
+  }, [spotifyPlaying, isMuted]);
+
   const toggleSound = () => {
     const newMuted = !isMuted;
     setIsMuted(newMuted);
@@ -1300,7 +1348,7 @@ export const GameCanvas: React.FC = () => {
     
     if (audioRef.current) {
       audioRef.current.muted = newMuted;
-      if (!newMuted) {
+      if (!newMuted && !spotifyPlaying) {
         audioRef.current.play().catch(() => {});
       }
     }
@@ -1309,7 +1357,8 @@ export const GameCanvas: React.FC = () => {
   const isPovScene = POV_SCENES.includes(currentScene);
   // The POV camera holds still whenever a modal, cutscene or mini-game is up
   const povPaused =
-    dialogState.isVisible || boxingGameActive || poolJumpActive || gameOver || gameEnded;
+    dialogState.isVisible || boomboxSong !== null || boxingGameActive || poolJumpActive ||
+    gameOver || gameEnded;
   const povDpad = joystickDirection as DPadDirection;
 
   return (
@@ -1927,6 +1976,7 @@ export const GameCanvas: React.FC = () => {
         <InventoryUI
           hollandiaCount={hollandiaCount}
           collectedCDs={collectedCDs}
+          onOpenBoombox={() => setBoomboxSong(collectedCDs[collectedCDs.length - 1] ?? null)}
           hasCompost={hasCompost}
           hasLadder={hasLadder}
           hasXray={hasXray}
@@ -1940,6 +1990,16 @@ export const GameCanvas: React.FC = () => {
 
       {!isLoading && <VirtualJoystick onMove={handleJoystickMove} />}
       
+      {boomboxSong && (
+        <Boombox
+          songName={boomboxSong}
+          collectedCDs={collectedCDs}
+          onPlayingChange={setSpotifyPlaying}
+          onSelectSong={setBoomboxSong}
+          onClose={() => setBoomboxSong(null)}
+        />
+      )}
+
       <DialogModal
         isVisible={dialogState.isVisible}
         characterName={dialogState.characterName}

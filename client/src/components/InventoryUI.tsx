@@ -11,6 +11,8 @@ interface InventoryUIProps {
   tinyClownJoined: boolean;
   humunculousJoined: boolean;
   isChaseActive: boolean;
+  /** Puts the most recently found CD back on the stereo. */
+  onOpenBoombox: () => void;
 }
 
 export const InventoryUI: React.FC<InventoryUIProps> = ({
@@ -24,6 +26,7 @@ export const InventoryUI: React.FC<InventoryUIProps> = ({
   tinyClownJoined,
   humunculousJoined,
   isChaseActive,
+  onOpenBoombox,
 }) => {
   const hasHeldItems = hasLadder || hasXray || hasCompost;
   const hasCompanions = mrTibblesJoined || possumFed || tinyClownJoined || humunculousJoined;
@@ -36,7 +39,19 @@ export const InventoryUI: React.FC<InventoryUIProps> = ({
     >
       <div className="flex gap-3">
         <span>🍺 {hollandiaCount}/5</span>
-        <span>💿 {collectedCDs.length}/4</span>
+        <button
+          onClick={onOpenBoombox}
+          disabled={collectedCDs.length === 0}
+          className={
+            collectedCDs.length > 0
+              ? 'cursor-pointer text-yellow-300 transition-colors hover:text-yellow-100'
+              : 'cursor-default opacity-60'
+          }
+          title={collectedCDs.length > 0 ? 'Put a CD on' : 'No CDs yet'}
+          data-testid="button-open-boombox"
+        >
+          💿 {collectedCDs.length}/4
+        </button>
       </div>
 
       {hasHeldItems && (
