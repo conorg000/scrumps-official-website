@@ -419,6 +419,22 @@ export const FRONT_PORCH_BLOCKERS: readonly GridRect[] = [
   { x0: 17, x1: 17, y0: 8, y1: 8 },
 ];
 
+/**
+ * The rooftop, where the ten subletters have been hiding the whole game.
+ *
+ * The only room that is not 20 tiles wide — Rooftop is 24x16 — which is why
+ * every collision check in the engine reads the room's own dimensions rather
+ * than the grid constants at the top of this file.
+ */
+export const ROOFTOP = {
+  width: 24 * TILE,
+  depth: 16 * TILE,
+  /** How far above the backyard this is, for the view over the north rail. */
+  heightAboveYard: 9.5,
+  /** Railings run along three sides; the south edge is where the ladder is. */
+  railHeight: 1.15,
+} as const;
+
 /** Palette carried over from the pixel-art original, warmed up for 3D lighting. */
 export const PALETTE = {
   grassLight: 0x7ba85a,

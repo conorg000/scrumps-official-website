@@ -47,6 +47,7 @@ import {
 import {
   createFloorboardTexture,
   createKilimTexture,
+  createPuffTexture,
   createNightSkyTexture,
   createVJBoardTexture,
   tiled,
@@ -342,38 +343,43 @@ export class BedroomScene extends PovScene {
     group.add(sky);
 
     if (withMoon) {
-      const moon = new THREE.Sprite(
-        new THREE.SpriteMaterial({ color: 0xfff6e0, fog: false, depthWrite: false }),
+      // A hard disc for the moon itself: an untextured sprite is a square, and
+      // the soft falloff has to come from a separate halo behind it.
+      const moon = new THREE.Mesh(
+        new THREE.CircleGeometry(1.3, 24),
+        new THREE.MeshBasicMaterial({ color: 0xfff6e0, fog: false }),
       );
-      moon.scale.set(2.6, 2.6, 1);
       moon.position.set(7, 20, 0.5);
       group.add(moon);
 
       const halo = new THREE.Sprite(
         new THREE.SpriteMaterial({
+          map: createPuffTexture(),
           color: 0xbfd4ff,
           transparent: true,
-          opacity: 0.22,
+          opacity: 0.3,
+          blending: THREE.AdditiveBlending,
           fog: false,
           depthWrite: false,
         }),
       );
-      halo.scale.set(11, 11, 1);
-      halo.position.copy(moon.position);
-      halo.position.z -= 0.2;
+      halo.scale.set(12, 12, 1);
+      halo.position.set(7, 20, 0.3);
       group.add(halo);
     } else {
       // A streetlight, which is why this window is orange
       const lamp = new THREE.Sprite(
         new THREE.SpriteMaterial({
+          map: createPuffTexture(),
           color: 0xffc078,
           transparent: true,
-          opacity: 0.85,
+          opacity: 0.9,
+          blending: THREE.AdditiveBlending,
           fog: false,
           depthWrite: false,
         }),
       );
-      lamp.scale.set(5.5, 5.5, 1);
+      lamp.scale.set(7, 7, 1);
       lamp.position.set(-9, 7.5, 1);
       group.add(lamp);
     }

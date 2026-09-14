@@ -16,6 +16,7 @@ const POV_SCENES = [
   'livingRoom',
   'bedroom',
   'frontPorch',
+  'rooftop',
 ];
 
 /** Resting volume of the looping background track. */

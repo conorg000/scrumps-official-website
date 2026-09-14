@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import { Animated, applyWorldUVs } from './props';
 import { ORANGE, ORANGE_DARK } from './house';
-import { createCorrugatedIronTexture, createWoodTexture, tiled } from './textures';
+import { createCorrugatedIronTexture, createPuffTexture, createWoodTexture, tiled } from './textures';
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -735,9 +735,11 @@ export function buildStreetlight(): { group: THREE.Group; animated: Animated } {
 
   const glow = new THREE.Sprite(
     new THREE.SpriteMaterial({
+      map: createPuffTexture(),
       color: 0xffb060,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
       depthWrite: false,
     }),
   );
