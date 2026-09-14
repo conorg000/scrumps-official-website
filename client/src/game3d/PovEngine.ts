@@ -28,6 +28,7 @@ import { DownstairsScene } from './DownstairsScene';
 import { BalconyScene } from './BalconyScene';
 import { LivingRoomScene } from './LivingRoomScene';
 import { BedroomScene } from './BedroomScene';
+import { FrontPorchScene } from './FrontPorchScene';
 
 /**
  * Which rooms have a first-person build, and how to make one. Anything absent
@@ -40,6 +41,7 @@ const SCENE_BUILDERS: Record<string, (room: RoomLike, lowDetail: boolean) => Pov
   upstairs: (room, lowDetail) => new BalconyScene(room, lowDetail),
   livingRoom: (room, lowDetail) => new LivingRoomScene(room, lowDetail),
   bedroom: (room, lowDetail) => new BedroomScene(room, lowDetail),
+  frontPorch: (room, lowDetail) => new FrontPorchScene(room, lowDetail),
 };
 
 /** The subset of the vanilla Game object the engine touches. */

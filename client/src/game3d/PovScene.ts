@@ -10,7 +10,14 @@
 import * as THREE from 'three';
 import { GridRect, gridToWorldX, gridToWorldZ } from './constants';
 import { Animated } from './props';
-import { Character, buildAdele, buildMrTibbles, buildPossum, buildTinyClown } from './characters';
+import {
+  Character,
+  buildAdele,
+  buildHumunculous,
+  buildMrTibbles,
+  buildPossum,
+  buildTinyClown,
+} from './characters';
 
 /** The shape of a furniture entry as defined by the vanilla JS rooms. */
 export interface Furniture {
@@ -133,7 +140,7 @@ export abstract class PovScene {
   /**
    * Companions follow you from room to room, so the mapping lives here rather
    * than in each scene. `tent` is the possum — the 2D game keys him by where
-   * you found him. Humunculous is picked up in a room that is still isometric.
+   * you found him.
    */
   protected buildCompanion(type: string): Character | null {
     switch (type) {
@@ -143,6 +150,8 @@ export abstract class PovScene {
         return buildPossum();
       case 'tiny_clown':
         return buildTinyClown();
+      case 'humunculous':
+        return buildHumunculous();
       default:
         return null;
     }

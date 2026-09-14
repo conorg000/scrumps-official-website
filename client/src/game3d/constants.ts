@@ -372,6 +372,53 @@ export const BEDROOM_BLOCKERS: readonly GridRect[] = [
   { x0: 1, x1: 1, y0: 14, y1: 15 }, // record crates against the west wall
 ];
 
+/**
+ * The front porch: the verandah across the front of the Queenslander, at dusk.
+ * Same 20x16 grid, but only the northern two thirds of it is deck — the front
+ * rows are the flight of steps down to the path, which is scenery rather than
+ * somewhere to walk.
+ *
+ * The ladder gets propped here, in the north-east corner, to reach the roof.
+ */
+export const FRONT_PORCH = {
+  width: 20 * TILE,
+  depth: 16 * TILE,
+  /** The deck stops here; south of it the steps go down to the front path. */
+  deckMaxZ: gridToWorldZ(11) + TILE / 2,
+  /** How far the front yard sits below the verandah floor. */
+  dropToGround: 2.4,
+  /** Verandah roof: highest at the wall, falling to the bullnose at the front. */
+  roof: { frontZ: gridToWorldZ(8) + TILE / 2, wallY: 5.0, frontY: 4.3, thickness: 0.26 },
+  /** Posts under the front edge of that roof. */
+  postGridX: [2, 7, 12, 17],
+  postGridY: 8,
+  facade: { thickness: 0.7, height: 8.5 },
+  /** Grid (8..11, 1) in the 2D room. */
+  frontDoor: { centre: gridToWorldX(9.5), width: 3.6, height: 4.0 },
+  windows: [
+    { along: gridToWorldX(3.5), width: 3.2, height: 2.8, sill: 1.5 },
+    { along: gridToWorldX(15.5), width: 3.2, height: 2.8, sill: 1.5 },
+  ],
+  /** The flight down, matching the porch_steps footprint at grid x 6..13. */
+  steps: { fromX: gridToWorldX(6) - TILE / 2, toX: gridToWorldX(13) + TILE / 2, count: 7 },
+  /** Where the ladder is propped to reach the roof. Grid (18, 0). */
+  ladderSpot: { x: gridToWorldX(18), z: gridToWorldZ(1) },
+} as const;
+
+/**
+ * Solid tiles that exist only in the 3D porch. The big one is the whole front
+ * band: the deck ends at the balustrade on row 11, and rows 12 to 15 are the
+ * steps and the drop to the yard, which the 2D map happily lets you stroll
+ * across because it has no idea there is a storey of air there.
+ */
+export const FRONT_PORCH_BLOCKERS: readonly GridRect[] = [
+  { x0: 0, x1: 19, y0: 12, y1: 15 },
+  { x0: 2, x1: 2, y0: 8, y1: 8 }, // verandah posts along the roof's front edge
+  { x0: 7, x1: 7, y0: 8, y1: 8 },
+  { x0: 12, x1: 12, y0: 8, y1: 8 },
+  { x0: 17, x1: 17, y0: 8, y1: 8 },
+];
+
 /** Palette carried over from the pixel-art original, warmed up for 3D lighting. */
 export const PALETTE = {
   grassLight: 0x7ba85a,

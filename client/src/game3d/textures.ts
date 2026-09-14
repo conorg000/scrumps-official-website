@@ -1347,6 +1347,59 @@ function build_createNightSkyTexture(): THREE.Texture {
   return texture;
 }
 
+/** Corrugated iron, faded and streaked, as every verandah roof in Brisbane is. */
+function build_createCorrugatedIronTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(7711);
+
+  ctx.fillStyle = '#9aa0a4';
+  ctx.fillRect(0, 0, size, size);
+
+  // The corrugations, as a run of shaded flutes
+  const flutes = 16;
+  const pitch = size / flutes;
+  for (let i = 0; i < flutes; i++) {
+    const x = i * pitch;
+    const g = ctx.createLinearGradient(x, 0, x + pitch, 0);
+    g.addColorStop(0, 'rgba(40,46,52,0.45)');
+    g.addColorStop(0.35, 'rgba(226,231,236,0.5)');
+    g.addColorStop(0.6, 'rgba(160,168,174,0.15)');
+    g.addColorStop(1, 'rgba(40,46,52,0.45)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, 0, pitch, size);
+  }
+
+  // Rust and weather running down the fall of the roof
+  for (let i = 0; i < 36; i++) {
+    const x = rand() * size;
+    const w = 2 + rand() * 9;
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, 'rgba(120,70,36,0)');
+    g.addColorStop(0.4, `rgba(132,76,38,${0.08 + rand() * 0.16})`);
+    g.addColorStop(1, 'rgba(96,56,28,0.05)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x, 0, w, size);
+  }
+
+  // Fixing screws along two lines
+  [size * 0.22, size * 0.74].forEach((y) => {
+    for (let i = 0; i < flutes; i++) {
+      ctx.fillStyle = 'rgba(60,54,48,0.6)';
+      ctx.beginPath();
+      ctx.arc(i * pitch + pitch * 0.5, y, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  for (let i = 0; i < 4200; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+    ctx.fillRect(rand() * size, rand() * size, 1, 1);
+  }
+
+  return finish(canvas, 1);
+}
+
 export const createGrassTexture = (): THREE.Texture => memoize('grass', build_createGrassTexture);
 
 export const createGrassRoughness = (): THREE.Texture => memoize('grassRoughness', build_createGrassRoughness);
@@ -1391,6 +1444,8 @@ export const createDoonaTexture = (): THREE.Texture => memoize('doona', build_cr
 export const createXrayTexture = (): THREE.Texture => memoize('xray', build_createXrayTexture);
 export const createNightSkyTexture = (): THREE.Texture =>
   memoize('nightSky', build_createNightSkyTexture);
+export const createCorrugatedIronTexture = (): THREE.Texture =>
+  memoize('corrugatedIron', build_createCorrugatedIronTexture);
 
 /**
  * A copy of a memoised map with its own tiling. The clone shares the underlying

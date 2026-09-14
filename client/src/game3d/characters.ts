@@ -926,3 +926,200 @@ export function buildTinyClown(): Character {
     },
   };
 }
+
+/**
+ * Humunculous — a skeleton on the front porch who has lost a foot and has been
+ * hobbling about for ages over it. Bone white, red pinpricks in the sockets,
+ * and a lopsided sway because one leg finishes in nothing.
+ *
+ * The x-ray from the bedroom is a picture of a foot. It is his. It was inside
+ * him the whole time. Nobody has explained this either.
+ */
+export function buildHumunculous(): Character {
+  const group = new THREE.Group();
+  const root = new THREE.Group();
+  group.add(root);
+
+  const bone = new THREE.MeshStandardMaterial({ color: 0xe8e8d0, roughness: 0.82, metalness: 0 });
+  const boneDark = new THREE.MeshStandardMaterial({ color: 0xc2c2aa, roughness: 0.88 });
+
+  const limb = (
+    parent: THREE.Object3D,
+    radius: number,
+    length: number,
+    material: THREE.Material,
+  ): THREE.Mesh => {
+    const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 4, 8), material);
+    mesh.castShadow = true;
+    parent.add(mesh);
+    return mesh;
+  };
+
+  // Pelvis and spine
+  const pelvis = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.055, 6, 14), bone);
+  pelvis.rotation.x = Math.PI / 2;
+  pelvis.position.y = 0.62;
+  pelvis.castShadow = true;
+  root.add(pelvis);
+
+  const spine = limb(root, 0.035, 0.42, bone);
+  spine.position.y = 0.88;
+
+  // Ribcage: hoops narrowing toward the waist
+  for (let i = 0; i < 5; i++) {
+    const t = i / 4;
+    const rib = new THREE.Mesh(
+      new THREE.TorusGeometry(0.17 - t * 0.05, 0.022, 5, 14, Math.PI * 1.5),
+      boneDark,
+    );
+    rib.rotation.x = Math.PI / 2;
+    rib.rotation.z = -Math.PI * 0.75;
+    rib.scale.z = 0.62;
+    rib.position.y = 1.08 - i * 0.085;
+    root.add(rib);
+  }
+
+  // Shoulders
+  const clavicle = limb(root, 0.028, 0.3, bone);
+  clavicle.rotation.z = Math.PI / 2;
+  clavicle.position.y = 1.16;
+
+  // Arms, which hang and swing
+  const arms: THREE.Group[] = [];
+  [-1, 1].forEach((side) => {
+    const shoulder = new THREE.Group();
+    shoulder.position.set(side * 0.19, 1.15, 0);
+
+    const upper = limb(shoulder, 0.03, 0.26, bone);
+    upper.position.y = -0.15;
+
+    const forearm = new THREE.Group();
+    forearm.position.y = -0.32;
+    const lower = limb(forearm, 0.026, 0.24, bone);
+    lower.position.y = -0.14;
+
+    // Hand, as a fan of finger stubs
+    for (let f = 0; f < 4; f++) {
+      const finger = new THREE.Mesh(new THREE.CapsuleGeometry(0.012, 0.07, 3, 5), boneDark);
+      finger.position.set((f - 1.5) * 0.026, -0.3, 0.01);
+      finger.rotation.z = (f - 1.5) * 0.12;
+      forearm.add(finger);
+    }
+    shoulder.add(forearm);
+
+    root.add(shoulder);
+    arms.push(shoulder);
+  });
+
+  // Legs. The left one is complete; the right finishes at the ankle, which is
+  // the entire problem.
+  const legs: THREE.Group[] = [];
+  [-1, 1].forEach((side) => {
+    const hip = new THREE.Group();
+    hip.position.set(side * 0.1, 0.58, 0);
+
+    const thigh = limb(hip, 0.038, 0.26, bone);
+    thigh.position.y = -0.15;
+
+    const shin = limb(hip, 0.032, 0.24, bone);
+    shin.position.y = -0.42;
+
+    if (side < 0) {
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.2), bone);
+      foot.position.set(0, -0.57, 0.05);
+      foot.castShadow = true;
+      hip.add(foot);
+    } else {
+      // A clean stump, and the shin a little shorter for it
+      shin.scale.y = 0.78;
+      shin.position.y = -0.4;
+      const stump = new THREE.Mesh(new THREE.SphereGeometry(0.036, 10, 8), boneDark);
+      stump.position.y = -0.5;
+      hip.add(stump);
+    }
+
+    root.add(hip);
+    legs.push(hip);
+  });
+
+  // Skull
+  const head = new THREE.Group();
+  head.position.y = 1.36;
+  root.add(head);
+
+  const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 14), bone);
+  cranium.scale.set(1, 1.08, 1.06);
+  cranium.castShadow = true;
+  head.add(cranium);
+
+  const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.08, 0.17), bone);
+  jaw.position.set(0, -0.13, 0.03);
+  head.add(jaw);
+
+  // Teeth
+  for (let i = 0; i < 6; i++) {
+    const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.035, 0.02), boneDark);
+    tooth.position.set(-0.05 + i * 0.02, -0.09, 0.12);
+    head.add(tooth);
+  }
+
+  // Sockets, with the pinprick of red the 2D sprite has
+  const sockets: THREE.Mesh[] = [];
+  [-0.06, 0.06].forEach((x) => {
+    const socket = new THREE.Mesh(
+      new THREE.SphereGeometry(0.045, 12, 10),
+      new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1 }),
+    );
+    socket.position.set(x, 0.02, 0.115);
+    socket.scale.z = 0.6;
+    head.add(socket);
+
+    const spark = new THREE.Mesh(
+      new THREE.SphereGeometry(0.016, 8, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0x2a0000,
+        emissive: 0xff4444,
+        emissiveIntensity: 3,
+      }),
+    );
+    spark.position.set(x, 0.02, 0.145);
+    head.add(spark);
+    sockets.push(spark);
+  });
+
+  const nasal = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.05, 6), boneDark);
+  nasal.rotation.x = Math.PI;
+  nasal.position.set(0, -0.04, 0.14);
+  head.add(nasal);
+
+  const flat = new THREE.Vector3();
+
+  return {
+    group,
+    update(time, _delta, playerPos) {
+      flat.set(playerPos.x - group.position.x, 0, playerPos.z - group.position.z);
+      if (flat.lengthSq() > 0.0001) {
+        const targetY = Math.atan2(flat.x, flat.z) - group.rotation.y;
+        const delta = Math.atan2(Math.sin(targetY), Math.cos(targetY));
+        head.rotation.y = THREE.MathUtils.clamp(delta, -0.8, 0.8);
+      }
+
+      // The lopsided hobble: he dips onto the leg that still has a foot, so the
+      // sway is asymmetric rather than a clean bob.
+      const step = Math.sin(time * 2.4);
+      root.position.y = Math.abs(step) * -0.05;
+      root.rotation.z = step * 0.07;
+      legs[0].rotation.x = step * 0.16;
+      legs[1].rotation.x = -step * 0.1;
+      arms.forEach((arm, i) => {
+        arm.rotation.x = step * (i === 0 ? -0.2 : 0.2);
+      });
+
+      // The sockets flare when he is agitated, which is always
+      const flare = 2.4 + Math.sin(time * 3.1) * 0.9;
+      sockets.forEach((spark) => {
+        (spark.material as THREE.MeshStandardMaterial).emissiveIntensity = flare;
+      });
+    },
+  };
+}
