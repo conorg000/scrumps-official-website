@@ -76,7 +76,8 @@ if (typeof Game === "undefined") {
                     { x: 0, y: 12, label: 'Living Room', direction: 'left' }
                 ],
                 frontPorch: [
-                    { x: 19, y: 10, label: 'Living Room', direction: 'right' },
+                    // The front door of the house, the one way in
+                    { x: 9, y: 2, label: 'Living Room', direction: 'up' },
                     { x: 18, y: 0, label: 'Roof', direction: 'up' }
                 ],
                 rooftop: [

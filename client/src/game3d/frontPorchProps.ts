@@ -166,9 +166,9 @@ export function buildBullnoseRoof(
 
   const iron = new THREE.MeshStandardMaterial({
     map: tiled(createCorrugatedIronTexture(), width * 0.14, depth * 0.1),
-    color: 0x8f959b,
+    color: 0xb9c0c8,
     roughness: 0.62,
-    metalness: 0.45,
+    metalness: 0.35,
     side: THREE.DoubleSide,
   });
 
@@ -212,7 +212,7 @@ export function buildBullnoseRoof(
   for (let i = 0; i <= rafterCount; i++) {
     const x = -width / 2 + (i / rafterCount) * width;
     const rafter = solid(
-      new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, fall / Math.cos(slope)), timber(0xa8875c, 1)),
+      new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, fall / Math.cos(slope)), timber(0xd8b483, 1)),
     );
     rafter.position.set(x, (wallY + frontY) / 2 + 0.05, fall / 2);
     rafter.rotation.x = slope;
@@ -222,16 +222,28 @@ export function buildBullnoseRoof(
   return group;
 }
 
-/** The front door: panelled, with a fanlight over it and sidelights either side. */
-export function buildFrontDoor(width: number, height: number): THREE.Group {
+/**
+ * The front door: panelled, with a fanlight over it and sidelights either side.
+ *
+ * `swing` is how far the leaf stands open, in radians — this is the one way
+ * into the house, so it is never drawn shut.
+ */
+export function buildFrontDoor(width: number, height: number, swing: number): THREE.Group {
   const group = new THREE.Group();
 
   const leafWidth = width * 0.56;
+
+  // Everything that swings hangs off the hinge stile, not the door's centre
+  const hinge = new THREE.Group();
+  hinge.position.x = -leafWidth / 2;
+  hinge.rotation.y = swing;
+  group.add(hinge);
+
   const leaf = solid(
     new THREE.Mesh(new THREE.BoxGeometry(leafWidth, height * 0.82, 0.12), timber(0x7c3f24, 1)),
   );
-  leaf.position.set(0, (height * 0.82) / 2, 0);
-  group.add(leaf);
+  leaf.position.set(leafWidth / 2, (height * 0.82) / 2, 0);
+  hinge.add(leaf);
 
   // Four sunk panels
   ([[-1, 1], [1, 1], [-1, -1], [1, -1]] as [number, number][]).forEach(([sx, sy]) => {
@@ -239,13 +251,17 @@ export function buildFrontDoor(width: number, height: number): THREE.Group {
       new THREE.BoxGeometry(leafWidth * 0.36, height * 0.28, 0.03),
       matte(0x69341d, 0.85),
     );
-    panel.position.set(sx * leafWidth * 0.22, height * 0.41 + sy * height * 0.19, 0.07);
-    group.add(panel);
+    panel.position.set(
+      leafWidth / 2 + sx * leafWidth * 0.22,
+      height * 0.41 + sy * height * 0.19,
+      0.07,
+    );
+    hinge.add(panel);
   });
 
   const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), metal(0xc9a227, 0.3));
-  knob.position.set(leafWidth * 0.36, height * 0.38, 0.1);
-  group.add(knob);
+  knob.position.set(leafWidth * 0.86, height * 0.38, 0.1);
+  hinge.add(knob);
 
   // Leadlight: coloured glass in the fanlight and the two sidelights
   const glass = (w: number, h: number, x: number, y: number, tint: number): void => {
@@ -254,10 +270,11 @@ export function buildFrontDoor(width: number, height: number): THREE.Group {
       new THREE.MeshStandardMaterial({
         color: tint,
         emissive: tint,
-        emissiveIntensity: 0.9,
+        // Coloured glass with the afternoon behind it, not a lamp in front
+        emissiveIntensity: 0.55,
         roughness: 0.35,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.8,
         side: THREE.DoubleSide,
       }),
     );
@@ -313,14 +330,15 @@ export function buildFacadeWindow(width: number, height: number): THREE.Group {
     group.add(bar);
   });
 
-  // Lit from inside — the living room is on the other side of this wall
+  // Daylight glass: dark inside, with a sky reflection across it. Lit panes
+  // only read as lit when the world outside them is darker than they are.
   const pane = new THREE.Mesh(
     new THREE.PlaneGeometry(width, height),
     new THREE.MeshStandardMaterial({
-      color: 0xffd79a,
-      emissive: 0xffb45e,
-      emissiveIntensity: 1.1,
-      roughness: 0.3,
+      color: 0x38414a,
+      roughness: 0.08,
+      metalness: 0.4,
+      envMapIntensity: 1,
     }),
   );
   pane.position.z = 0.02;
@@ -522,8 +540,11 @@ export function buildPorchSteps(
   return group;
 }
 
-/** Bare bulb over the front door, in a tin shade, with moths at it. */
-export function buildPorchLight(): { group: THREE.Group; animated: Animated } {
+/**
+ * Bare bulb over the front door, in a tin shade. `lit` is false in daylight,
+ * when it is just a fitting on a wall and the moths are asleep.
+ */
+export function buildPorchLight(lit = false): { group: THREE.Group; animated: Animated } {
   const group = new THREE.Group();
 
   const back = solid(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.06), matte(0x3f4349, 0.6)));
@@ -544,30 +565,34 @@ export function buildPorchLight(): { group: THREE.Group; animated: Animated } {
   group.add(shade);
 
   const bulbMaterial = new THREE.MeshStandardMaterial({
-    color: 0xfff2d0,
+    color: lit ? 0xfff2d0 : 0xe8e4d8,
     emissive: 0xffd28a,
-    emissiveIntensity: 4,
+    emissiveIntensity: lit ? 4 : 0,
     roughness: 0.4,
   });
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.075, 12, 10), bulbMaterial);
   bulb.position.set(0, -0.05, 0.32);
   group.add(bulb);
 
-  const light = new THREE.PointLight(0xffc880, 9, 13, 2);
+  const light = new THREE.PointLight(0xffc880, lit ? 9 : 0, 13, 2);
   light.position.set(0, -0.1, 0.35);
   group.add(light);
 
-  // Moths, on their endless doomed orbits
+  // Moths, on their endless doomed orbits. Only out when the bulb is on.
   const moths: THREE.Mesh[] = [];
-  const mothMaterial = new THREE.MeshStandardMaterial({ color: 0xd8cdb4, roughness: 1 });
-  for (let i = 0; i < 6; i++) {
-    const moth = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.015, 0.05), mothMaterial);
-    group.add(moth);
-    moths.push(moth);
+  if (lit) {
+    const mothMaterial = new THREE.MeshStandardMaterial({ color: 0xd8cdb4, roughness: 1 });
+    for (let i = 0; i < 6; i++) {
+      const moth = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.015, 0.05), mothMaterial);
+      group.add(moth);
+      moths.push(moth);
+    }
   }
 
   const animated: Animated = {
     update: (time) => {
+      if (!lit) return;
+
       // Old bulbs on a country circuit never sit still
       bulbMaterial.emissiveIntensity = 3.7 + Math.sin(time * 9.3) * 0.25;
       light.intensity = 8.4 + Math.sin(time * 9.3) * 0.6;
@@ -708,8 +733,8 @@ export function buildJacaranda(seed: number): { group: THREE.Group; animated: An
   return { group, animated };
 }
 
-/** Streetlight, on at dusk, with its own halo of insects. */
-export function buildStreetlight(): { group: THREE.Group; animated: Animated } {
+/** Streetlight. `lit` is false in daylight, when it is just a pole. */
+export function buildStreetlight(lit = true): { group: THREE.Group; animated: Animated } {
   const group = new THREE.Group();
 
   const pole = solid(
@@ -724,14 +749,18 @@ export function buildStreetlight(): { group: THREE.Group; animated: Animated } {
   group.add(arm);
 
   const headMaterial = new THREE.MeshStandardMaterial({
-    color: 0x8a6a3a,
+    color: lit ? 0x8a6a3a : 0x6e6a62,
     emissive: 0xffa040,
-    emissiveIntensity: 3.4,
+    emissiveIntensity: lit ? 3.4 : 0,
     roughness: 0.5,
   });
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.2, 0.42), headMaterial);
   head.position.set(2.1, 8.3, 0);
   group.add(head);
+
+  if (!lit) {
+    return { group, animated: { update: () => {} } };
+  }
 
   const glow = new THREE.Sprite(
     new THREE.SpriteMaterial({

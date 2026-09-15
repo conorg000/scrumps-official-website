@@ -41,7 +41,7 @@ import {
 } from './frontPorchProps';
 import { buildPotPlant } from './balconyProps';
 import { buildHumunculous } from './characters';
-import { createDeckingTexture, createGrassTexture, tiled } from './textures';
+import { createDeckingTexture, createGrassTexture, createPuffTexture, tiled } from './textures';
 import { Furniture, PovScene, RoomLike, makeLabelSprite } from './PovScene';
 
 const W = FRONT_PORCH.width;
@@ -50,9 +50,6 @@ const DECK_Z = FRONT_PORCH.deckMaxZ;
 const DROP = FRONT_PORCH.dropToGround;
 const ROOF = FRONT_PORCH.roof;
 const FACADE = FRONT_PORCH.facade;
-
-/** Door through the side wall into the living room. Grid (19, 10). */
-const LIVING_ROOM_DOOR = { centre: gridToWorldZ(10), width: 3.2, height: 3.8 };
 
 const SKY_VERTEX = `
   varying vec3 vWorld;
@@ -63,9 +60,9 @@ const SKY_VERTEX = `
 `;
 
 /**
- * Dusk: the orange is nearly gone, sitting in a band just above the rooflines,
- * and the top of the sky has already gone to the deep blue that comes before
- * it is properly dark.
+ * Afternoon: deep blue overhead washing out to a pale, slightly hazy band at
+ * the rooflines, which is what a Brisbane sky actually does — the horizon is
+ * never the same blue as the zenith.
  */
 const SKY_FRAGMENT = `
   varying vec3 vWorld;
@@ -82,10 +79,10 @@ const SKY_FRAGMENT = `
     vec3 sky = mix(uMid, uHigh, smoothstep(0.12, 0.75, h));
     sky = mix(uLow, sky, smoothstep(-0.06, 0.2, h));
 
-    // The last of the sun, spread wide along the horizon where it went down
+    // Sun glare, tight around the sun itself rather than spread along the
+    // horizon the way a sunset's is
     float toward = max(dot(dir, normalize(uSunDir)), 0.0);
-    float band = pow(toward, 3.0) * (1.0 - smoothstep(-0.02, 0.26, h));
-    sky = mix(sky, uEmber, clamp(band * 0.9, 0.0, 1.0));
+    sky = mix(sky, uEmber, clamp(pow(toward, 7.0) * 0.8, 0.0, 1.0));
 
     gl_FragColor = vec4(sky, 1.0);
   }
@@ -106,8 +103,10 @@ export class FrontPorchScene extends PovScene {
     super();
     this.lowDetail = lowDetail;
 
-    this.scene.fog = new THREE.Fog(0x4a4a66, 48, 190);
-    this.scene.background = new THREE.Color(0x2d3350);
+    // Daylight haze rather than dusk: far enough back that the neighbours are
+    // still readable, tinted to the pale end of the sky so it reads as distance.
+    this.scene.fog = new THREE.Fog(0xbcd2e8, 90, 320);
+    this.scene.background = new THREE.Color(0x8fbce0);
 
     this.buildSky();
     this.buildLighting();
@@ -132,53 +131,56 @@ export class FrontPorchScene extends PovScene {
         depthWrite: false,
         fog: false,
         uniforms: {
-          uHigh: { value: new THREE.Color(0x121a3c) },
-          uMid: { value: new THREE.Color(0x35406e) },
-          uLow: { value: new THREE.Color(0x7a6480) },
-          uEmber: { value: new THREE.Color(0xd8703c) },
-          uSunDir: { value: new THREE.Vector3(-0.85, 0.05, 0.52).normalize() },
+          uHigh: { value: new THREE.Color(0x3f7fc8) },
+          uMid: { value: new THREE.Color(0x76abdc) },
+          uLow: { value: new THREE.Color(0xcfe2f0) },
+          uEmber: { value: new THREE.Color(0xfff4d8) },
+          uSunDir: { value: new THREE.Vector3(-0.5, 0.62, 0.6).normalize() },
         },
       }),
     );
     sky.position.set(W / 2, 0, D / 2);
     this.scene.add(sky);
 
-    // First stars, only in the upper half where the light has already gone
-    const count = this.lowDetail ? 200 : 460;
-    const positions = new Float32Array(count * 3);
+    // Afternoon cloud, high and thin
+    const puff = createPuffTexture();
+    const count = this.lowDetail ? 10 : 20;
     for (let i = 0; i < count; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(Math.random() * 0.82 + 0.16);
-      const r = 380;
-      positions[i * 3] = W / 2 + Math.sin(phi) * Math.cos(theta) * r;
-      positions[i * 3 + 1] = Math.cos(phi) * r;
-      positions[i * 3 + 2] = D / 2 + Math.sin(phi) * Math.sin(theta) * r;
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    this.scene.add(
-      new THREE.Points(
-        geometry,
-        new THREE.PointsMaterial({
-          color: 0xe8eeff,
-          size: 1.6,
-          sizeAttenuation: false,
+      const cloud = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: puff,
+          color: 0xffffff,
           transparent: true,
-          opacity: 0.75,
-          fog: false,
+          opacity: 0.5 + Math.random() * 0.35,
           depthWrite: false,
+          fog: false,
         }),
-      ),
-    );
+      );
+      const size = 50 + Math.random() * 90;
+      cloud.scale.set(size, size * (0.34 + Math.random() * 0.22), 1);
+      // Well out toward the sky sphere. Closer in, a sprite this size fills a
+      // corner of the screen and reads as a sheet hanging off the roof.
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 300 + Math.random() * 90;
+      cloud.position.set(
+        W / 2 + Math.cos(angle) * radius,
+        90 + Math.random() * 90,
+        D / 2 + Math.sin(angle) * radius,
+      );
+      this.scene.add(cloud);
+    }
   }
 
   private buildLighting(): void {
-    this.scene.add(new THREE.AmbientLight(0x5a648c, 1.5));
-    this.scene.add(new THREE.HemisphereLight(0x6f80b4, 0x3a3226, 1.1));
+    // A verandah is a roof over an outdoor room, so almost everything you stand
+    // on is in shade and the sky is doing the lighting. Both of these have to
+    // be generous or the deck goes to mud under a bright sky.
+    this.scene.add(new THREE.AmbientLight(0xc8dcf0, 2.2));
+    this.scene.add(new THREE.HemisphereLight(0xbcdcff, 0x8a7a58, 2.0));
 
-    // What is left of the sun, raking in under the verandah roof from the west
-    const sun = new THREE.DirectionalLight(0xff9a52, 1.7);
-    sun.position.set(-70, 9, 44);
+    // Mid-afternoon sun, round to the west so it still rakes in under the roof
+    const sun = new THREE.DirectionalLight(0xfff0d0, 3.2);
+    sun.position.set(-70, 54, 44);
     sun.target.position.set(W * 0.6, 1, D * 0.3);
     sun.castShadow = true;
     sun.shadow.mapSize.set(this.lowDetail ? 1024 : 2048, this.lowDetail ? 1024 : 2048);
@@ -193,12 +195,21 @@ export class FrontPorchScene extends PovScene {
     this.scene.add(sun);
     this.scene.add(sun.target);
 
-    // Cool fill from the eastern half of the sky, which has already gone blue
-    const fill = new THREE.DirectionalLight(0x7f95d8, 0.5);
-    fill.position.set(60, 26, -30);
+    // Sky fill from the opposite side, so shadowed faces are blue rather than black
+    const fill = new THREE.DirectionalLight(0xa8c8f0, 0.9);
+    fill.position.set(60, 40, -30);
     fill.target.position.set(W / 2, 1, D / 2);
     this.scene.add(fill);
     this.scene.add(fill.target);
+
+    // Sun off a bright timber deck goes straight back up into the roof. Without
+    // this the underside of the iron is the one black thing in a daylight scene,
+    // and it is directly overhead in almost every view.
+    const bounce = new THREE.DirectionalLight(0xffe0b4, 1.5);
+    bounce.position.set(W / 2, -6, D * 0.7);
+    bounce.target.position.set(W / 2, ROOF.wallY, D * 0.2);
+    this.scene.add(bounce);
+    this.scene.add(bounce.target);
   }
 
   // ---------------------------------------------------------------------- deck
@@ -286,11 +297,34 @@ export class FrontPorchScene extends PovScene {
     );
     this.scene.add(overDoor);
 
-    const frontDoor = buildFrontDoor(door.width, door.height);
+    // Standing open, because it is the only way into the house
+    const frontDoor = buildFrontDoor(door.width, door.height, 1.15);
     frontDoor.position.set(door.centre, 0, 0.02);
     this.scene.add(frontDoor);
 
-    // A light over it, which is where every moth in the street is
+    // The hallway behind it, turned inside out, so the opening reads as
+    // somewhere to go rather than a black rectangle
+    const hallDepth = 6;
+    const hall = new THREE.Mesh(
+      new THREE.BoxGeometry(door.width * 0.6, door.height + 0.6, hallDepth),
+      new THREE.MeshStandardMaterial({ color: 0xb9a888, roughness: 1, side: THREE.BackSide }),
+    );
+    hall.position.set(door.centre, door.height / 2, -FACADE.thickness - hallDepth / 2);
+    this.scene.add(hall);
+
+    const hallFloor = new THREE.Mesh(
+      new THREE.PlaneGeometry(door.width * 0.6, hallDepth),
+      new THREE.MeshStandardMaterial({ color: 0xa87d4e, roughness: 0.7 }),
+    );
+    hallFloor.rotation.x = -Math.PI / 2;
+    hallFloor.position.set(door.centre, 0.01, -FACADE.thickness - hallDepth / 2);
+    this.scene.add(hallFloor);
+
+    const hallLight = new THREE.PointLight(0xffe0b0, 4.5, 12, 2);
+    hallLight.position.set(door.centre, 2.2, -FACADE.thickness - 1.8);
+    this.scene.add(hallLight);
+
+    // The light over the door, off — it is the middle of the afternoon
     const porchLight = buildPorchLight();
     porchLight.group.position.set(door.centre + door.width / 2 + 0.7, door.height + 0.5, 0.05);
     this.scene.add(porchLight.group);
@@ -309,48 +343,17 @@ export class FrontPorchScene extends PovScene {
       window.position.set(spec.along, spec.sill + spec.height / 2, 0.06);
       this.scene.add(window);
 
-      // The light of the room behind it landing on the deck
-      const spill = new THREE.PointLight(0xffb060, 3.4, 11, 2);
-      spill.position.set(spec.along, spec.sill + spec.height / 2, 1.2);
-      this.scene.add(spill);
     });
 
-    // East wall, with the living room's doors onto the verandah
-    const eastRuns: [number, number][] = [
-      [-FACADE.thickness, LIVING_ROOM_DOOR.centre - LIVING_ROOM_DOOR.width / 2],
-      [LIVING_ROOM_DOOR.centre + LIVING_ROOM_DOOR.width / 2, DECK_Z + 2],
-    ];
-    eastRuns.forEach(([z0, z1]) => {
-      const wall = buildWeatherboardWall(z1 - z0, FACADE.height, FACADE.thickness);
-      wall.rotation.y = -Math.PI / 2;
-      wall.position.set(W + FACADE.thickness / 2, FACADE.height / 2, (z0 + z1) / 2);
-      this.scene.add(wall);
-    });
-
-    const overSide = buildWeatherboardWall(
-      LIVING_ROOM_DOOR.width,
-      FACADE.height - LIVING_ROOM_DOOR.height,
-      FACADE.thickness,
-    );
-    overSide.rotation.y = -Math.PI / 2;
-    overSide.position.set(
+    // East wall: unbroken. The front door is the only way in.
+    const eastWall = buildWeatherboardWall(DECK_Z + 2 + FACADE.thickness, FACADE.height, FACADE.thickness);
+    eastWall.rotation.y = -Math.PI / 2;
+    eastWall.position.set(
       W + FACADE.thickness / 2,
-      LIVING_ROOM_DOOR.height + (FACADE.height - LIVING_ROOM_DOOR.height) / 2,
-      LIVING_ROOM_DOOR.centre,
+      FACADE.height / 2,
+      (DECK_Z + 2 - FACADE.thickness) / 2,
     );
-    this.scene.add(overSide);
-
-    // The lit room beyond that opening
-    const recess = new THREE.Mesh(
-      new THREE.BoxGeometry(5, LIVING_ROOM_DOOR.height + 0.6, LIVING_ROOM_DOOR.width + 0.6),
-      new THREE.MeshStandardMaterial({ color: 0x3a2a1e, roughness: 1, side: THREE.BackSide }),
-    );
-    recess.position.set(W + FACADE.thickness + 2.5, LIVING_ROOM_DOOR.height / 2, LIVING_ROOM_DOOR.centre);
-    this.scene.add(recess);
-
-    const inside = new THREE.PointLight(0xffb878, 5, 12, 2);
-    inside.position.set(W + 2.4, 1.9, LIVING_ROOM_DOOR.centre);
-    this.scene.add(inside);
+    this.scene.add(eastWall);
 
     // The house going up above the verandah roof, seen from the yard
     const upper = buildWeatherboardWall(W + FACADE.thickness * 2, 4, FACADE.thickness);
@@ -429,7 +432,7 @@ export class FrontPorchScene extends PovScene {
       new THREE.PlaneGeometry(150, 90),
       new THREE.MeshStandardMaterial({
         map: tiled(createGrassTexture(), 30, 18),
-        color: 0x4c6340,
+        color: 0x9dc274,
         roughness: 1,
       }),
     );
@@ -443,7 +446,7 @@ export class FrontPorchScene extends PovScene {
     // size is the brightest thing in the scene by a mile.
     const path = new THREE.Mesh(
       new THREE.PlaneGeometry(steps.toX - steps.fromX - 6, 22),
-      new THREE.MeshStandardMaterial({ color: 0x55534d, roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: 0xa8a49a, roughness: 1 }),
     );
     path.rotation.x = -Math.PI / 2;
     path.position.set((steps.fromX + steps.toX) / 2, -DROP + 0.02, DECK_Z + 15);
@@ -461,16 +464,16 @@ export class FrontPorchScene extends PovScene {
     // Road beyond the fence, and the far side of the street
     const road = new THREE.Mesh(
       new THREE.PlaneGeometry(190, 16),
-      new THREE.MeshStandardMaterial({ color: 0x33323a, roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: 0x5a5a60, roughness: 1 }),
     );
     road.rotation.x = -Math.PI / 2;
     road.position.set(W / 2, -DROP - 0.3, DECK_Z + 37);
     this.scene.add(road);
 
-    const streetlight = buildStreetlight();
+    // The streetlight is out — it is the middle of the afternoon
+    const streetlight = buildStreetlight(false);
     streetlight.group.position.set(W / 2 - 26, -DROP, DECK_Z + 28);
     this.scene.add(streetlight.group);
-    this.animated.push(streetlight.animated);
 
     // The jacaranda, close enough to the steps to be the thing you look at,
     // and a second one across the road
@@ -486,7 +489,7 @@ export class FrontPorchScene extends PovScene {
     });
 
     // Neighbouring rooflines across the way, flat against the dusk
-    const silhouette = new THREE.MeshStandardMaterial({ color: 0x2f3050, roughness: 1 });
+    const silhouette = new THREE.MeshStandardMaterial({ color: 0x7e93a8, roughness: 1 });
     [
       [-34, 26, 9],
       [4, 30, 11],
@@ -585,8 +588,12 @@ export class FrontPorchScene extends PovScene {
     roofLabel.position.set(FRONT_PORCH.ladderSpot.x, 4.2, FRONT_PORCH.ladderSpot.z + 0.6);
     this.addLabel(roofLabel);
 
-    const livingRoom = makeLabelSprite('LIVING ROOM');
-    livingRoom.position.set(W - 0.9, LIVING_ROOM_DOOR.height + 0.5, LIVING_ROOM_DOOR.centre);
+    const livingRoom = makeLabelSprite('INSIDE');
+    livingRoom.position.set(
+      FRONT_PORCH.frontDoor.centre,
+      FRONT_PORCH.frontDoor.height + 0.6,
+      0.8,
+    );
     this.addLabel(livingRoom);
 
     const street = makeLabelSprite('THE STREET');
