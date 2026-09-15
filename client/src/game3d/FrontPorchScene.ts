@@ -20,24 +20,26 @@ import {
   gridToWorldZ,
 } from './constants';
 import { applyWorldUVs, buildHollandiaCan, buildLadder, createPickupGlow } from './props';
-import { ORANGE, balustrade } from './house';
 import {
-  buildBullnoseRoof,
+  TRIM_GREEN,
+  buildBougainvillea,
+  buildBreezeBlockFence,
   buildFacadeWindow,
+  buildFlatVerandahRoof,
   buildFrontDoor,
-  buildJacaranda,
-  buildLaceBracket,
-  buildLaceValance,
-  buildLetterbox,
-  buildPicketFence,
+  buildFrontGate,
+  buildGreenBalustrade,
+  buildPalm,
   buildPorchChair,
   buildPorchLight,
   buildPorchSteps,
   buildPorchTable,
+  buildSteelPost,
+  buildStreetSign,
   buildStreetlight,
-  buildVerandahPost,
   buildWeatherboardWall,
   buildWelcomeMat,
+  buildWheelieBin,
 } from './frontPorchProps';
 import { buildPotPlant } from './balconyProps';
 import { buildHumunculous } from './characters';
@@ -186,12 +188,12 @@ export class FrontPorchScene extends PovScene {
     sun.shadow.mapSize.set(this.lowDetail ? 1024 : 2048, this.lowDetail ? 1024 : 2048);
     sun.shadow.camera.near = 1;
     sun.shadow.camera.far = 160;
-    sun.shadow.camera.left = -36;
-    sun.shadow.camera.right = 36;
-    sun.shadow.camera.top = 36;
-    sun.shadow.camera.bottom = -36;
-    sun.shadow.bias = -0.0008;
-    sun.shadow.normalBias = 0.04;
+    sun.shadow.camera.left = -26;
+    sun.shadow.camera.right = 26;
+    sun.shadow.camera.top = 26;
+    sun.shadow.camera.bottom = -26;
+    sun.shadow.bias = -0.0012;
+    sun.shadow.normalBias = 0.09;
     this.scene.add(sun);
     this.scene.add(sun.target);
 
@@ -362,40 +364,22 @@ export class FrontPorchScene extends PovScene {
   }
 
   private buildVerandahRoof(): void {
-    const roof = buildBullnoseRoof(W + 1.2, ROOF.frontZ, ROOF.wallY, ROOF.frontY, ROOF.thickness);
+    const roof = buildFlatVerandahRoof(W + 1.2, ROOF.frontZ, ROOF.wallY, ROOF.frontY, ROOF.thickness);
     roof.position.set(W / 2, 0, 0);
     this.scene.add(roof);
 
-    const postXs = FRONT_PORCH.postGridX.map(gridToWorldX);
+    // Plain green steel posts, which is what the real house has. The turned
+    // timber and cast-iron lace belonged to a house fifty years older.
     const postZ = gridToWorldZ(FRONT_PORCH.postGridY);
-
-    postXs.forEach((x, i) => {
-      const post = buildVerandahPost(ROOF.frontY - 0.95);
-      post.position.set(x, 0, postZ);
+    FRONT_PORCH.postGridX.forEach((gx) => {
+      const post = buildSteelPost(ROOF.frontY - 0.52);
+      post.position.set(gridToWorldX(gx), 0, postZ);
       this.scene.add(post);
-
-      // Lace bracket in each corner where the post meets the beam
-      [-1, 1].forEach((side) => {
-        const bracket = buildLaceBracket(0.6);
-        bracket.position.set(x + side * 0.16, ROOF.frontY - 1.75, postZ);
-        bracket.rotation.y = side < 0 ? Math.PI : 0;
-        bracket.scale.x = side;
-        this.scene.add(bracket);
-      });
-
-      // and a run of it between this post and the next
-      if (i < postXs.length - 1) {
-        const span = postXs[i + 1] - x;
-        const valance = buildLaceValance(span - 0.4, 0.55);
-        valance.position.set(x + span / 2, ROOF.frontY - 1.2, postZ);
-        this.scene.add(valance);
-      }
     });
 
-    // The two posts the 2D room actually lists, standing further in
-    // under the deep part of the verandah
+    // The two posts the 2D room actually lists, further in under the deep end
     [2, 17].forEach((gx) => {
-      const post = buildVerandahPost(ROOF.wallY - 0.7);
+      const post = buildSteelPost(ROOF.wallY - 0.4);
       post.position.set(gridToWorldX(gx), 0, gridToWorldZ(3));
       this.scene.add(post);
     });
@@ -405,14 +389,21 @@ export class FrontPorchScene extends PovScene {
     const railHeight = 1.15;
     const steps = FRONT_PORCH.steps;
 
-    // Along the front, broken where the steps come up
-    [
-      [new THREE.Vector3(0, 0, DECK_Z), new THREE.Vector3(steps.fromX, 0, DECK_Z)],
-      [new THREE.Vector3(steps.toX, 0, DECK_Z), new THREE.Vector3(W, 0, DECK_Z)],
-      // and all the way down the open western side
-      [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, DECK_Z)],
-    ].forEach(([from, to]) => {
-      this.scene.add(balustrade(from, to, railHeight));
+    // Green steel with pale infill bars. The orange wavy bars are the back
+    // balcony's — the front of this house is green and straight.
+    const runs: [number, number, number, number][] = [
+      // centre x, centre z, length, yaw
+      [steps.fromX / 2, DECK_Z, steps.fromX, 0],
+      [(steps.toX + W) / 2, DECK_Z, W - steps.toX, 0],
+      [0, DECK_Z / 2, DECK_Z, Math.PI / 2],
+    ];
+
+    runs.forEach(([x, z, length, yaw]) => {
+      if (length < 0.4) return;
+      const rail = buildGreenBalustrade(length, railHeight);
+      rail.position.set(x, 0, z);
+      rail.rotation.y = yaw;
+      this.scene.add(rail);
     });
   }
 
@@ -431,35 +422,53 @@ export class FrontPorchScene extends PovScene {
     const lawn = new THREE.Mesh(
       new THREE.PlaneGeometry(150, 90),
       new THREE.MeshStandardMaterial({
-        map: tiled(createGrassTexture(), 30, 18),
-        color: 0x9dc274,
+        map: tiled(createGrassTexture(), 60, 36),
+        color: 0x86a86a,
         roughness: 1,
       }),
     );
     lawn.rotation.x = -Math.PI / 2;
-    lawn.position.set(W / 2, -DROP, DECK_Z + 34);
-    lawn.receiveShadow = true;
+    lawn.position.set(W / 2, -DROP, DECK_Z + 20);
     this.scene.add(lawn);
 
     // Concrete path from the bottom of the steps to the gate
     // Weathered concrete, not fresh: at this sun angle a pale grey slab this
     // size is the brightest thing in the scene by a mile.
     const path = new THREE.Mesh(
-      new THREE.PlaneGeometry(steps.toX - steps.fromX - 6, 22),
-      new THREE.MeshStandardMaterial({ color: 0xa8a49a, roughness: 1 }),
+      new THREE.PlaneGeometry(steps.toX - steps.fromX - 8, 15),
+      new THREE.MeshStandardMaterial({ color: 0x8e8a80, roughness: 1 }),
     );
     path.rotation.x = -Math.PI / 2;
-    path.position.set((steps.fromX + steps.toX) / 2, -DROP + 0.02, DECK_Z + 15);
-    path.receiveShadow = true;
+    path.position.set((steps.fromX + steps.toX) / 2, -DROP + 0.02, DECK_Z + 8);
     this.scene.add(path);
 
-    const fence = buildPicketFence(96);
-    fence.position.set(W / 2, -DROP, DECK_Z + 26);
-    this.scene.add(fence);
+    // Rendered front wall with a course of pierced breeze blocks and a green
+    // capping, broken for the driveway gate. Not a picket fence — this is a
+    // 1960s Brisbane front wall and the blocks are half its character.
+    const gateWidth = 5.2;
+    const gateCentre = (steps.fromX + steps.toX) / 2;
+    ([
+      [-48 + (gateCentre - gateWidth / 2 + 48) / 2, gateCentre - gateWidth / 2 + 48],
+      [(gateCentre + gateWidth / 2 + 48) / 2, 48 - gateCentre - gateWidth / 2],
+    ] as [number, number][]).forEach(([centre, length]) => {
+      if (length < 1) return;
+      const wall = buildBreezeBlockFence(length);
+      wall.position.set(centre, -DROP, DECK_Z + 14);
+      this.scene.add(wall);
+    });
 
-    const letterbox = buildLetterbox();
-    letterbox.position.set((steps.fromX + steps.toX) / 2 + 5, -DROP, DECK_Z + 25);
-    this.scene.add(letterbox);
+    const gate = buildFrontGate(gateWidth);
+    gate.position.set(gateCentre, -DROP, DECK_Z + 14);
+    this.scene.add(gate);
+
+    // Number 9 on the pier beside the gate
+    const numberPier = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 2.1, 0.5),
+      new THREE.MeshStandardMaterial({ color: 0xe0d7bf, roughness: 0.96 }),
+    );
+    numberPier.position.set(gateCentre + gateWidth / 2 + 0.4, -DROP + 1.05, DECK_Z + 14);
+    numberPier.castShadow = true;
+    this.scene.add(numberPier);
 
     // Road beyond the fence, and the far side of the street
     const road = new THREE.Mesh(
@@ -467,28 +476,62 @@ export class FrontPorchScene extends PovScene {
       new THREE.MeshStandardMaterial({ color: 0x5a5a60, roughness: 1 }),
     );
     road.rotation.x = -Math.PI / 2;
-    road.position.set(W / 2, -DROP - 0.3, DECK_Z + 37);
+    road.position.set(W / 2, -DROP - 0.3, DECK_Z + 22);
     this.scene.add(road);
 
     // The streetlight is out — it is the middle of the afternoon
     const streetlight = buildStreetlight(false);
-    streetlight.group.position.set(W / 2 - 26, -DROP, DECK_Z + 28);
+    streetlight.group.position.set(W / 2 - 24, -DROP, DECK_Z + 16);
     this.scene.add(streetlight.group);
 
-    // The jacaranda, close enough to the steps to be the thing you look at,
-    // and a second one across the road
-    [
-      [W / 2 - 13, DECK_Z + 11, 31, 1.5],
-      [W / 2 + 30, DECK_Z + 42, 77, 1.8],
-    ].forEach(([x, z, seed, scale]) => {
-      const tree = buildJacaranda(seed);
-      tree.group.position.set(x, -DROP, z);
-      tree.group.scale.setScalar(scale);
-      this.scene.add(tree.group);
-      this.animated.push(tree.animated);
+    // The palm thicket, which is the front yard's whole personality. Clustered
+    // to one side so they frame the steps rather than block the way out.
+    ([
+      [W / 2 - 15, DECK_Z + 5, 31],
+      [W / 2 - 11, DECK_Z + 9, 47],
+      [W / 2 - 19, DECK_Z + 10, 63],
+      [W / 2 + 16, DECK_Z + 6, 91],
+      [W / 2 + 21, DECK_Z + 10, 108],
+      [W / 2 + 13, DECK_Z + 11, 126],
+      [W / 2 + 34, DECK_Z + 26, 144],
+    ] as [number, number, number][]).forEach(([x, z, seed]) => {
+      const palm = buildPalm(seed);
+      palm.group.position.set(x, -DROP, z);
+      this.scene.add(palm.group);
+      this.animated.push(palm.animated);
     });
 
-    // Neighbouring rooflines across the way, flat against the dusk
+    // Bougainvillea going off over the wall, which is the other half of it
+    ([
+      [W / 2 + 26, DECK_Z + 13, 211],
+      [W / 2 - 24, DECK_Z + 13, 322],
+    ] as [number, number, number][]).forEach(([x, z, seed]) => {
+      const bush = buildBougainvillea(seed);
+      bush.position.set(x, -DROP, z);
+      this.scene.add(bush);
+    });
+
+    // The street sign on the corner, which is the answer to where any of this is
+    const sign = buildStreetSign('Peterson St');
+    sign.position.set(gateCentre + 6.5, -DROP, DECK_Z + 16);
+    // Turned back toward the house: you read this walking down the steps, not
+    // driving past, so the lettered face has to point at the porch.
+    sign.rotation.y = Math.PI - 0.5;
+    sign.scale.setScalar(1.8);
+    this.scene.add(sign);
+
+    // Bins out on the kerb, as they eternally are
+    ([
+      [gateCentre - 8, 0x2f6ba8],
+      [gateCentre - 6.8, 0xd8a12f],
+    ] as [number, number][]).forEach(([x, lid]) => {
+      const bin = buildWheelieBin(lid);
+      bin.position.set(x, -DROP, DECK_Z + 16.5);
+      bin.rotation.y = 0.4;
+      this.scene.add(bin);
+    });
+
+    // Neighbouring rooflines across the way
     const silhouette = new THREE.MeshStandardMaterial({ color: 0x7e93a8, roughness: 1 });
     [
       [-34, 26, 9],
@@ -504,7 +547,7 @@ export class FrontPorchScene extends PovScene {
       shape.lineTo(width / 2, 0);
       shape.closePath();
       const house = new THREE.Mesh(new THREE.ShapeGeometry(shape), silhouette);
-      house.position.set(x, -DROP, DECK_Z + 52);
+      house.position.set(x, -DROP, DECK_Z + 34);
       this.scene.add(house);
     });
   }

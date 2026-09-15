@@ -9,7 +9,15 @@
 import * as THREE from 'three';
 import { Animated, applyWorldUVs } from './props';
 import { ORANGE, ORANGE_DARK } from './house';
-import { createCorrugatedIronTexture, createPuffTexture, createWoodTexture, tiled } from './textures';
+import {
+  createBreezeBlockAlpha,
+  createCorrugatedIronTexture,
+  createPuffTexture,
+  createStreetSignTexture,
+  createWeatherboardTexture,
+  createWoodTexture,
+  tiled,
+} from './textures';
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -517,20 +525,31 @@ export function buildPorchSteps(
     group.add(stringer);
 
     const rail = solid(
-      new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, length), matte(ORANGE, 0.75)),
+      new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, length), matte(TRIM_GREEN, 0.55)),
     );
     rail.position.set((side * (width + 0.12)) / 2, -drop / 2 + 0.95, (count * run) / 2);
     rail.rotation.x = Math.atan2(drop, count * run);
     group.add(rail);
 
+    // Pale infill bars between the rail and the stringer
+    const bars = Math.round(length / 0.24);
+    for (let i = 0; i <= bars; i++) {
+      const t = i / bars;
+      const bar = solid(
+        new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.82, 0.045), matte(0xe8e4d6, 0.7)),
+      );
+      bar.position.set((side * (width + 0.12)) / 2, -drop * t + 0.5, t * count * run);
+      group.add(bar);
+    }
+
     for (let i = 0; i <= 3; i++) {
       const t = i / 3;
       const newel = solid(
-        new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 0.1), matte(ORANGE_DARK, 0.78)),
+        new THREE.Mesh(new THREE.BoxGeometry(0.11, 1.15, 0.11), matte(TRIM_GREEN, 0.55)),
       );
       newel.position.set(
         (side * (width + 0.12)) / 2,
-        -drop * t + 0.42,
+        -drop * t + 0.44,
         t * count * run,
       );
       group.add(newel);
@@ -801,23 +820,385 @@ export function buildWeatherboardWall(
   const group = new THREE.Group();
 
   const core = new THREE.BoxGeometry(width, height, thickness);
-  applyWorldUVs(core, width, height, thickness, 0.2);
-  const wall = solid(new THREE.Mesh(core, matte(0xf0d878, 0.94)));
+  // The map carries 7 boards, and a board is about 0.34 high, so 0.42 tiles per
+  // world unit lands the boards at their real size on any size of wall
+  applyWorldUVs(core, width, height, thickness, 0.42);
+  const wall = solid(
+    new THREE.Mesh(
+      core,
+      new THREE.MeshStandardMaterial({
+        map: createWeatherboardTexture(),
+        color: 0xf6f0e0,
+        roughness: 0.94,
+        metalness: 0,
+      }),
+    ),
+  );
   group.add(wall);
 
-  // Each board oversails the one below, which is the whole look of the thing
-  const boards = Math.floor(height / 0.34);
-  for (let i = 0; i < boards; i++) {
-    const board = solid(
-      new THREE.Mesh(
-        new THREE.BoxGeometry(width, 0.34, 0.07),
-        matte(i % 2 === 0 ? 0xf3dd84 : 0xe9cf6c, 0.94),
-      ),
+  return group;
+}
+
+// ------------------------------------------------- the real house, from photos
+
+/** The dark bottle green every bit of trim on the front of the house is painted. */
+export const TRIM_GREEN = 0x1f4a38;
+export const TRIM_GREEN_LIGHT = 0x2c6449;
+
+/**
+ * Flat skillion verandah roof with a deep green fascia and a white sheeted
+ * soffit, which is what the real house has — not the bullnose-and-lace of a
+ * century earlier.
+ */
+export function buildFlatVerandahRoof(
+  width: number,
+  depth: number,
+  wallY: number,
+  frontY: number,
+  thickness: number,
+): THREE.Group {
+  const group = new THREE.Group();
+
+  const iron = new THREE.MeshStandardMaterial({
+    map: tiled(createCorrugatedIronTexture(), width * 0.14, depth * 0.1),
+    color: 0xc4cbd2,
+    roughness: 0.6,
+    metalness: 0.35,
+  });
+
+  const slope = Math.atan2(wallY - frontY, depth);
+  const run = depth / Math.cos(slope);
+
+  const sheet = solid(new THREE.Mesh(new THREE.BoxGeometry(width, thickness, run), iron));
+  sheet.position.set(0, (wallY + frontY) / 2 + 0.3, depth / 2);
+  sheet.rotation.x = slope;
+  group.add(sheet);
+
+  // The white soffit underneath. Flat sheet, not exposed rafters — you are
+  // looking straight up at this from most of the deck.
+  // Face down, not up: a plane rotated the other way shows the camera its unlit
+  // back, which is why the ceiling came out grey under a white soffit.
+  const soffit = new THREE.Mesh(
+    new THREE.PlaneGeometry(width - 0.1, run),
+    new THREE.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.95, side: THREE.DoubleSide }),
+  );
+  soffit.position.set(0, (wallY + frontY) / 2 + 0.22, depth / 2);
+  soffit.rotation.x = Math.PI / 2 + slope;
+  soffit.receiveShadow = true;
+  group.add(soffit);
+
+  // Deep green fascia across the front, and the gutter under it
+  const fascia = solid(new THREE.Mesh(new THREE.BoxGeometry(width + 0.3, 0.52, 0.12), matte(TRIM_GREEN, 0.6)));
+  fascia.position.set(0, frontY + 0.12, depth + 0.1);
+  group.add(fascia);
+
+  const gutter = solid(new THREE.Mesh(new THREE.BoxGeometry(width + 0.3, 0.2, 0.24), matte(TRIM_GREEN, 0.55)));
+  gutter.position.set(0, frontY - 0.2, depth + 0.14);
+  group.add(gutter);
+
+  // A downpipe at each end, running to the ground
+  [-1, 1].forEach((side) => {
+    const pipe = solid(
+      new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, frontY + 2, 8), matte(TRIM_GREEN, 0.6)),
     );
-    board.position.set(0, -height / 2 + 0.17 + i * 0.34, thickness / 2 + 0.03);
-    board.rotation.x = -0.09;
-    group.add(board);
+    pipe.position.set((side * (width - 0.6)) / 2, (frontY - 2) / 2, depth + 0.16);
+    group.add(pipe);
+  });
+
+  // Beam the posts carry
+  const beam = solid(new THREE.Mesh(new THREE.BoxGeometry(width, 0.3, 0.22), matte(TRIM_GREEN, 0.6)));
+  beam.position.set(0, frontY - 0.52, depth - 0.05);
+  group.add(beam);
+
+  return group;
+}
+
+/** Plain square steel verandah post, painted the same green as everything else. */
+export function buildSteelPost(height: number): THREE.Group {
+  const group = new THREE.Group();
+  const paint = matte(TRIM_GREEN, 0.55);
+
+  const shaft = solid(new THREE.Mesh(new THREE.BoxGeometry(0.14, height, 0.14), paint));
+  shaft.position.y = height / 2;
+  group.add(shaft);
+
+  [0.04, height - 0.04].forEach((y) => {
+    const plate = solid(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.05, 0.26), paint));
+    plate.position.y = y;
+    group.add(plate);
+  });
+
+  return group;
+}
+
+/**
+ * Green steel balustrade: a top and bottom rail with plain vertical bars, as on
+ * the front stairs. The orange wavy bars belong to the back balcony; the front
+ * of this house is green and straight.
+ */
+export function buildGreenBalustrade(length: number, height: number): THREE.Group {
+  const group = new THREE.Group();
+  const paint = matte(TRIM_GREEN, 0.55);
+  const pale = matte(0xe8e4d6, 0.7);
+
+  [height, 0.12].forEach((y, i) => {
+    const rail = solid(new THREE.Mesh(new THREE.BoxGeometry(length, 0.12, 0.1), paint));
+    rail.position.y = y - (i === 0 ? 0.06 : 0);
+    group.add(rail);
+  });
+
+  // Pale infill bars, the way the front gate is done
+  const bars = Math.max(2, Math.round(length / 0.22));
+  for (let i = 0; i <= bars; i++) {
+    const bar = solid(new THREE.Mesh(new THREE.BoxGeometry(0.045, height - 0.16, 0.045), pale));
+    bar.position.set(-length / 2 + (i / bars) * length, height / 2, 0);
+    group.add(bar);
   }
+
+  // Green posts at each end
+  [-1, 1].forEach((side) => {
+    const post = solid(new THREE.Mesh(new THREE.BoxGeometry(0.12, height + 0.12, 0.12), paint));
+    post.position.set((side * length) / 2, (height + 0.12) / 2, 0);
+    group.add(post);
+  });
+
+  return group;
+}
+
+/**
+ * The front wall: a rendered base with a course of pierced breeze blocks along
+ * the top and a green capping over them. The piercings are a real alpha map, so
+ * you can see the street through them.
+ */
+export function buildBreezeBlockFence(length: number): THREE.Group {
+  const group = new THREE.Group();
+
+  const render = solid(
+    new THREE.Mesh(new THREE.BoxGeometry(length, 1.15, 0.36), matte(0xe0d7bf, 0.96)),
+  );
+  render.position.y = 0.575;
+  group.add(render);
+
+  // The pierced course
+  const blocks = new THREE.Mesh(
+    new THREE.BoxGeometry(length, 0.62, 0.3),
+    new THREE.MeshStandardMaterial({
+      color: TRIM_GREEN_LIGHT,
+      roughness: 0.92,
+      alphaMap: tiled(createBreezeBlockAlpha(), Math.round(length / 0.62), 1),
+      transparent: true,
+      alphaTest: 0.5,
+      side: THREE.DoubleSide,
+    }),
+  );
+  blocks.position.y = 1.46;
+  blocks.castShadow = true;
+  group.add(blocks);
+
+  const capping = solid(
+    new THREE.Mesh(new THREE.BoxGeometry(length, 0.14, 0.44), matte(TRIM_GREEN, 0.6)),
+  );
+  capping.position.y = 1.84;
+  group.add(capping);
+
+  return group;
+}
+
+/** The green steel driveway gate, with pale vertical bars. */
+export function buildFrontGate(width: number): THREE.Group {
+  const group = new THREE.Group();
+  const height = 1.5;
+
+  const frame = buildGreenBalustrade(width, height);
+  group.add(frame);
+
+  // A heavier green frame round the outside of the leaf
+  const paint = matte(TRIM_GREEN, 0.55);
+  [height, 0].forEach((y) => {
+    const rail = solid(new THREE.Mesh(new THREE.BoxGeometry(width + 0.1, 0.14, 0.14), paint));
+    rail.position.y = y + 0.07;
+    group.add(rail);
+  });
+
+  return group;
+}
+
+/**
+ * A cocos palm, of which the real front yard has an entire thicket. Fronds are
+ * tapered strips fanning off the crown, arched over with a droop at the tip.
+ */
+export function buildPalm(seed: number): { group: THREE.Group; animated: Animated } {
+  const group = new THREE.Group();
+  const rand = seededRandom(seed);
+  const height = 4.5 + rand() * 3.5;
+
+  const trunkMaterial = matte(0x8a7a5e, 0.96);
+  const segments = Math.round(height / 0.42);
+  for (let i = 0; i < segments; i++) {
+    const t = i / segments;
+    const r = 0.22 - t * 0.07;
+    const ring = solid(new THREE.Mesh(new THREE.CylinderGeometry(r, r + 0.015, 0.42, 9), trunkMaterial));
+    // Palms never grow straight
+    ring.position.set(Math.sin(t * 2.2 + seed) * t * 0.5, 0.21 + i * 0.4, Math.cos(t * 1.7) * t * 0.3);
+    group.add(ring);
+  }
+
+  const crown = new THREE.Group();
+  crown.position.set(Math.sin(2.2 + seed) * 0.5, height, Math.cos(1.7) * 0.3);
+  group.add(crown);
+
+  const frondMaterial = new THREE.MeshStandardMaterial({
+    color: 0x3f7a35,
+    roughness: 0.9,
+    side: THREE.DoubleSide,
+  });
+  const frondDark = new THREE.MeshStandardMaterial({
+    color: 0x2c5c28,
+    roughness: 0.9,
+    side: THREE.DoubleSide,
+  });
+
+  const fronds: THREE.Group[] = [];
+  const count = 13;
+  for (let i = 0; i < count; i++) {
+    const frond = new THREE.Group();
+    const length = 3.2 + rand() * 1.2;
+
+    // A rachis arching over, with long drooping leaflets in a V down both sides
+    // of it. Short leaflets on a long rachis just read as a wire umbrella.
+    const spineSegments = 11;
+    const spine = solid(
+      new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.018, length, 5), frondDark),
+    );
+    spine.rotation.z = Math.PI / 2;
+    spine.position.set(length / 2, -length * 0.14, 0);
+    frond.add(spine);
+
+    for (let sIdx = 1; sIdx <= spineSegments; sIdx++) {
+      const t = sIdx / spineSegments;
+      // Longest in the middle of the frond, tapering to the tip
+      const blade = 1.5 * Math.sin(t * Math.PI * 0.88) + 0.25;
+      const droop = 0.55 + t * 0.5;
+
+      [-1, 1].forEach((side) => {
+        const leaflet = new THREE.Mesh(
+          new THREE.PlaneGeometry(blade, 0.17),
+          sIdx % 2 === 0 ? frondMaterial : frondDark,
+        );
+        // Hung off the rachis and falling away, so the blade's own length
+        // carries it down rather than sticking out flat
+        leaflet.position.set(
+          t * length + Math.cos(droop) * blade * 0.4,
+          -t * t * length * 0.4 - Math.sin(droop) * blade * 0.45,
+          side * blade * 0.3,
+        );
+        leaflet.rotation.set(side * 1.15, 0, -droop);
+        frond.add(leaflet);
+      });
+    }
+
+    frond.rotation.y = (i / count) * Math.PI * 2 + rand() * 0.25;
+    frond.rotation.z = 0.78 + rand() * 0.42;
+    frond.userData.rest = frond.rotation.z;
+    crown.add(frond);
+    fronds.push(frond);
+  }
+
+  // Seed pods hanging under the crown
+  for (let i = 0; i < 3; i++) {
+    const pod = new THREE.Mesh(new THREE.SphereGeometry(0.1, 7, 5), matte(0xd8a63a, 0.8));
+    pod.position.set((rand() - 0.5) * 0.5, -0.3 - rand() * 0.3, (rand() - 0.5) * 0.5);
+    crown.add(pod);
+  }
+
+  const animated: Animated = {
+    update: (time) => {
+      fronds.forEach((frond, i) => {
+        frond.rotation.z = frond.userData.rest + Math.sin(time * 0.8 + i) * 0.06;
+      });
+      crown.rotation.z = Math.sin(time * 0.5) * 0.015;
+    },
+  };
+
+  return { group, animated };
+}
+
+/** Bougainvillea, going off over the fence in magenta. */
+export function buildBougainvillea(seed: number): THREE.Group {
+  const group = new THREE.Group();
+  const rand = seededRandom(seed);
+
+  const leaf = matte(0x35662e, 0.95);
+  const bract = matte(0xc82a72, 0.9);
+  const bractPale = matte(0xe0568f, 0.9);
+
+  for (let i = 0; i < 16; i++) {
+    const r = 0.5 + rand() * 0.8;
+    const clump = new THREE.Mesh(
+      new THREE.SphereGeometry(r, 8, 6),
+      i % 3 === 0 ? leaf : i % 3 === 1 ? bract : bractPale,
+    );
+    clump.position.set((rand() - 0.5) * 3.4, r * 0.7 + rand() * 2.2, (rand() - 0.5) * 1.6);
+    clump.scale.y = 0.8;
+    clump.castShadow = true;
+    group.add(clump);
+  }
+
+  return group;
+}
+
+/** Street sign on its pole: a green blade with the name in white capitals. */
+export function buildStreetSign(name: string): THREE.Group {
+  const group = new THREE.Group();
+
+  const pole = solid(
+    new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 10), matte(0x8e9298, 0.6)),
+  );
+  pole.position.y = 1.3;
+  group.add(pole);
+
+  const blade = new THREE.Mesh(
+    new THREE.BoxGeometry(1.9, 0.48, 0.05),
+    new THREE.MeshStandardMaterial({
+      map: createStreetSignTexture(name),
+      roughness: 0.62,
+      metalness: 0.1,
+    }),
+  );
+  blade.position.y = 2.42;
+  blade.castShadow = true;
+  group.add(blade);
+
+  // The back of the blade is plain green, not mirrored type
+  const back = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.9, 0.48),
+    matte(0x1d5b3a, 0.62),
+  );
+  back.position.set(0, 2.42, -0.027);
+  back.rotation.y = Math.PI;
+  group.add(back);
+
+  return group;
+}
+
+/** Wheelie bin, out on the kerb because it is always bin night somewhere. */
+export function buildWheelieBin(lidColor: number): THREE.Group {
+  const group = new THREE.Group();
+
+  const body = solid(new THREE.Mesh(new THREE.BoxGeometry(0.62, 1.0, 0.56), matte(0x3c4048, 0.82)));
+  body.position.y = 0.62;
+  group.add(body);
+
+  const lid = solid(new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.09, 0.6), matte(lidColor, 0.78)));
+  lid.position.y = 1.16;
+  group.add(lid);
+
+  [-1, 1].forEach((side) => {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.07, 10), matte(0x1a1c20, 0.7));
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(side * 0.28, 0.11, -0.2);
+    group.add(wheel);
+  });
 
   return group;
 }

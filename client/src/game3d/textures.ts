@@ -1573,6 +1573,88 @@ function build_createWeatherboardTexture(): THREE.Texture {
   return finish(canvas, 1);
 }
 
+/**
+ * A street-sign blade: white capitals on the green Brisbane City Council
+ * ground, with the white keyline round the edge.
+ */
+function build_createStreetSignTexture(name: string): THREE.Texture {
+  const width = 512;
+  const height = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('2D context unavailable for procedural texture');
+
+  ctx.fillStyle = '#1d5b3a';
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = '#f4f4ee';
+  ctx.lineWidth = 5;
+  ctx.strokeRect(9, 9, width - 18, height - 18);
+
+  ctx.fillStyle = '#f4f4ee';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 62px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText(name.toUpperCase(), width / 2, height / 2 + 3);
+
+  // Faded and grubby, the way every one of them is
+  for (let i = 0; i < 2000; i++) {
+    ctx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
+    ctx.fillRect(Math.random() * width, Math.random() * height, 1, 1);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}
+
+/**
+ * The pierced decorative blocks the front fence is built from — the ones with
+ * the pattern cut clean through that every Brisbane front wall of a certain
+ * vintage has. Drawn as an alpha map so the holes are really holes.
+ */
+function build_createBreezeBlockAlpha(): THREE.Texture {
+  const size = 256;
+  const { canvas, ctx } = makeCanvas(size);
+
+  // White is solid, black is a hole
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.fillStyle = '#000000';
+  const m = size * 0.16;
+
+  // Four leaf-shaped piercings arranged round the centre, which is roughly the
+  // pattern on the real wall
+  for (let i = 0; i < 4; i++) {
+    ctx.save();
+    ctx.translate(size / 2, size / 2);
+    ctx.rotate((i / 4) * Math.PI * 2);
+    ctx.beginPath();
+    ctx.moveTo(0, -m * 0.5);
+    ctx.quadraticCurveTo(m * 1.5, -m * 1.4, m * 1.9, 0);
+    ctx.quadraticCurveTo(m * 1.5, m * 0.4, 0, m * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Corner quarter-circles, so the blocks read as a run rather than separate
+  [[0, 0], [size, 0], [0, size], [size, size]].forEach(([cx, cy]) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.17, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
 export const createGrassTexture = (): THREE.Texture => memoize('grass', build_createGrassTexture);
 
 export const createGrassRoughness = (): THREE.Texture => memoize('grassRoughness', build_createGrassRoughness);
@@ -1623,6 +1705,10 @@ export const createDamaskTexture = (): THREE.Texture => memoize('damask', build_
 export const createCarpetTexture = (): THREE.Texture => memoize('carpet', build_createCarpetTexture);
 export const createWeatherboardTexture = (): THREE.Texture =>
   memoize('weatherboard', build_createWeatherboardTexture);
+export const createStreetSignTexture = (name: string): THREE.Texture =>
+  memoize(`streetSign:${name}`, () => build_createStreetSignTexture(name));
+export const createBreezeBlockAlpha = (): THREE.Texture =>
+  memoize('breezeBlockAlpha', build_createBreezeBlockAlpha);
 
 /**
  * A copy of a memoised map with its own tiling. The clone shares the underlying
