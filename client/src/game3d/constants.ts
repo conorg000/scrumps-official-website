@@ -292,6 +292,18 @@ export const LIVING_ROOM = {
   },
 
   /**
+   * A bank of windows down the south wall — the only wall with nothing hung on
+   * it, since the north one carries the banana collection. Tall and close
+   * together, which is what makes the room read as a bright front room rather
+   * than a gallery with the lights on.
+   */
+  windows: [
+    { along: gridToWorldX(3), width: 3.6, height: 3.0, sill: 0.9 },
+    { along: gridToWorldX(8), width: 3.6, height: 3.0, sill: 0.9 },
+    { along: gridToWorldX(13), width: 3.6, height: 3.0, sill: 0.9 },
+  ],
+
+  /**
    * Where each banana painting hangs. The 2D room places them a tile in from
    * the wall; here they go on the wall itself, keyed by furniture type.
    */
@@ -313,6 +325,10 @@ export const LIVING_ROOM_BLOCKERS: readonly GridRect[] = [
   { x0: 9, x1: 9, y0: 13, y1: 13 }, // plinth with the banana sculpture
   { x0: 2, x1: 4, y0: 15, y1: 15 }, // framed canvases leaning on the south wall
   { x0: 17, x1: 18, y0: 14, y1: 15 }, // drinks trolley and record player
+  // The half-columns carrying the fretwork arch. The opening between them is
+  // the whole width of the room, so only the two end tiles are solid.
+  { x0: 0, x1: 0, y0: 7, y1: 7 },
+  { x0: 19, x1: 19, y0: 7, y1: 7 },
 ];
 
 export function isLivingRoomBlocked(tx: number, ty: number): boolean {

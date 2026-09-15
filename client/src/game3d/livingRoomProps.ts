@@ -15,6 +15,7 @@ import {
   tiled,
 } from './textures';
 
+
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -925,4 +926,242 @@ export function buildRecordPlayer(): { group: THREE.Group; animated: Animated } 
       },
     },
   };
+}
+
+/**
+ * The fretwork archway across the middle of the front room — the one feature
+ * everybody who walks in remarks on. A deep maroon timber arch with scrolled
+ * spandrels, carried on turned half-columns, with a lattice screen filling the
+ * upper corner on one side.
+ *
+ * Built as a run of lathe-turned bits and a curve of blocks rather than a
+ * texture, so it still reads as joinery when you walk right up to it.
+ */
+export function buildFretworkArch(width: number, height: number): THREE.Group {
+  const group = new THREE.Group();
+  const stain = new THREE.MeshStandardMaterial({
+    map: tiled(createWoodTexture(), 2, 1),
+    color: 0x7e2e26,
+    roughness: 0.42,
+    metalness: 0.05,
+  });
+  const stainDark = matte(0x5e2019, 0.5);
+
+  // The beam across the top, and a valance of turned spindles hanging off it so
+  // a span this wide reads as joinery rather than a scaffold pole
+  const beam = solid(new THREE.Mesh(new THREE.BoxGeometry(width, 0.34, 0.26), stain));
+  beam.position.y = height;
+  group.add(beam);
+
+  const spindles = Math.round(width / 0.42);
+  for (let i = 1; i < spindles; i++) {
+    const x = -width / 2 + (i / spindles) * width;
+    const drop = solid(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.34, 6), stainDark));
+    drop.position.set(x, height - 0.3, 0);
+    group.add(drop);
+
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), stain);
+    bead.position.set(x, height - 0.48, 0);
+    group.add(bead);
+  }
+
+  // Half-columns either side, turned
+  [-1, 1].forEach((side) => {
+    const x = (side * width) / 2 - side * 0.18;
+
+    const shaft = solid(new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, height, 10), stain));
+    shaft.position.set(x, height / 2, 0);
+    group.add(shaft);
+
+    [0.4, height * 0.62, height - 0.3].forEach((y) => {
+      const bead = solid(new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.12, 10), stainDark));
+      bead.position.set(x, y, 0);
+      group.add(bead);
+    });
+
+    const plinth = solid(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.42, 0.4), stain));
+    plinth.position.set(x, 0.21, 0);
+    group.add(plinth);
+  });
+
+  /**
+   * One scrolled spandrel: a quarter of the arch's sweep, filled with a fan of
+   * turned spindles and a run of small circles, the way cut fretwork reads.
+   */
+  const spandrel = (side: number): THREE.Group => {
+    const panel = new THREE.Group();
+    // A fixed joinery size, not a fraction of the opening. Scaled off the width
+    // it becomes a twelve-metre hoop across a twenty-metre room.
+    const radius = Math.min(1.7, width * 0.2);
+
+    // The curve itself, as a run of short blocks following a quarter arc
+    const segments = 16;
+    for (let i = 0; i < segments; i++) {
+      const t0 = (i / segments) * (Math.PI / 2);
+      const t1 = ((i + 1) / segments) * (Math.PI / 2);
+      const x0 = Math.cos(t0) * radius;
+      const y0 = Math.sin(t0) * radius;
+      const x1 = Math.cos(t1) * radius;
+      const y1 = Math.sin(t1) * radius;
+      const len = Math.hypot(x1 - x0, y1 - y0) * 1.25;
+
+      const block = solid(new THREE.Mesh(new THREE.BoxGeometry(len, 0.17, 0.22), stain));
+      block.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
+      block.rotation.z = Math.atan2(y1 - y0, x1 - x0);
+      panel.add(block);
+    }
+
+    // Spindles standing in the corner the curve cuts off
+    for (let i = 1; i < 6; i++) {
+      const t = i / 6;
+      const x = Math.cos((t * Math.PI) / 2) * radius;
+      const y = Math.sin((t * Math.PI) / 2) * radius;
+      const spindle = solid(
+        new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, radius - y, 6), stainDark),
+      );
+      spindle.position.set(x, y + (radius - y) / 2, 0);
+      panel.add(spindle);
+
+      const bobble = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), stain);
+      bobble.position.set(x, y + 0.1, 0);
+      panel.add(bobble);
+    }
+
+    // A row of pierced circles along the top, which is the fretwork proper
+    for (let i = 0; i < 5; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.022, 5, 10), stain);
+      ring.position.set(radius * 0.18 + i * 0.2, radius - 0.14, 0);
+      panel.add(ring);
+    }
+
+    panel.scale.x = side;
+    panel.position.set((side * width) / 2 - side * 0.34, height - radius - 0.17, 0);
+    return panel;
+  };
+
+  group.add(spandrel(1));
+  group.add(spandrel(-1));
+
+  // The lattice screen filling one side above head height
+  const screen = new THREE.Group();
+  const screenWidth = 2.4;
+  const screenHeight = Math.min(1.5, height * 0.34);
+  for (let i = 0; i <= 7; i++) {
+    const bar = solid(
+      new THREE.Mesh(new THREE.BoxGeometry(0.05, screenHeight, 0.05), stainDark),
+    );
+    bar.position.set(-screenWidth / 2 + (i / 7) * screenWidth, 0, 0);
+    screen.add(bar);
+  }
+  for (let i = 0; i <= 4; i++) {
+    const bar = solid(new THREE.Mesh(new THREE.BoxGeometry(screenWidth, 0.05, 0.05), stainDark));
+    bar.position.set(0, -screenHeight / 2 + (i / 4) * screenHeight, 0);
+    screen.add(bar);
+  }
+  screen.position.set(width * 0.5 - screenWidth * 0.75 - 1.9, height - screenHeight / 2 - 0.3, 0);
+  group.add(screen);
+
+  // A matching one at the other end, so the beam is not bare across the middle
+  const screenB = screen.clone();
+  screenB.position.x = -screen.position.x;
+  group.add(screenB);
+
+  return group;
+}
+
+/**
+ * The five-globe brass chandelier hanging in the middle of the room: a stem, a
+ * ring of arms, and opal glass balls on the end of each.
+ */
+export function buildGlobeChandelier(ceilingY: number): THREE.Group {
+  const group = new THREE.Group();
+  const brass = metal(0xc9a75a, 0.32);
+
+  const rose = solid(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.08, 18), matte(0xf4f0e4, 0.9)));
+  rose.position.y = ceilingY - 0.04;
+  group.add(rose);
+
+  const stem = solid(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.6, 8), brass));
+  stem.position.y = ceilingY - 0.36;
+  group.add(stem);
+
+  const hub = solid(new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), brass));
+  hub.position.y = ceilingY - 0.68;
+  group.add(hub);
+
+  const glass = new THREE.MeshStandardMaterial({
+    color: 0xfffaf0,
+    emissive: 0xffe6bc,
+    emissiveIntensity: 1.5,
+    roughness: 0.55,
+  });
+
+  // Four arms swept out and up, plus one hanging straight down the middle
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const arm = solid(new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.46, 6), brass));
+    arm.position.set(Math.sin(angle) * 0.21, ceilingY - 0.62, Math.cos(angle) * 0.21);
+    arm.rotation.set(Math.cos(angle) * 0.9, 0, -Math.sin(angle) * 0.9);
+    group.add(arm);
+
+    const globe = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 12), glass);
+    globe.position.set(Math.sin(angle) * 0.42, ceilingY - 0.5, Math.cos(angle) * 0.42);
+    group.add(globe);
+  }
+
+  const centre = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 12), glass);
+  centre.position.y = ceilingY - 0.84;
+  group.add(centre);
+
+  const light = new THREE.PointLight(0xffe0b0, 6, 16, 2);
+  light.position.y = ceilingY - 0.7;
+  group.add(light);
+
+  return group;
+}
+
+/**
+ * Sheer curtains either side of a window, gathered and hanging in folds. Built
+ * from a lathe profile so the gathers are real geometry rather than a texture.
+ */
+export function buildSheerCurtains(width: number, height: number): THREE.Group {
+  const group = new THREE.Group();
+
+  const sheer = new THREE.MeshStandardMaterial({
+    color: 0xfdfaf2,
+    roughness: 0.95,
+    transparent: true,
+    opacity: 0.72,
+    side: THREE.DoubleSide,
+  });
+
+  // Each panel covers a third of the opening, gathered into vertical folds
+  [-1, 1].forEach((side) => {
+    const panelWidth = width * 0.34;
+    const segments = 14;
+    const geometry = new THREE.PlaneGeometry(panelWidth, height, segments, 1);
+    const position = geometry.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < position.count; i++) {
+      const x = position.getX(i);
+      // Folds, deeper at the leading edge where the curtain is pushed back
+      const t = (x / panelWidth + 0.5);
+      position.setZ(i, Math.sin(t * Math.PI * 7) * 0.075 * (0.35 + t));
+    }
+    geometry.computeVertexNormals();
+
+    const panel = new THREE.Mesh(geometry, sheer);
+    panel.position.set(side * (width / 2 - panelWidth / 2 + 0.1), 0, 0.14);
+    group.add(panel);
+  });
+
+  // Pelmet and rod over the top
+  const rod = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.03, width + 0.7, 8),
+    metal(0xb9a37a, 0.4),
+  );
+  rod.rotation.z = Math.PI / 2;
+  rod.position.set(0, height / 2 + 0.16, 0.14);
+  group.add(rod);
+
+  return group;
 }

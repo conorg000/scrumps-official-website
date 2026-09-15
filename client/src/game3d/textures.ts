@@ -1400,6 +1400,179 @@ function build_createCorrugatedIronTexture(): THREE.Texture {
   return finish(canvas, 1);
 }
 
+/**
+ * Gold damask wallpaper, as hung in the real front room. A repeating ogee of
+ * scrolled leaves on a warm ground, printed slightly off so the seams show.
+ */
+function build_createDamaskTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(6014);
+
+  ctx.fillStyle = '#c8b68c';
+  ctx.fillRect(0, 0, size, size);
+
+  // Subtle vertical striping under the pattern, the way damask paper is woven
+  for (let x = 0; x < size; x += 16) {
+    ctx.fillStyle = `rgba(255,248,224,${0.05 + rand() * 0.05})`;
+    ctx.fillRect(x, 0, 8, size);
+  }
+
+  /** One ogee motif: a pointed oval with a leaf scroll inside it. */
+  const motif = (cx: number, cy: number, scale: number, alpha: number): void => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+
+    ctx.strokeStyle = `rgba(132,104,52,${alpha})`;
+    ctx.fillStyle = `rgba(206,182,124,${alpha * 0.95})`;
+    ctx.lineWidth = 3.2;
+
+    // The ogee frame
+    ctx.beginPath();
+    ctx.moveTo(0, -64);
+    ctx.bezierCurveTo(38, -40, 44, 10, 0, 62);
+    ctx.bezierCurveTo(-44, 10, -38, -40, 0, -64);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Leaves furling off a central stem
+    ctx.beginPath();
+    ctx.moveTo(0, 44);
+    ctx.lineTo(0, -44);
+    ctx.stroke();
+
+    for (let i = 0; i < 4; i++) {
+      const y = -34 + i * 24;
+      [-1, 1].forEach((side) => {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.quadraticCurveTo(side * 26, y - 4, side * 15, y + 20);
+        ctx.quadraticCurveTo(side * 9, y + 8, 0, y);
+        ctx.fillStyle = `rgba(150,120,64,${alpha * 0.85})`;
+        ctx.fill();
+      });
+    }
+
+    // A small rosette at the top
+    ctx.beginPath();
+    ctx.arc(0, -52, 7, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(166,132,66,${alpha})`;
+    ctx.fill();
+
+    ctx.restore();
+  };
+
+  // Half-drop repeat: every other column offset by half a row
+  const cols = 2;
+  const rows = 2;
+  for (let c = 0; c <= cols; c++) {
+    for (let r = -1; r <= rows; r++) {
+      const x = (c * size) / cols;
+      const y = (r * size) / rows + (c % 2 ? size / (rows * 2) : 0);
+      motif(x, y, 1, 0.9);
+      // Small filler motif between the big ones
+      motif(x + size / (cols * 2), y + size / (rows * 2), 0.38, 0.55);
+    }
+  }
+
+  // Age: light foxing, and a seam every half width
+  for (let i = 0; i < 2600; i++) {
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(120,96,56,0.05)' : 'rgba(255,248,230,0.05)';
+    ctx.fillRect(rand() * size, rand() * size, 1, 1);
+  }
+  ctx.fillStyle = 'rgba(120,100,64,0.12)';
+  ctx.fillRect(size / 2 - 1, 0, 2, size);
+
+  return finish(canvas, 1);
+}
+
+/** Cut-pile carpet, the flecked oatmeal that came with the house. */
+function build_createCarpetTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(3312);
+
+  ctx.fillStyle = '#b8b0a2';
+  ctx.fillRect(0, 0, size, size);
+
+  // Fibre: thousands of short strokes in a narrow tonal band
+  for (let i = 0; i < 26000; i++) {
+    const tone = 0.82 + rand() * 0.36;
+    ctx.strokeStyle = `rgba(${Math.round(186 * tone)},${Math.round(178 * tone)},${Math.round(164 * tone)},0.7)`;
+    ctx.lineWidth = 1;
+    const x = rand() * size;
+    const y = rand() * size;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + (rand() - 0.5) * 4, y + (rand() - 0.5) * 4);
+    ctx.stroke();
+  }
+
+  // The broad soft patches a vacuum leaves
+  for (let i = 0; i < 26; i++) {
+    const g = ctx.createRadialGradient(rand() * size, rand() * size, 4, rand() * size, rand() * size, 90);
+    g.addColorStop(0, 'rgba(255,255,255,0.05)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  return finish(canvas, 1);
+}
+
+/** Cream weatherboard, the chamferboard the front of the house is clad in. */
+function build_createWeatherboardTexture(): THREE.Texture {
+  const size = 512;
+  const { canvas, ctx } = makeCanvas(size);
+  const rand = seededRandom(9182);
+
+  const boards = 7;
+  const boardH = size / boards;
+
+  ctx.fillStyle = '#e8dfc4';
+  ctx.fillRect(0, 0, size, size);
+
+  for (let b = 0; b < boards; b++) {
+    const y = b * boardH;
+    const tone = 0.95 + rand() * 0.08;
+    ctx.fillStyle = `rgb(${Math.round(232 * tone)},${Math.round(223 * tone)},${Math.round(196 * tone)})`;
+    ctx.fillRect(0, y, size, boardH);
+
+    // Each board oversails the one under it, so the shadow sits at the bottom
+    const shade = ctx.createLinearGradient(0, y, 0, y + boardH);
+    shade.addColorStop(0, 'rgba(255,255,255,0.22)');
+    shade.addColorStop(0.72, 'rgba(255,255,255,0)');
+    shade.addColorStop(1, 'rgba(96,84,58,0.34)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, y, size, boardH);
+
+    ctx.fillStyle = 'rgba(86,74,50,0.45)';
+    ctx.fillRect(0, y + boardH - 2, size, 2);
+
+    // Nail heads at the stud lines
+    for (let n = 0; n < 4; n++) {
+      ctx.fillStyle = 'rgba(120,106,74,0.3)';
+      ctx.beginPath();
+      ctx.arc(40 + n * 130, y + boardH * 0.55, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Weathering down the wall
+  for (let i = 0; i < 20; i++) {
+    const x = rand() * size;
+    const g = ctx.createLinearGradient(0, 0, 0, size);
+    g.addColorStop(0, 'rgba(140,128,96,0)');
+    g.addColorStop(1, `rgba(140,128,96,${0.05 + rand() * 0.09})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(x, 0, 3 + rand() * 9, size);
+  }
+
+  return finish(canvas, 1);
+}
+
 export const createGrassTexture = (): THREE.Texture => memoize('grass', build_createGrassTexture);
 
 export const createGrassRoughness = (): THREE.Texture => memoize('grassRoughness', build_createGrassRoughness);
@@ -1446,6 +1619,10 @@ export const createNightSkyTexture = (): THREE.Texture =>
   memoize('nightSky', build_createNightSkyTexture);
 export const createCorrugatedIronTexture = (): THREE.Texture =>
   memoize('corrugatedIron', build_createCorrugatedIronTexture);
+export const createDamaskTexture = (): THREE.Texture => memoize('damask', build_createDamaskTexture);
+export const createCarpetTexture = (): THREE.Texture => memoize('carpet', build_createCarpetTexture);
+export const createWeatherboardTexture = (): THREE.Texture =>
+  memoize('weatherboard', build_createWeatherboardTexture);
 
 /**
  * A copy of a memoised map with its own tiling. The clone shares the underlying

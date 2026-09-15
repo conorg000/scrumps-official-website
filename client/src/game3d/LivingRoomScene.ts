@@ -4,7 +4,8 @@
  * bananas, and Tiny Clown in the corner building his beer pyramid.
  *
  * Three doors: the balcony off the north end of the east wall, the bedroom
- * further down it, and the front porch out west. Placement comes from
+ * further down it, and the front porch out west. A bank of windows runs the
+ * length of the south wall, which is the only one with nothing hung on it. Placement comes from
  * LivingRoom.furniture, except the paintings — the 2D room hangs them a tile in
  * from the wall, so here they are moved onto the wall itself via LIVING_ROOM.
  *
@@ -24,24 +25,27 @@ import {
   buildBeerPyramid,
   buildBookshelf,
   buildDrinksTrolley,
+  buildFretworkArch,
+  buildGlobeChandelier,
   buildLeaningCanvases,
   buildLivingArmchair,
   buildLivingCoffeeTable,
   buildLivingCouch,
-  buildPendant,
   buildPlinth,
   buildRecordPlayer,
+  buildSheerCurtains,
   buildSideTable,
   buildSpotTrack,
   buildStandardLamp,
 } from './livingRoomProps';
 import { buildPotPlant } from './balconyProps';
+import { buildSashWindow } from './bedroomProps';
 import { buildRug } from './downstairsProps';
 import { buildTinyClown } from './characters';
 import {
-  createFloorboardTexture,
+  createCarpetTexture,
+  createDamaskTexture,
   createRugTexture,
-  createStuccoTexture,
   tiled,
 } from './textures';
 import { Furniture, PovScene, RoomLike, makeLabelSprite } from './PovScene';
@@ -52,9 +56,13 @@ const CEILING = LIVING_ROOM.ceilingY;
 const WT = LIVING_ROOM.wallThickness;
 const RAIL_Y = LIVING_ROOM.railY;
 
-/** Texture tiles per world unit. Boards land about half a unit wide. */
-const BOARD_DENSITY = 0.28;
-const PLASTER_DENSITY = 0.16;
+/** Texture tiles per world unit. */
+const CARPET_DENSITY = 0.22;
+/** One damask drop is about 2.9 world units across, so a motif is ~1.4m. */
+const PAPER_DENSITY = 0.35;
+
+/** Stained joinery: skirting, picture rail, architraves and the arch. */
+const MAROON = 0x7e2e26;
 
 export class LivingRoomScene extends PovScene {
   readonly blockers = LIVING_ROOM_BLOCKERS;
@@ -75,18 +83,22 @@ export class LivingRoomScene extends PovScene {
     // Barely any fog: the room's diagonal is only about 51 units, so anything
     // closer than this paints a hard wedge of haze across the ceiling plane.
     // The colour has to sit near the plaster, not below it.
-    this.scene.fog = new THREE.Fog(0x9a8a70, 46, 130);
-    this.scene.background = new THREE.Color(0x2a1f18);
+    this.scene.fog = new THREE.Fog(0xe8e0cc, 60, 190);
+    this.scene.background = new THREE.Color(0x8fbce0);
 
+    // Gold damask, hung the way the real room is. The repeat is set in world
+    // units by applyWorldUVs below, so a drop is about 1.4m however long the
+    // wall is — a wallpaper that stretches to fit its wall stops being one.
     this.plaster = new THREE.MeshStandardMaterial({
-      map: createStuccoTexture(),
-      color: 0xe8dcc8,
-      roughness: 0.94,
+      map: createDamaskTexture(),
+      color: 0xf0e4c8,
+      roughness: 0.96,
       metalness: 0,
     });
 
     this.buildLighting();
     this.buildShell();
+    this.buildWindows();
     this.buildTrim();
     this.buildArtwork();
     this.buildGalleryDressing();
@@ -97,20 +109,19 @@ export class LivingRoomScene extends PovScene {
   // ------------------------------------------------------------------ lighting
 
   private buildLighting(): void {
-    // Lamps do the work, but a lit room needs a real ambient floor or the
-    // undersides of all this furniture go to mud.
-    this.scene.add(new THREE.AmbientLight(0xffe0bc, 1.35));
+    // Daylight through three big windows: the ambient floor has to come up with
+    // it, or everything facing away from the glass reads as night-time again.
+    this.scene.add(new THREE.AmbientLight(0xf4ecdc, 2.1));
     // The ground half of the hemisphere is what lights a ceiling, since its
     // normal points down. Too dark a value here and the plaster reads as
-    // stained timber wherever the pendants do not reach.
-    this.scene.add(new THREE.HemisphereLight(0xffd6a8, 0xa08a6e, 1.05));
+    // stained timber wherever the windows do not reach.
+    this.scene.add(new THREE.HemisphereLight(0xdcecff, 0xc0ab8a, 1.8));
 
-    // Sunset coming through the balcony door, low and orange across the floor.
-    // The only shadow caster in here.
-    const door = LIVING_ROOM.doors.balcony;
-    const sun = new THREE.DirectionalLight(0xffa860, 2.8);
-    sun.position.set(W + 24, 8, door.centre - 6);
-    sun.target.position.set(W * 0.35, 0, door.centre + 10);
+    // Afternoon sun in through the south windows, high and white, throwing
+    // three bright rectangles across the boards. The only shadow caster in here.
+    const sun = new THREE.DirectionalLight(0xfff4e0, 3.4);
+    sun.position.set(W * 0.3, 26, D + 34);
+    sun.target.position.set(W * 0.55, 0, D * 0.4);
     sun.castShadow = true;
     sun.shadow.mapSize.set(this.lowDetail ? 1024 : 2048, this.lowDetail ? 1024 : 2048);
     sun.shadow.camera.near = 1;
@@ -124,10 +135,11 @@ export class LivingRoomScene extends PovScene {
     this.scene.add(sun);
     this.scene.add(sun.target);
 
-    // Bounce back off the west wall so the far end is not silhouetted
-    const bounce = new THREE.DirectionalLight(0xffcf9a, 0.55);
-    bounce.position.set(-14, 5, D * 0.6);
-    bounce.target.position.set(W * 0.6, 1.5, D * 0.4);
+    // Bounce back off the floor and the north wall, so the side of everything
+    // facing away from the windows is lit rather than merely less bright
+    const bounce = new THREE.DirectionalLight(0xffeccc, 0.9);
+    bounce.position.set(W * 0.5, 2, -20);
+    bounce.target.position.set(W * 0.5, 2.5, D * 0.5);
     this.scene.add(bounce);
     this.scene.add(bounce.target);
   }
@@ -139,7 +151,7 @@ export class LivingRoomScene extends PovScene {
     const h = Math.abs(y1 - y0);
     const d = Math.abs(z1 - z0);
     const geometry = new THREE.BoxGeometry(w, h, d);
-    applyWorldUVs(geometry, w, h, d, PLASTER_DENSITY);
+    applyWorldUVs(geometry, w, h, d, PAPER_DENSITY);
     const mesh = new THREE.Mesh(geometry, this.plaster);
     mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     mesh.castShadow = true;
@@ -148,15 +160,15 @@ export class LivingRoomScene extends PovScene {
   }
 
   private buildShell(): void {
-    // Floorboards running the length of the room
+    // Wall-to-wall carpet, the oatmeal cut pile that came with the house
     const floorGeometry = new THREE.PlaneGeometry(W, D);
     const floor = new THREE.Mesh(
       floorGeometry,
       new THREE.MeshStandardMaterial({
-        map: tiled(createFloorboardTexture(), W * BOARD_DENSITY, D * BOARD_DENSITY),
-        color: 0xc9a878,
-        roughness: 0.55,
-        metalness: 0.04,
+        map: tiled(createCarpetTexture(), W * CARPET_DENSITY, D * CARPET_DENSITY),
+        color: 0xcfc6b6,
+        roughness: 1,
+        metalness: 0,
       }),
     );
     floor.rotation.x = -Math.PI / 2;
@@ -177,17 +189,30 @@ export class LivingRoomScene extends PovScene {
 
     const doors = LIVING_ROOM.doors;
 
-    // North and south walls, unbroken
+    // North wall, unbroken — the banana collection hangs on it
     this.wall(-WT, W + WT, 0, CEILING, -WT, 0);
-    this.wall(-WT, W + WT, 0, CEILING, D, D + WT);
+
+    // South wall, cut for the window bank
+    const cuts = LIVING_ROOM.windows
+      .map((w) => ({ from: w.along - w.width / 2, to: w.along + w.width / 2, sill: w.sill, head: w.sill + w.height }))
+      .sort((a, b) => a.from - b.from);
+
+    let x = -WT;
+    cuts.forEach((cut) => {
+      this.wall(x, cut.from, 0, CEILING, D, D + WT);
+      this.wall(cut.from, cut.to, 0, cut.sill, D, D + WT);
+      this.wall(cut.from, cut.to, cut.head, CEILING, D, D + WT);
+      x = cut.to;
+    });
+    this.wall(x, W + WT, 0, CEILING, D, D + WT);
 
     // East wall: the balcony door at the north end, the bedroom further along
-    const cuts = [doors.balcony, doors.bedroom]
+    const doorCuts = [doors.balcony, doors.bedroom]
       .map((d) => ({ from: d.centre - d.width / 2, to: d.centre + d.width / 2, height: d.height }))
       .sort((a, b) => a.from - b.from);
 
     let cursor = 0;
-    cuts.forEach((cut) => {
+    doorCuts.forEach((cut) => {
       this.wall(W, W + WT, 0, CEILING, cursor, cut.from);
       this.wall(W, W + WT, cut.height, CEILING, cut.from, cut.to);
       cursor = cut.to;
@@ -223,7 +248,7 @@ export class LivingRoomScene extends PovScene {
     const inner = wall === 'east' ? W : 0;
     const outer = inner + outward * WT;
 
-    const trim = new THREE.MeshStandardMaterial({ color: 0xd8c8ac, roughness: 0.7 });
+    const trim = new THREE.MeshStandardMaterial({ color: MAROON, roughness: 0.5 });
 
     // Architrave either side and over the head
     [-1, 1].forEach((side) => {
@@ -266,9 +291,78 @@ export class LivingRoomScene extends PovScene {
     this.scene.add(light);
   }
 
+  /**
+   * The window bank, and a slab of daylight beyond it. The outside is only ever
+   * seen through three 3.6 x 3.0 holes, so a sky plane with a treeline in front
+   * of it does the job — this room does not need the balcony's whole world.
+   */
+  private buildWindows(): void {
+    LIVING_ROOM.windows.forEach((spec) => {
+      const sash = buildSashWindow(spec.width, spec.height);
+      sash.position.set(spec.along, spec.sill + spec.height / 2, D + WT / 2);
+      sash.rotation.y = Math.PI;
+      this.scene.add(sash);
+
+      const curtains = buildSheerCurtains(spec.width, spec.height);
+      curtains.position.set(spec.along, spec.sill + spec.height / 2, D - 0.3);
+      curtains.rotation.y = Math.PI;
+      this.scene.add(curtains);
+
+      // Sill and apron inside
+      const sill = new THREE.Mesh(
+        new THREE.BoxGeometry(spec.width + 0.5, 0.1, 0.34),
+        new THREE.MeshStandardMaterial({ color: MAROON, roughness: 0.5 }),
+      );
+      sill.position.set(spec.along, spec.sill - 0.05, D - 0.14);
+      sill.castShadow = true;
+      this.scene.add(sill);
+
+      // The daylight actually coming through this opening
+      const daylight = new THREE.PointLight(0xdcecff, 5.5, 18, 2);
+      daylight.position.set(spec.along, spec.sill + spec.height * 0.6, D - 1.6);
+      this.scene.add(daylight);
+    });
+
+    // Sky, well back so it never reads as wallpaper stuck to the glass
+    const sky = new THREE.Mesh(
+      new THREE.PlaneGeometry(90, 46),
+      new THREE.MeshBasicMaterial({ color: 0x8fbce0, fog: false, depthWrite: false }),
+    );
+    sky.position.set(W / 2, 12, D + 34);
+    sky.rotation.y = Math.PI;
+    this.scene.add(sky);
+
+    // Lawn running out from under the window, and a hedge and treeline on it
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(90, 40),
+      new THREE.MeshBasicMaterial({ color: 0x86b264, fog: false }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(W / 2, -4.6, D + 18);
+    this.scene.add(ground);
+
+    const hedge = new THREE.Mesh(
+      new THREE.BoxGeometry(80, 3.2, 1.6),
+      new THREE.MeshBasicMaterial({ color: 0x4e7a3c, fog: false }),
+    );
+    hedge.position.set(W / 2, -3, D + 12);
+    this.scene.add(hedge);
+
+    const canopy = new THREE.MeshBasicMaterial({ color: 0x3f6f38, fog: false });
+    for (let i = 0; i < 9; i++) {
+      const tree = new THREE.Mesh(new THREE.SphereGeometry(3.4 + (i % 3) * 1.1, 9, 7), canopy);
+      tree.position.set(-24 + i * 11, 0.5 + (i % 4) * 1.4, D + 24 + (i % 2) * 5);
+      tree.scale.y = 0.82;
+      this.scene.add(tree);
+    }
+  }
+
   /** Skirting, picture rail and cornice — the things that make a room a room. */
   private buildTrim(): void {
-    const timber = new THREE.MeshStandardMaterial({ color: 0xf0e6d2, roughness: 0.7 });
+    // Deep stained joinery against pale paper, which is the whole look of the
+    // real room. The cornice stays white, because it is plaster, not timber.
+    const timber = new THREE.MeshStandardMaterial({ color: MAROON, roughness: 0.45 });
+    const plasterTrim = new THREE.MeshStandardMaterial({ color: 0xfbf7ef, roughness: 0.92 });
 
     const runs: [number, number, number, number, number][] = [
       // x, z, length, yaw, — one per wall
@@ -294,21 +388,28 @@ export class LivingRoomScene extends PovScene {
       this.scene.add(rail);
 
       // Cornice
-      const cornice = new THREE.Mesh(new THREE.BoxGeometry(length, 0.3, 0.3), timber);
+      const cornice = new THREE.Mesh(new THREE.BoxGeometry(length, 0.3, 0.3), plasterTrim);
       cornice.position.set(x, CEILING - 0.15, z);
       cornice.rotation.y = yaw;
       this.scene.add(cornice);
     });
 
-    // Ceiling rose and pendant, over the middle of the seating group, and a
-    // second one down the east end where the only other light is the doorway
-    const pendant = buildPendant(CEILING);
-    pendant.position.set(gridToWorldX(7), 0, gridToWorldZ(8));
-    this.scene.add(pendant);
+    // The fretwork archway across the middle of the room, which is the thing
+    // anybody who has been in the real house remembers about it
+    const arch = buildFretworkArch(W - 0.2, CEILING - 0.45);
+    arch.position.set(W / 2, 0, gridToWorldZ(6) + 1);
+    this.scene.add(arch);
 
-    const eastPendant = buildPendant(CEILING);
-    eastPendant.position.set(gridToWorldX(15), 0, gridToWorldZ(11));
-    this.scene.add(eastPendant);
+    // Two ceiling roses with the globe chandeliers on them, one either side of
+    // the arch, so both halves of the room have their own fitting
+    [
+      [gridToWorldX(7), gridToWorldZ(10)],
+      [gridToWorldX(11), gridToWorldZ(3)],
+    ].forEach(([x, z]) => {
+      const light = buildGlobeChandelier(CEILING);
+      light.position.set(x, 0, z);
+      this.scene.add(light);
+    });
   }
 
   // ------------------------------------------------------------------ artwork

@@ -1,9 +1,9 @@
 /**
- * Upstairs: the first-floor balcony, at sunset.
+ * Upstairs: the first-floor balcony, on a bright afternoon.
  *
  * The yard is off the north edge and five and a half metres down, so the whole
  * point of this room is the view over the rail — the backyard you came from,
- * the neighbours' roofs, and the sun going down behind them. The house closes
+ * the neighbours' roofs, and a very large amount of sky. The house closes
  * the south side and the lower half of the west, where a door leads inside.
  *
  * The railing is built from the same `balustrade` the house exterior uses, so
@@ -45,8 +45,11 @@ const DROP = BALCONY.dropToYard;
 const HOUSE_YELLOW = 0xe8c65a;
 const HOUSE_YELLOW_DARK = 0xc2a03e;
 
-/** Where the sun sits. Low, north-north-west, and directly in your eyeline. */
-const SUN_POSITION = new THREE.Vector3(-34, 7.5, -88);
+/**
+ * Where the sun sits: high and round to the north-west, so it rakes across the
+ * decking rather than shining into the camera the way the old sunset did.
+ */
+const SUN_POSITION = new THREE.Vector3(-46, 62, -70);
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -58,7 +61,7 @@ function seededRandom(seed: number): () => number {
 
 export class BalconyScene extends PovScene {
   readonly blockers = BALCONY_BLOCKERS;
-  /** Open facing out over the rail into the sunset, not at the furniture. */
+  /** Open facing out over the rail at the view, not at the furniture. */
   readonly focus = { x: 6, y: -16 };
 
   private sun!: THREE.DirectionalLight;
@@ -73,8 +76,8 @@ export class BalconyScene extends PovScene {
 
     // Warm haze rather than grey. At this height you can see a long way, so the
     // fog has to start late or the neighbourhood vanishes.
-    this.scene.fog = new THREE.Fog(0xe08a4e, 70, 320);
-    this.scene.background = new THREE.Color(0xf0a35a);
+    this.scene.fog = new THREE.Fog(0xc4dcf0, 110, 400);
+    this.scene.background = new THREE.Color(0x8fbce0);
 
     this.buildLighting();
     this.buildSky();
@@ -94,12 +97,14 @@ export class BalconyScene extends PovScene {
 
   private buildLighting(): void {
     // Sky is hot orange overhead, and the deck bounces warm light back up
-    this.scene.add(new THREE.HemisphereLight(0xff9a4e, 0x6b4a30, 1.5));
-    this.scene.add(new THREE.AmbientLight(0xffd2a0, 0.5));
+    // Outdoors under an open sky: the hemisphere is doing most of the work, and
+    // its sky half has to be a real blue or every upward face goes grey.
+    this.scene.add(new THREE.HemisphereLight(0xa8d0f8, 0x8a7a54, 2.1));
+    this.scene.add(new THREE.AmbientLight(0xd8e8f8, 1.1));
 
     // The sun itself: low, raking, and very warm. Long shadows across the deck
     // are most of what sells the hour.
-    this.sun = new THREE.DirectionalLight(0xffb066, 4.2);
+    this.sun = new THREE.DirectionalLight(0xfff2d8, 3.6);
     this.sun.position.copy(SUN_POSITION).normalize().multiplyScalar(70).add(
       new THREE.Vector3(DECK.maxX / 2, 0, DECK.maxZ / 2),
     );
@@ -119,7 +124,7 @@ export class BalconyScene extends PovScene {
 
     // Cool counter-fill from the opposite sky, so shadowed faces read blue-ish
     // against all that orange rather than going muddy.
-    const counter = new THREE.DirectionalLight(0x7f9ad8, 0.7);
+    const counter = new THREE.DirectionalLight(0xa8c4f0, 0.9);
     counter.position.set(DECK.maxX + 30, 20, DECK.maxZ + 30);
     counter.target.position.set(DECK.maxX / 2, 0, DECK.maxZ / 2);
     this.scene.add(counter);
@@ -132,11 +137,11 @@ export class BalconyScene extends PovScene {
       side: THREE.BackSide,
       depthWrite: false,
       uniforms: {
-        uZenith: { value: new THREE.Color(0x4a3f8f) },
-        uHigh: { value: new THREE.Color(0xf2622e) },
-        uMid: { value: new THREE.Color(0xffb43a) },
-        uHorizon: { value: new THREE.Color(0xffe27a) },
-        uBelow: { value: new THREE.Color(0x8a4a2a) },
+        uZenith: { value: new THREE.Color(0x2f6fc4) },
+        uHigh: { value: new THREE.Color(0x63a2dc) },
+        uMid: { value: new THREE.Color(0x9cc8ea) },
+        uHorizon: { value: new THREE.Color(0xdceaf4) },
+        uBelow: { value: new THREE.Color(0x9aae9a) },
         uSunDirection: { value: SUN_POSITION.clone().normalize() },
         uTime: { value: 0 },
       },
@@ -162,20 +167,20 @@ export class BalconyScene extends PovScene {
           vec3 dir = normalize(vWorldDirection);
           float h = dir.y;
 
-          // Four stops up the sky: gold at the horizon through orange and red
-          // to a bruised violet overhead. Below the horizon it goes to haze.
+          // Four stops up the sky: pale haze at the horizon deepening to a real
+          // blue overhead, which is what stops it reading as flat paint.
           vec3 color = mix(uHorizon, uMid, smoothstep(0.0, 0.13, h));
           color = mix(color, uHigh, smoothstep(0.1, 0.34, h));
           color = mix(color, uZenith, smoothstep(0.32, 0.85, h));
           color = mix(uBelow, color, smoothstep(-0.16, 0.0, h));
 
-          // The sun sits right on the horizon, so its glow spreads sideways
-          // much further than it does vertically.
+          // A high sun is a small hard disc with a tight halo, not the wide
+          // horizontal smear a setting one leaves.
           vec3 sunDir = normalize(uSunDirection);
           float sunAmount = max(dot(dir, sunDir), 0.0);
-          color += vec3(1.0, 0.86, 0.6) * pow(sunAmount, 1400.0) * 3.4;
-          color += vec3(1.0, 0.72, 0.34) * pow(sunAmount, 42.0) * 0.5;
-          color += vec3(1.0, 0.55, 0.22) * pow(sunAmount, 6.0) * 0.16;
+          color += vec3(1.0, 0.97, 0.88) * pow(sunAmount, 2600.0) * 3.0;
+          color += vec3(1.0, 0.95, 0.84) * pow(sunAmount, 180.0) * 0.35;
+          color += vec3(0.9, 0.94, 1.0) * pow(sunAmount, 14.0) * 0.1;
 
           gl_FragColor = vec4(color, 1.0);
 
@@ -194,20 +199,20 @@ export class BalconyScene extends PovScene {
     const bloom = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: createPuffTexture(),
-        color: 0xffc074,
+        color: 0xfff6e0,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.35,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         fog: false,
       }),
     );
-    bloom.scale.set(150, 150, 1);
+    bloom.scale.set(90, 90, 1);
     bloom.position.copy(SUN_POSITION).normalize().multiplyScalar(380);
     this.scene.add(bloom);
   }
 
-  /** Long thin clouds, lit from underneath, drifting across the sunset. */
+  /** Fair-weather cloud, drifting across a blue afternoon. */
   private buildClouds(): void {
     const map = createSunsetCloudTexture();
     const count = this.lowDetail ? 10 : 20;
@@ -218,10 +223,10 @@ export class BalconyScene extends PovScene {
       const sprite = new THREE.Sprite(
         new THREE.SpriteMaterial({
           map,
-          // Clouds near the sun catch gold; the rest sit in shadow
-          color: high ? 0xff9d5c : 0xd8604a,
+          // White on top, a touch of blue-grey underneath
+          color: high ? 0xffffff : 0xc8d6e4,
           transparent: true,
-          opacity: 0.4 + rand() * 0.45,
+          opacity: 0.45 + rand() * 0.4,
           depthWrite: false,
           fog: false,
         }),
@@ -236,7 +241,7 @@ export class BalconyScene extends PovScene {
     }
   }
 
-  /** A couple of skeins of birds crossing the sunset in V formation. */
+  /** A couple of skeins of birds crossing the sky in V formation. */
   private buildBirds(): void {
     const material = new THREE.MeshBasicMaterial({
       color: 0x2a1a18,
@@ -357,13 +362,14 @@ export class BalconyScene extends PovScene {
     }
 
     // Hills on the horizon. Three overlapping ridges of soft triangles rather
-    // than one flat band, which otherwise reads as a purple wall behind the
-    // roofs. Unlit and unfogged, and tinted toward the sky so they recede.
+    // than one flat band, which otherwise reads as a wall behind the roofs.
+    // Unlit and unfogged, and each tinted further toward the sky than the one
+    // in front of it — that gradient is the only thing giving them distance.
     const ridges: [number, number, number, number][] = [
       // z, height, colour, peak spacing
-      [-330, 26, 0x9a6a72, 150],
-      [-300, 18, 0xb07a72, 110],
-      [-262, 11, 0xc48f78, 80],
+      [-330, 26, 0x9fb6cc, 150],
+      [-300, 18, 0x8fa8ae, 110],
+      [-262, 11, 0x7d968a, 80],
     ];
     ridges.forEach(([z, height, color, spacing]) => {
       const rand = seededRandom(Math.abs(z));
@@ -546,7 +552,7 @@ export class BalconyScene extends PovScene {
       panel(x0, x1, w.sill + w.height, WALL.height, sz0, sz1);
       cursor = x1;
 
-      // Glass, with the sunset reflected in it and the dark room behind
+      // Glass, with the sky reflected in it and the dark room behind
       const back = new THREE.Mesh(new THREE.PlaneGeometry(w.width, w.height), interior);
       back.position.set(w.centreX, w.sill + w.height / 2, sz0 - 0.02);
       back.rotation.y = Math.PI;
@@ -643,7 +649,7 @@ export class BalconyScene extends PovScene {
     head.position.set((wx0 + wx1) / 2, door.height, door.centreZ);
     this.scene.add(head);
 
-    // Glazing for that window: dark room behind, sunset reflected in the glass
+    // Glazing for that window: dark room behind, sky reflected in the glass
     const westBack = new THREE.Mesh(
       new THREE.PlaneGeometry(win.width, win.height),
       interior,
@@ -901,7 +907,7 @@ export class BalconyScene extends PovScene {
       });
     });
 
-    // Keep the shadow camera on the player so the long sunset shadows stay sharp
+    // Keep the shadow camera on the player so shadows stay sharp
     const offset = SUN_POSITION.clone().normalize().multiplyScalar(60);
     this.sun.position.set(playerPos.x + offset.x, offset.y, playerPos.z + offset.z);
     this.sun.target.position.set(playerPos.x, 0, playerPos.z);
