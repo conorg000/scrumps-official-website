@@ -1,11 +1,11 @@
 /**
- * The bedroom, east off the living room, and the only room the game visits at
- * night — which is also where the last CD, Middle of the Night, is sitting.
+ * The bedroom, east off the living room, where the last CD is sitting.
  *
- * Lined floor to ceiling in VJ boards, with sash windows north and east. Almost
- * nothing in here is lit by a lamp: the moon comes through over the desk, the
- * streetlight comes through over the fan, and the rest is a bedside lamp, a
- * monitor left on, and an x-ray on a lightbox that nobody has explained.
+ * Lined floor to ceiling in VJ boards, with a bank of five sash windows down
+ * the north and east walls — the corner room of a Queenslander, which is all
+ * glass and cross breeze. Daylight does nearly all the lighting; the bedside
+ * lamp, the monitor somebody left on and the x-ray on its lightbox are just
+ * things that happen to be switched on in a bright room.
  *
  * Placement comes from Bedroom.furniture, except the posters — the 2D room
  * hangs them a tile in from the wall, so BEDROOM.posters puts them on it.
@@ -48,7 +48,6 @@ import {
   createFloorboardTexture,
   createKilimTexture,
   createPuffTexture,
-  createNightSkyTexture,
   createVJBoardTexture,
   tiled,
 } from './textures';
@@ -63,6 +62,21 @@ const RAIL_Y = BEDROOM.railY;
 /** Texture tiles per world unit. VJ boards land about 250mm wide. */
 const VJ_DENSITY = 0.22;
 const BOARD_DENSITY = 0.28;
+
+/**
+ * Remove any lights a decorative builder brought with it.
+ *
+ * Lights are the expensive thing in these scenes — the shader evaluates every
+ * one of them per pixel, and going past about eight halves the frame rate. In
+ * a daylit room the emissive on a bulb or a shade sells it on its own.
+ */
+function stripLights(group: THREE.Object3D): void {
+  const lights: THREE.Object3D[] = [];
+  group.traverse((object) => {
+    if ((object as THREE.Light).isLight) lights.push(object);
+  });
+  lights.forEach((light) => light.removeFromParent());
+}
 
 export class BedroomScene extends PovScene {
   readonly blockers = BEDROOM_BLOCKERS;
@@ -79,15 +93,16 @@ export class BedroomScene extends PovScene {
     super();
     this.lowDetail = lowDetail;
 
-    // Night fog, close enough to swallow the far corners but not the far wall
-    this.scene.fog = new THREE.Fog(0x12141f, 14, 74);
-    this.scene.background = new THREE.Color(0x070910);
+    // Daylight haze only, well back — the room's diagonal is about 51 units and
+    // anything nearer paints a wedge of fog across the ceiling.
+    this.scene.fog = new THREE.Fog(0xdfe8f0, 60, 190);
+    this.scene.background = new THREE.Color(0x8fbce0);
 
     this.boards = new THREE.MeshStandardMaterial({
       map: createVJBoardTexture(),
       // Nearly white: the ambient in here is blue, so anything with green in
       // the base colour comes back as teal glass rather than tired paint.
-      color: 0xf2efdf,
+      color: 0xf6f3e4,
       roughness: 1,
       metalness: 0,
     });
@@ -105,49 +120,38 @@ export class BedroomScene extends PovScene {
   // ------------------------------------------------------------------ lighting
 
   private buildLighting(): void {
-    // A real floor of blue so the room reads as dark rather than black. Too low
-    // and every unlit surface collapses into the fog.
-    this.scene.add(new THREE.AmbientLight(0x3e496e, 1.5));
+    // Five windows' worth of sky. The ambient has to come up with them, or
+    // every surface facing away from the glass reads as night again.
+    this.scene.add(new THREE.AmbientLight(0xe4eefa, 2.0));
     // The ground half is the only thing lighting the ceiling boards, since
-    // their normals point down and nothing in the room shines upward. Set it
-    // too dark and the ceiling goes black and the room reads as open air.
-    this.scene.add(new THREE.HemisphereLight(0x5567a0, 0x5a4a52, 1.5));
+    // their normals point down and nothing in the room shines upward.
+    this.scene.add(new THREE.HemisphereLight(0xdcecff, 0xbcae94, 1.9));
 
-    // Moonlight, in over the desk through the north window. The only shadow
-    // caster: a second one at this light level just muddies the first.
-    const north = BEDROOM.windows[0];
-    const moon = new THREE.DirectionalLight(0xa8c6ff, 2.1);
-    moon.position.set(north.along - 10, 22, -34);
-    moon.target.position.set(north.along + 2, 0.5, 12);
-    moon.castShadow = true;
-    moon.shadow.mapSize.set(this.lowDetail ? 1024 : 2048, this.lowDetail ? 1024 : 2048);
-    moon.shadow.camera.near = 1;
-    moon.shadow.camera.far = 90;
-    moon.shadow.camera.left = -26;
-    moon.shadow.camera.right = 26;
-    moon.shadow.camera.top = 26;
-    moon.shadow.camera.bottom = -26;
-    moon.shadow.bias = -0.0007;
-    moon.shadow.normalBias = 0.035;
-    this.scene.add(moon);
-    this.scene.add(moon.target);
+    // Morning sun in through the north-east corner, which is where the two
+    // window walls meet. The only shadow caster in here.
+    const sun = new THREE.DirectionalLight(0xfff4e0, 3.2);
+    sun.position.set(W + 30, 28, -30);
+    sun.target.position.set(W * 0.4, 0, D * 0.45);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(this.lowDetail ? 1024 : 2048, this.lowDetail ? 1024 : 2048);
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 110;
+    sun.shadow.camera.left = -26;
+    sun.shadow.camera.right = 26;
+    sun.shadow.camera.top = 26;
+    sun.shadow.camera.bottom = -26;
+    sun.shadow.bias = -0.0009;
+    sun.shadow.normalBias = 0.05;
+    this.scene.add(sun);
+    this.scene.add(sun.target);
 
-    // Sodium streetlight through the east window, low and orange
-    const east = BEDROOM.windows[1];
-    const street = new THREE.DirectionalLight(0xffb060, 0.85);
-    street.position.set(W + 26, 9, east.along + 6);
-    street.target.position.set(W * 0.5, 0.5, east.along - 4);
-    this.scene.add(street);
-    this.scene.add(street.target);
-
-    // Both windows throw a patch of their own colour onto the floor inside
-    const moonPatch = new THREE.PointLight(0x9fbcff, 2.6, 16, 2);
-    moonPatch.position.set(north.along, 2.2, 2.4);
-    this.scene.add(moonPatch);
-
-    const streetPatch = new THREE.PointLight(0xffa858, 2.0, 14, 2);
-    streetPatch.position.set(W - 2.4, 2.2, east.along);
-    this.scene.add(streetPatch);
+    // Bounce off the floor and the south wall, so the side of everything
+    // facing away from the windows is lit rather than merely less bright
+    const bounce = new THREE.DirectionalLight(0xffeedc, 0.85);
+    bounce.position.set(W * 0.4, 1.5, D + 20);
+    bounce.target.position.set(W * 0.5, 2.5, D * 0.3);
+    this.scene.add(bounce);
+    this.scene.add(bounce.target);
   }
 
   // --------------------------------------------------------------------- shell
@@ -167,30 +171,40 @@ export class BedroomScene extends PovScene {
     this.scene.add(mesh);
   }
 
-  /** Cut one opening out of a wall run that lies along a single axis. */
-  private wallWithOpening(
+  /**
+   * A wall run along one axis with any number of openings cut out of it. Each
+   * opening gets a pier either side, a spandrel under the sill and a head over
+   * it; the piers between neighbouring openings are built once, not twice.
+   */
+  private wallWithOpenings(
     axis: 'x' | 'z',
     from: number,
     to: number,
-    opening: { centre: number; width: number; sill: number; head: number },
+    openings: { centre: number; width: number; sill: number; head: number }[],
     fixed: [number, number],
   ): void {
-    const a = opening.centre - opening.width / 2;
-    const b = opening.centre + opening.width / 2;
     const [f0, f1] = fixed;
+    const cuts = openings
+      .map((o) => ({ a: o.centre - o.width / 2, b: o.centre + o.width / 2, sill: o.sill, head: o.head }))
+      .sort((x, y) => x.a - y.a);
 
-    if (axis === 'x') {
-      // Wall runs along x; f0/f1 are the z faces
-      this.wall(from, a, 0, CEILING, f0, f1);
-      this.wall(b, to, 0, CEILING, f0, f1);
-      this.wall(a, b, 0, opening.sill, f0, f1);
-      this.wall(a, b, opening.head, CEILING, f0, f1);
-    } else {
-      this.wall(f0, f1, 0, CEILING, from, a);
-      this.wall(f0, f1, 0, CEILING, b, to);
-      this.wall(f0, f1, 0, opening.sill, a, b);
-      this.wall(f0, f1, opening.head, CEILING, a, b);
-    }
+    const solidRun = (p0: number, p1: number): void => {
+      if (axis === 'x') this.wall(p0, p1, 0, CEILING, f0, f1);
+      else this.wall(f0, f1, 0, CEILING, p0, p1);
+    };
+    const band = (p0: number, p1: number, y0: number, y1: number): void => {
+      if (axis === 'x') this.wall(p0, p1, y0, y1, f0, f1);
+      else this.wall(f0, f1, y0, y1, p0, p1);
+    };
+
+    let cursor = from;
+    cuts.forEach((cut) => {
+      solidRun(cursor, cut.a);
+      band(cut.a, cut.b, 0, cut.sill);
+      band(cut.a, cut.b, cut.head, CEILING);
+      cursor = cut.b;
+    });
+    solidRun(cursor, to);
   }
 
   private buildShell(): void {
@@ -212,7 +226,7 @@ export class BedroomScene extends PovScene {
 
     // Beaded ceiling boards, running across the room
     const ceiling = new THREE.Mesh(
-      new THREE.PlaneGeometry(W, D),
+      new THREE.PlaneGeometry(W + WT * 2, D + WT * 2),
       new THREE.MeshStandardMaterial({
         map: tiled(createVJBoardTexture(), D * VJ_DENSITY, W * VJ_DENSITY),
         color: 0xe4e2d2,
@@ -224,28 +238,23 @@ export class BedroomScene extends PovScene {
     ceiling.position.set(W / 2, CEILING, D / 2);
     this.scene.add(ceiling);
 
-    const [north, east] = BEDROOM.windows;
+    const opening = (w: (typeof BEDROOM.windows)[number]) => ({
+      centre: w.along,
+      width: w.width,
+      sill: w.sill,
+      head: w.sill + w.height,
+    });
+    const northWindows = BEDROOM.windows.filter((w) => w.wall === 'north').map(opening);
+    const eastWindows = BEDROOM.windows.filter((w) => w.wall === 'east').map(opening);
 
-    // North wall, with the window over the desk
-    this.wallWithOpening(
-      'x',
-      -WT,
-      W + WT,
-      { centre: north.along, width: north.width, sill: north.sill, head: north.sill + north.height },
-      [-WT, 0],
-    );
+    // North wall, with the three windows over the bed, the desk and the dresser
+    this.wallWithOpenings('x', -WT, W + WT, northWindows, [-WT, 0]);
 
     // South wall, unbroken
     this.wall(-WT, W + WT, 0, CEILING, D, D + WT);
 
-    // East wall, with the window onto the side street
-    this.wallWithOpening(
-      'z',
-      0,
-      D,
-      { centre: east.along, width: east.width, sill: east.sill, head: east.sill + east.height },
-      [W, W + WT],
-    );
+    // East wall, with two onto the side street
+    this.wallWithOpenings('z', 0, D, eastWindows, [W, W + WT]);
 
     // West wall, with the door back through to the living room
     const door = BEDROOM.door;
@@ -290,124 +299,99 @@ export class BedroomScene extends PovScene {
   // ------------------------------------------------------------------- windows
 
   /**
-   * Each window gets a sash frame in the opening and, a good way beyond it,
-   * a slab of night sky with a neighbouring roofline in front of it. The
-   * backdrops are only ever seen through a 5x2.6 hole, so they can be crude.
+   * The window bank, and what is outside it. Each opening gets a sash frame and
+   * a sill; the outside is a sky slab with a treeline and a neighbouring roof
+   * on it, seen through five 3m holes, so it can stay cheap.
    */
   private buildWindows(): void {
-    const [north, east] = BEDROOM.windows;
+    BEDROOM.windows.forEach((spec) => {
+      const sash = buildSashWindow(spec.width, spec.height);
+      const y = spec.sill + spec.height / 2;
 
-    const northSash = buildSashWindow(north.width, north.height);
-    northSash.position.set(north.along, north.sill + north.height / 2, -WT / 2);
-    this.scene.add(northSash);
+      if (spec.wall === 'north') {
+        sash.position.set(spec.along, y, -WT / 2);
+      } else {
+        sash.position.set(W + WT / 2, y, spec.along);
+        sash.rotation.y = -Math.PI / 2;
+      }
+      this.scene.add(sash);
 
-    const eastSash = buildSashWindow(east.width, east.height);
-    eastSash.position.set(W + WT / 2, east.sill + east.height / 2, east.along);
-    eastSash.rotation.y = -Math.PI / 2;
-    this.scene.add(eastSash);
-
-    // Sills, inside and out
-    [
-      { pos: new THREE.Vector3(north.along, north.sill - 0.04, 0.12), yaw: 0, len: north.width + 0.6 },
-      { pos: new THREE.Vector3(W - 0.12, east.sill - 0.04, east.along), yaw: Math.PI / 2, len: east.width + 0.6 },
-    ].forEach(({ pos, yaw, len }) => {
+      // Sill inside
       const sill = new THREE.Mesh(
-        new THREE.BoxGeometry(len, 0.1, 0.32),
+        new THREE.BoxGeometry(spec.width + 0.5, 0.1, 0.34),
         new THREE.MeshStandardMaterial({ color: 0xe4e0d0, roughness: 0.82 }),
       );
-      sill.position.copy(pos);
-      sill.rotation.y = yaw;
+      if (spec.wall === 'north') {
+        sill.position.set(spec.along, spec.sill - 0.05, 0.12);
+      } else {
+        sill.position.set(W - 0.12, spec.sill - 0.05, spec.along);
+        sill.rotation.y = Math.PI / 2;
+      }
       sill.castShadow = true;
       this.scene.add(sill);
     });
 
-    const northBackdrop = this.buildNightBackdrop(true);
-    northBackdrop.position.set(north.along, 0, -34);
-    this.scene.add(northBackdrop);
+    // Deliberately no point light per window. Every light in a scene costs a
+    // per-pixel evaluation in the shader, and five of them here took the room
+    // from 60fps to the mid twenties for a brightening the sun, the ambient and
+    // the hemisphere already do.
 
-    const eastBackdrop = this.buildNightBackdrop(false);
-    eastBackdrop.position.set(W + 30, 0, east.along);
-    eastBackdrop.rotation.y = -Math.PI / 2;
-    this.scene.add(eastBackdrop);
+    const north = this.buildDaylightBackdrop();
+    north.position.set(W / 2, 0, -26);
+    this.scene.add(north);
+
+    const east = this.buildDaylightBackdrop();
+    east.position.set(W + 26, 0, D / 2);
+    east.rotation.y = -Math.PI / 2;
+    this.scene.add(east);
   }
 
-  /** Sky slab, a moon if asked for, and two rooflines in silhouette. */
-  private buildNightBackdrop(withMoon: boolean): THREE.Group {
+  /** Sky, a treeline and a neighbour's roof, for beyond the glass. */
+  private buildDaylightBackdrop(): THREE.Group {
     const group = new THREE.Group();
 
     const sky = new THREE.Mesh(
-      new THREE.PlaneGeometry(70, 36),
-      new THREE.MeshBasicMaterial({ map: createNightSkyTexture(), fog: false, depthWrite: false }),
+      new THREE.PlaneGeometry(90, 46),
+      new THREE.MeshBasicMaterial({ color: 0x8fbce0, fog: false, depthWrite: false }),
     );
-    sky.position.set(0, 10, 0);
+    sky.position.set(0, 16, 0);
     group.add(sky);
 
-    if (withMoon) {
-      // A hard disc for the moon itself: an untextured sprite is a square, and
-      // the soft falloff has to come from a separate halo behind it.
-      const moon = new THREE.Mesh(
-        new THREE.CircleGeometry(1.3, 24),
-        new THREE.MeshBasicMaterial({ color: 0xfff6e0, fog: false }),
-      );
-      moon.position.set(7, 20, 0.5);
-      group.add(moon);
+    // Ground, well below the sill so you are looking down on a yard
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(90, 50),
+      new THREE.MeshBasicMaterial({ color: 0x86a86a, fog: false }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(0, -5.6, 18);
+    group.add(ground);
 
-      const halo = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: createPuffTexture(),
-          color: 0xbfd4ff,
-          transparent: true,
-          opacity: 0.3,
-          blending: THREE.AdditiveBlending,
-          fog: false,
-          depthWrite: false,
-        }),
-      );
-      halo.scale.set(12, 12, 1);
-      halo.position.set(7, 20, 0.3);
-      group.add(halo);
-    } else {
-      // A streetlight, which is why this window is orange
-      const lamp = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: createPuffTexture(),
-          color: 0xffc078,
-          transparent: true,
-          opacity: 0.9,
-          blending: THREE.AdditiveBlending,
-          fog: false,
-          depthWrite: false,
-        }),
-      );
-      lamp.scale.set(7, 7, 1);
-      lamp.position.set(-9, 7.5, 1);
-      group.add(lamp);
+    // A neighbour's roof, and a treeline behind it. Both kept low: you are on
+    // the first floor looking down, so the eye line out of these windows is
+    // mostly sky, and a treeline at sill height just paints the glass green.
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(26, 3.4, 12),
+      new THREE.MeshBasicMaterial({ color: 0xa4aeb6, fog: false }),
+    );
+    roof.position.set(-16, -2.6, 8);
+    roof.rotation.z = 0.08;
+    group.add(roof);
+
+    const canopy = new THREE.MeshBasicMaterial({ color: 0x4c7d42, fog: false });
+    for (let i = 0; i < 11; i++) {
+      const tree = new THREE.Mesh(new THREE.SphereGeometry(2.6 + (i % 3) * 1.1, 9, 7), canopy);
+      tree.position.set(-34 + i * 8, -2.2 + (i % 4) * 1.1, 14 + (i % 2) * 5);
+      tree.scale.y = 0.85;
+      group.add(tree);
     }
 
-    // Neighbouring roofs, flat black against the sky
-    const silhouette = new THREE.MeshBasicMaterial({ color: 0x090b12, fog: false });
-    const roofs: [number, number, number, number][] = [
-      // x, width, ridge height, eaves height
-      [-18, 26, 7.5, 4.6],
-      [12, 22, 6.2, 3.8],
-    ];
-    roofs.forEach(([x, width, ridge, eaves]) => {
-      const shape = new THREE.Shape();
-      shape.moveTo(-width / 2, 0);
-      shape.lineTo(-width / 2, eaves);
-      shape.lineTo(0, ridge);
-      shape.lineTo(width / 2, eaves);
-      shape.lineTo(width / 2, 0);
-      shape.closePath();
-      const roof = new THREE.Mesh(new THREE.ShapeGeometry(shape), silhouette);
-      roof.position.set(x, 0, 0.4);
-      group.add(roof);
-    });
-
-    // A power line across the lot, because this is Brisbane
-    const line = new THREE.Mesh(new THREE.BoxGeometry(70, 0.09, 0.02), silhouette);
-    line.position.set(0, 9.4, 0.6);
-    line.rotation.z = 0.03;
+    // A power line across it, because this is still Brisbane
+    const line = new THREE.Mesh(
+      new THREE.BoxGeometry(90, 0.1, 0.02),
+      new THREE.MeshBasicMaterial({ color: 0x2b2f38, fog: false }),
+    );
+    line.position.set(0, 3.2, 1);
+    line.rotation.z = 0.02;
     group.add(line);
 
     return group;
@@ -488,6 +472,7 @@ export class BedroomScene extends PovScene {
       this.lowDetail ? 12 : 20,
       0.5,
     );
+    stripLights(lights.group);
     this.scene.add(lights.group);
     this.animated.push(lights.animated);
 
@@ -526,6 +511,7 @@ export class BedroomScene extends PovScene {
     // Off to one side of the arrival sightline, and two thirds the size of the
     // one downstairs — that one is scaled for a garage with a 4.6m ceiling.
     const lamp = buildFloorLamp(!this.lowDetail);
+    stripLights(lamp.group);
     lamp.group.scale.setScalar(0.62);
     lamp.group.position.set(gridToWorldX(11), 0, gridToWorldZ(11));
     this.scene.add(lamp.group);
@@ -558,19 +544,24 @@ export class BedroomScene extends PovScene {
     if (!this.lowDetail) this.buildDustMotes();
   }
 
-  /** Dust in the moonbeam. Only visible where a window is throwing light. */
+  /** Dust in the sunbeams, clustered where the windows are throwing light. */
   private buildDustMotes(): void {
-    const count = 260;
+    const count = 300;
     const positions = new Float32Array(count * 3);
     const drift = new Float32Array(count);
-    const north = BEDROOM.windows[0];
+    const windows = BEDROOM.windows;
 
     for (let i = 0; i < count; i++) {
-      // Clustered into the two shafts rather than spread through the room
-      const inMoon = i % 3 !== 0;
-      positions[i * 3] = inMoon ? north.along + (Math.random() - 0.5) * 8 : W - Math.random() * 7;
+      // Each mote belongs to one window's shaft, not to the room at large
+      const spec = windows[i % windows.length];
+      if (spec.wall === 'north') {
+        positions[i * 3] = spec.along + (Math.random() - 0.5) * (spec.width + 2);
+        positions[i * 3 + 2] = Math.random() * 7;
+      } else {
+        positions[i * 3] = W - Math.random() * 7;
+        positions[i * 3 + 2] = spec.along + (Math.random() - 0.5) * (spec.width + 2);
+      }
       positions[i * 3 + 1] = 0.4 + Math.random() * 3.2;
-      positions[i * 3 + 2] = inMoon ? Math.random() * 7 : BEDROOM.windows[1].along + (Math.random() - 0.5) * 8;
       drift[i] = Math.random() * Math.PI * 2;
     }
 
@@ -580,10 +571,10 @@ export class BedroomScene extends PovScene {
     const points = new THREE.Points(
       geometry,
       new THREE.PointsMaterial({
-        color: 0xd8e4ff,
+        color: 0xfff4e0,
         size: 0.035,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.45,
         depthWrite: false,
       }),
     );
@@ -616,11 +607,8 @@ export class BedroomScene extends PovScene {
       case 'desk': {
         const desk = buildDesk(f.width, f.height);
         this.animated.push(desk.animated);
-        // The monitor is the only cold light in the room and it needs to read
-        // as the source of the glow on the desk, not just a bright rectangle.
-        const glow = new THREE.PointLight(0x6d94ff, 3.2, 9, 2);
-        glow.position.set(0, 1.5, 0.4);
-        desk.group.add(glow);
+        // No point light off the monitor any more: it was there to be the only
+        // cold source in a dark room, and in daylight its emissive is enough.
         return desk.group;
       }
 
@@ -634,7 +622,7 @@ export class BedroomScene extends PovScene {
       case 'nightstand': {
         const stand = buildNightstand();
         this.animated.push(stand.animated);
-        const lamp = new THREE.PointLight(0xffb066, 7.0, 13, 2);
+        const lamp = new THREE.PointLight(0xffb066, 3.4, 10, 2);
         lamp.position.set(0, 1.18, 0);
         lamp.castShadow = false;
         stand.group.add(lamp);

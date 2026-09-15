@@ -336,34 +336,41 @@ export function isLivingRoomBlocked(tx: number, ty: number): boolean {
 }
 
 /**
- * The bedroom, east off the living room. Also 20x16, and the only room the
- * game visits at night — the last CD you find in here is Middle of the Night.
+ * The bedroom, east off the living room. Also 20x16.
  *
- * Lined in VJ boards rather than plaster, with sash windows on the north and
- * east walls so the moon and the streetlight have somewhere to come in.
+ * Lined in VJ boards rather than plaster, with a bank of sash windows down two
+ * walls — the corner room of a Queenslander, which is all glass and cross
+ * breeze. The CD you find in here is still Middle of the Night; the room just
+ * is not literally set in it.
  */
 export const BEDROOM = {
   width: 20 * TILE,
   depth: 16 * TILE,
   ceilingY: 4.3,
   wallThickness: 0.6,
-  /** Picture rail height, which the posters hang off. */
-  railY: 3.2,
+  /** Picture rail height, which the posters hang off and the windows stop under. */
+  railY: 3.35,
   /** Back out to the living room. Grid (0, 12) in the 2D exit markers. */
   door: { centre: gridToWorldZ(12), width: 3.0, height: 3.6 },
+  /**
+   * Five windows: three along the north wall over the bed, the desk and the
+   * dresser, and two down the east one. They stop just under the picture rail,
+   * so the rail runs over the heads rather than through the glass.
+   */
   windows: [
-    // Over the desk, so the monitor glow and the moonlight fight it out
-    { wall: 'north' as const, along: gridToWorldX(9), width: 5.0, height: 2.6, sill: 1.5 },
-    // Onto the side street, where the streetlight is
-    { wall: 'east' as const, along: gridToWorldZ(13), width: 4.2, height: 2.6, sill: 1.5 },
+    { wall: 'north' as const, along: gridToWorldX(3), width: 3.2, height: 2.1, sill: 1.1 },
+    { wall: 'north' as const, along: gridToWorldX(9), width: 4.4, height: 2.1, sill: 1.1 },
+    { wall: 'north' as const, along: gridToWorldX(15), width: 3.2, height: 2.1, sill: 1.1 },
+    { wall: 'east' as const, along: gridToWorldZ(4), width: 3.2, height: 2.1, sill: 1.1 },
+    { wall: 'east' as const, along: gridToWorldZ(12), width: 3.2, height: 2.1, sill: 1.1 },
   ],
   /**
    * The 2D room lists posters as furniture a tile in from the north wall; these
-   * put them on the wall itself, keyed by the order they appear in furniture.
+   * put them on the wall itself, in the piers between the windows.
    */
   posters: [
-    { along: gridToWorldX(5.5), width: 1.6, height: 2.2 },
-    { along: gridToWorldX(11.5), width: 1.8, height: 2.4 },
+    { along: gridToWorldX(6), width: 1.5, height: 2.0 },
+    { along: gridToWorldX(12.2), width: 1.6, height: 2.1 },
   ],
 } as const;
 

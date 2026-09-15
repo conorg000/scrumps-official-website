@@ -64,6 +64,21 @@ const PAPER_DENSITY = 0.35;
 /** Stained joinery: skirting, picture rail, architraves and the arch. */
 const MAROON = 0x7e2e26;
 
+/**
+ * Remove any lights a decorative builder brought with it.
+ *
+ * Lights are the expensive thing in these scenes — the shader evaluates every
+ * one of them per pixel, and going past about eight halves the frame rate. In
+ * a daylit room a lamp's emissive shade sells it on its own.
+ */
+function stripLights(group: THREE.Object3D): void {
+  const lights: THREE.Object3D[] = [];
+  group.traverse((object) => {
+    if ((object as THREE.Light).isLight) lights.push(object);
+  });
+  lights.forEach((light) => light.removeFromParent());
+}
+
 export class LivingRoomScene extends PovScene {
   readonly blockers = LIVING_ROOM_BLOCKERS;
   /**
@@ -178,7 +193,7 @@ export class LivingRoomScene extends PovScene {
 
     // Ceiling, with a plain plaster finish
     const ceiling = new THREE.Mesh(
-      new THREE.PlaneGeometry(W, D),
+      new THREE.PlaneGeometry(W + WT * 2, D + WT * 2),
       new THREE.MeshStandardMaterial({ color: 0xf2ece0, roughness: 1 }),
     );
     ceiling.rotation.x = Math.PI / 2;
@@ -317,11 +332,10 @@ export class LivingRoomScene extends PovScene {
       sill.castShadow = true;
       this.scene.add(sill);
 
-      // The daylight actually coming through this opening
-      const daylight = new THREE.PointLight(0xdcecff, 5.5, 18, 2);
-      daylight.position.set(spec.along, spec.sill + spec.height * 0.6, D - 1.6);
-      this.scene.add(daylight);
     });
+
+    // As in the bedroom, no point light per window — the sun and the ambient
+    // carry it, and lights are the expensive thing in these scenes, not polys.
 
     // Sky, well back so it never reads as wallpaper stuck to the glass
     const sky = new THREE.Mesh(
@@ -406,7 +420,7 @@ export class LivingRoomScene extends PovScene {
       [gridToWorldX(7), gridToWorldZ(10)],
       [gridToWorldX(11), gridToWorldZ(3)],
     ].forEach(([x, z]) => {
-      const light = buildGlobeChandelier(CEILING);
+      const light = buildGlobeChandelier(CEILING, 0);
       light.position.set(x, 0, z);
       this.scene.add(light);
     });
@@ -438,17 +452,8 @@ export class LivingRoomScene extends PovScene {
     track.position.set(W * 0.42, CEILING - 0.5, 2.6);
     this.scene.add(track);
 
-    // and the light those spots are supposedly throwing
-    const washes: [number, number][] = [
-      [gridToWorldX(3.5), 2.4],
-      [gridToWorldX(8.5), 2.4],
-      [gridToWorldX(13.5), 2.4],
-    ];
-    washes.forEach(([x, y]) => {
-      const wash = new THREE.PointLight(0xfff0d0, 2.2, 8, 2);
-      wash.position.set(x, y, 1.5);
-      this.scene.add(wash);
-    });
+    // No wash lights under the track. They were three more per-pixel lights to
+    // pick out paintings that a room with three south windows already lights.
   }
 
   /** The 3D-only gallery dressing, all on tiles listed in the blockers. */
@@ -511,6 +516,7 @@ export class LivingRoomScene extends PovScene {
       case 'floor_lamp': {
         const lamp = buildStandardLamp(!this.lowDetail);
         this.animated.push(lamp.animated);
+        stripLights(lamp.group);
         return lamp.group;
       }
 

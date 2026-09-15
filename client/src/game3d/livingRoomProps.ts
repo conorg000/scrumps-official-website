@@ -176,11 +176,10 @@ export function buildPlinth(): { group: THREE.Group; animated: Animated } {
 
   const dome = new THREE.Mesh(
     new THREE.SphereGeometry(0.42, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshPhysicalMaterial({
+    new THREE.MeshStandardMaterial({
       color: 0xdfe8f0,
       roughness: 0.05,
       metalness: 0,
-      transmission: 0.85,
       transparent: true,
       opacity: 0.42,
       side: THREE.DoubleSide,
@@ -363,11 +362,10 @@ export function buildLivingCoffeeTable(widthTiles: number): THREE.Group {
 
   const glass = new THREE.Mesh(
     new THREE.BoxGeometry(width - 0.2, 0.05, depth - 0.2),
-    new THREE.MeshPhysicalMaterial({
+    new THREE.MeshStandardMaterial({
       color: 0xd8e4e8,
       roughness: 0.03,
       metalness: 0,
-      transmission: 0.9,
       transparent: true,
       opacity: 0.35,
     }),
@@ -808,10 +806,9 @@ export function buildDrinksTrolley(): THREE.Group {
     const glass = solid(
       new THREE.Mesh(
         new THREE.CylinderGeometry(0.09, 0.07, 0.22, 12),
-        new THREE.MeshPhysicalMaterial({
+        new THREE.MeshStandardMaterial({
           color: 0xdfeaf0,
           roughness: 0.05,
-          transmission: 0.85,
           transparent: true,
           opacity: 0.35,
         }),
@@ -888,10 +885,9 @@ export function buildRecordPlayer(): { group: THREE.Group; animated: Animated } 
   const lid = solid(
     new THREE.Mesh(
       new THREE.BoxGeometry(1.2, 0.04, 0.85),
-      new THREE.MeshPhysicalMaterial({
+      new THREE.MeshStandardMaterial({
         color: 0xc8d0d4,
         roughness: 0.08,
-        transmission: 0.7,
         transparent: true,
         opacity: 0.4,
       }),
@@ -1073,7 +1069,7 @@ export function buildFretworkArch(width: number, height: number): THREE.Group {
  * The five-globe brass chandelier hanging in the middle of the room: a stem, a
  * ring of arms, and opal glass balls on the end of each.
  */
-export function buildGlobeChandelier(ceilingY: number): THREE.Group {
+export function buildGlobeChandelier(ceilingY: number, intensity = 6): THREE.Group {
   const group = new THREE.Group();
   const brass = metal(0xc9a75a, 0.32);
 
@@ -1113,9 +1109,14 @@ export function buildGlobeChandelier(ceilingY: number): THREE.Group {
   centre.position.y = ceilingY - 0.84;
   group.add(centre);
 
-  const light = new THREE.PointLight(0xffe0b0, 6, 16, 2);
-  light.position.y = ceilingY - 0.7;
-  group.add(light);
+  // A real light only when it is earning one. Every light in a scene is a
+  // per-pixel cost in the shader, and in a room this bright the globes read
+  // perfectly well on their emissive alone.
+  if (intensity > 0) {
+    const light = new THREE.PointLight(0xffe0b0, intensity, 16, 2);
+    light.position.y = ceilingY - 0.7;
+    group.add(light);
+  }
 
   return group;
 }

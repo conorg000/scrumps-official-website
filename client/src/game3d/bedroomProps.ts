@@ -1000,15 +1000,19 @@ export function buildSashWindow(width: number, height: number): THREE.Group {
   });
 
   // Glass: barely there, just enough to catch a highlight
+  // Plain transparent glass, not a transmissive one. `transmission` makes
+  // three.js render the whole scene to an offscreen target every frame, and
+  // there are five of these windows in the bedroom and three in the living
+  // room — it took both rooms from 60fps to the high twenties. At opacity 0.12
+  // the two are indistinguishable.
   const glass = new THREE.Mesh(
     new THREE.PlaneGeometry(width, height),
-    new THREE.MeshPhysicalMaterial({
-      color: 0x9ab4d8,
+    new THREE.MeshStandardMaterial({
+      color: 0xbcd4ec,
       transparent: true,
-      opacity: 0.12,
-      roughness: 0.08,
-      metalness: 0,
-      transmission: 0.85,
+      opacity: 0.14,
+      roughness: 0.06,
+      metalness: 0.2,
       side: THREE.DoubleSide,
     }),
   );
@@ -1075,12 +1079,12 @@ export function buildCrateStack(): THREE.Group {
 
   const glass = new THREE.Mesh(
     new THREE.CylinderGeometry(0.06, 0.05, 0.16, 12),
-    new THREE.MeshPhysicalMaterial({
+    new THREE.MeshStandardMaterial({
       color: 0xbcd6e6,
       transparent: true,
-      opacity: 0.4,
+      opacity: 0.45,
       roughness: 0.04,
-      transmission: 0.9,
+      metalness: 0.2,
     }),
   );
   glass.position.set(0.12, 0.8, -0.06);
